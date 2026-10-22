@@ -1,31 +1,14 @@
+// Live session: camera, pose model, swing detection, voice in and out.
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-import { RULES, CLUBS, VIDEOS, CAMERA, BAG, CATS, VOICE_HELP, clubById } from "./rules.js?v=4";
-import { features, frameHint, pickGolfer, SwingDetector, analyze, runChecks, coach, emptyCoachState, ruleById,
-  dispute, skipFocus, parseCommand, buildPlan, catStats, sessionStats, reportText, keyTimes, calibrationPlan } from "./engine.js?v=4";
+import { CAMERA, BAG, clubById } from "./rules.js?v=5";
+import { features, frameHint, pickGolfer, SwingDetector, analyze, runChecks, coach, ruleById,
+  dispute, skipFocus, parseCommand, buildPlan, keyTimes, calibrationPlan } from "./engine.js?v=5";
+import { DB, S, save } from "./store.js?v=5";
+import * as views from "./views.js?v=5";
 
 const $ = (s) => document.querySelector(s);
-const KEY = "golfcoach.v2";
-
-// ---------- Storage ----------
-function load() {
-  let d = null;
-  try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
-  if (!d) {
-    d = { settings: {}, coach: emptyCoachState(), sessions: [] };
-    try { const old = JSON.parse(localStorage.getItem("golfcoach.v1")); if (old?.sessions) d.sessions = old.sessions; } catch (e) {}
-  }
-  if (!d.coach || d.coach.v !== 2) d.coach = emptyCoachState();
-  d.settings ??= {}; d.sessions ??= [];
-  return d;
-}
-const DB = load();
-const S = DB.settings;
-S.clubId ??= "7i"; S.view ??= "face"; S.mode ??= 1; S.voice ??= true; S.mic ??= true; S.ask ??= true;
-S.bag ??= BAG.map((c) => c.id); S.balls ??= 100;
-function save() {
-  if (DB.sessions.length > 80) DB.sessions = DB.sessions.slice(-80);
-  try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) { console.warn("save failed", e); }
-}
+const camWord = (v) => (v === "dtl" ? "camera behind" : "camera in front");
+const clubOptions = () => BAG.filter((c) => S.bag.includes(c.id)).map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
 
 // ---------- Voice out ----------
 let voice = null, speaking = false, speakTimer = 0, lastSpeech = "", lastDetail = "";
@@ -83,64 +66,8 @@ function stopListening() {
 $("#micPill").onclick = () => {
   if (micState === "on") { S.mic = false; stopListening(); }
   else { S.mic = true; if (micState === "blocked") micState = "off"; startListening(); }
-  $("#micOn").checked = S.mic; save(); updateMic();
+  save(); updateMic();
 };
-
-// ---------- Home ----------
-function segInit(el, attr, get, set) {
-  const sync = () => el.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset[attr] === String(get()))));
-  el.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; set(b.dataset[attr]); sync(); refresh(); save(); });
-  sync();
-}
-const clubOptions = () => BAG.filter((c) => S.bag.includes(c.id)).map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
-segInit($("#viewSeg"), "v", () => S.view, (v) => (S.view = v));
-segInit($("#modeSeg"), "m", () => S.mode, (v) => (S.mode = Number(v)));
-$("#voiceOn").checked = S.voice; $("#voiceOn").onchange = (e) => { S.voice = e.target.checked; save(); };
-$("#micOn").checked = S.mic; $("#micOn").onchange = (e) => { S.mic = e.target.checked; save(); };
-$("#askResult").checked = S.ask; $("#askResult").onchange = (e) => { S.ask = e.target.checked; save(); };
-$("#bagList").innerHTML = BAG.map((c) => `<label class="sw" for="bag_${c.id}">${c.name} <input type="checkbox" id="bag_${c.id}" data-id="${c.id}"></label>`).join("");
-$("#bagList").querySelectorAll("input").forEach((i) => {
-  i.checked = S.bag.includes(i.dataset.id);
-  i.onchange = () => { S.bag = [...$("#bagList").querySelectorAll("input:checked")].map((x) => x.dataset.id); save(); refresh(); };
-});
-$("#ballsIn").value = S.balls;
-$("#ballsIn").oninput = () => { S.balls = Number($("#ballsIn").value) || 50; save(); renderPlanPreview(); };
-$("#ballChips").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; $("#ballsIn").value = b.textContent; S.balls = Number(b.textContent); save(); renderPlanPreview(); };
-$("#toFree").onclick = () => { $("#freeCard").hidden = !$("#freeCard").hidden; if (!$("#freeCard").hidden) $("#freeCard").scrollIntoView({ behavior: "smooth" }); };
-$("#clubFree").onchange = (e) => { S.clubId = e.target.value; save(); };
-
-function focusText() {
-  const F = DB.coach.focus;
-  if (!F) return `<span class="hint">No focus yet. It is set from your first swings.</span>`;
-  const r = ruleById(F.id), l5 = F.hist.slice(-5);
-  return `Focus: <b>${r.title}</b> <span class="num">${l5.filter(Boolean).length}/${l5.length} good</span>`;
-}
-const camWord = (v) => (v === "dtl" ? "camera behind" : "camera in front");
-let previewPlan = null;
-function renderPlanPreview() {
-  const fv = DB.coach.focus ? ruleById(DB.coach.focus.id)?.view : null;
-  previewPlan = buildPlan(S.balls, S.bag, DB.sessions, fv);
-  $("#planList").innerHTML = previewPlan.blocks.map((b) => `<li><b>${b.name}</b><span class="n">${b.balls}</span><small>${camWord(b.view)} · ${b.why}</small></li>`).join("");
-}
-function renderCalibCard() {
-  const last = DB.sessions.filter((s) => s.calib && (s.swings || []).length).at(-1);
-  $("#calibState").innerHTML = last
-    ? `Last calibration: ${new Date(last.start).toLocaleDateString(undefined, { day: "numeric", month: "short" })}, ${last.swings.filter((w) => !w.practice).length} swings, voice ${last.calib.mic === "ok" ? "worked" : last.calib.mic === "no" ? "not heard" : "off"}. Copy its report in Reports and paste it to Claude.`
-    : "Not done yet. Do this first, at the range.";
-  $("#startCalib").textContent = last ? "Run calibration again" : "Start calibration";
-  $("#startCalib").classList.toggle("ghost", !!last);
-}
-function refresh() {
-  renderCalibCard();
-  $("#viewHint").textContent = CAMERA[S.view];
-  $("#focusHome").innerHTML = focusText();
-  $("#clubFree").innerHTML = clubOptions(); $("#clubFree").value = S.clubId;
-  $("#clubLive").innerHTML = clubOptions(); $("#clubLive").value = S.clubId; $("#viewLive").value = S.view;
-  renderPlanPreview();
-}
-refresh();
-function show(id) { for (const s of ["home", "live", "report", "manual"]) $("#" + s).hidden = s !== id; window.scrollTo(0, 0); }
-document.querySelectorAll("[data-back]").forEach((b) => (b.onclick = () => { refresh(); show("home"); }));
 
 // ---------- Pose model ----------
 let landmarker = null;
@@ -152,9 +79,8 @@ async function initModel() {
   });
   try { landmarker = await make("GPU"); } catch (e) { landmarker = await make("CPU"); }
 }
-const modelReady = initModel().then(() => { $("#loadState").textContent = "Ready. Earphones in, then start."; })
-  .catch((e) => { $("#loadState").textContent = "Could not load the pose model. Check your internet and reload. " + e.message; });
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+const modelReady = initModel().then(() => views.setModelState("Ready. The camera coach works offline from now on."))
+  .catch((e) => views.setModelState("Could not load the pose model. Check your internet and reload. " + e.message));
 
 // ---------- Live session ----------
 const video = $("#video"), canvas = $("#overlay"), ctx = canvas.getContext("2d");
@@ -182,7 +108,7 @@ async function start(kind) {
   sessionMode = kind; running = true;
   say(calib ? "Starting calibration." : kind === "plan" ? "Starting your plan." : "Starting free practice.", { force: true }); // first speech must come from a tap
   startListening(); // iPhone only allows the microphone to start from a tap
-  show("live");
+  $("#live").hidden = false; $("#clubLive").innerHTML = clubOptions(); $("#clubLive").value = S.clubId; $("#viewLive").value = S.view;
   try { await startCamera(); }
   catch (e) { running = false; stopListening(); setStatus("Camera blocked", "off"); verdict("", "CAMERA", "Camera access needed", "Allow camera access for this page in Safari settings, then try again."); return; }
   await modelReady;
@@ -219,8 +145,8 @@ function applyBlock(first, queue = !first) {
   guide(`${b.name}, ${b.balls} balls. ${CAMERA[b.view]}`);
   const n = session.plan.blocks.length;
   const cam = b.view === "dtl" ? "Camera behind you." : "Camera in front of you.";
-  if (b.phase === "calib") say(`${first ? "Mariano, calibration" : "Calibration"} step ${session.blockIdx + 1} of ${n}. ${b.name}, ${b.balls} balls. ${cam} Swing normally, I won't correct you.`, { queue });
-  else say(`${first ? "Mariano, block" : "Block"} ${session.blockIdx + 1} of ${n}. ${b.name}, ${b.balls} balls. ${cam}${b.phase === "warmup" ? " Half swings." : b.phase === "retest" ? " Retest time." : ""}`, { queue });
+  if (b.phase === "calib") say(`${first ? S.profile.name + ", calibration" : "Calibration"} step ${session.blockIdx + 1} of ${n}. ${b.name}, ${b.balls} balls. ${cam} Swing normally, I won't correct you.`, { queue });
+  else say(`${first ? S.profile.name + ", block" : "Block"} ${session.blockIdx + 1} of ${n}. ${b.name}, ${b.balls} balls. ${cam}${b.phase === "warmup" ? " Half swings." : b.phase === "retest" ? " Retest time." : ""}`, { queue });
   renderBlockbar();
 }
 function advanceBlock(manual) {
@@ -238,10 +164,11 @@ function advanceBlock(manual) {
 }
 function renderBlockbar() {
   const bb = $("#blockbar");
-  if (sessionMode !== "plan") { bb.innerHTML = `<span><b>${clubById(S.clubId).name}</b> · free practice</span><span>${camWord(S.view)}</span>`; return; }
-  const b = currentBlock(), n = session.plan.blocks.length;
-  if (!b) { bb.innerHTML = `<span><b>${session.calib ? "Calibration" : "Plan"} done</b></span><span>${n} blocks</span>`; return; }
-  bb.innerHTML = `<span><b>${b.name}</b> · ${session.blockDone}/${b.balls} balls</span><span>${session.calib ? "calibration" : "block"} ${session.blockIdx + 1}/${n} · ${camWord(b.view)}</span>`;
+  if (sessionMode !== "plan") { bb.innerHTML = `<div class="top"><span><b>${clubById(S.clubId).name}</b> free practice</span><span>${camWord(S.view)}</span></div>`; return; }
+  const blocks = session.plan.blocks, b = currentBlock(), n = blocks.length;
+  const seg = blocks.map((x, i) => i < session.blockIdx ? '<i class="done"></i>' : i === session.blockIdx ? `<i class="now" style="--p:${Math.round((100 * session.blockDone) / x.balls)}%"></i>` : "<i></i>").join("");
+  if (!b) { bb.innerHTML = `<div class="top"><span><b>${session.calib ? "Calibration" : "Plan"} done</b></span><span>${n} blocks</span></div><div class="segbar">${seg}</div>`; return; }
+  bb.innerHTML = `<div class="top"><span><b>${b.name}</b> ${session.blockDone} of ${b.balls}</span><span>${session.calib ? "Calibration" : "Block"} ${session.blockIdx + 1} of ${n}, ${camWord(b.view)}</span></div><div class="segbar">${seg}</div>`;
 }
 
 function stop() {
@@ -250,8 +177,8 @@ function stop() {
   try { wakeLock?.release(); } catch (e) {} wakeLock = null;
   const s = session; session = null;
   if (s && !s.swings.length) DB.sessions = DB.sessions.filter((x) => x !== s);
-  save(); refresh();
-  if (s?.swings.length) { renderReport(s.id); show("report"); } else show("home");
+  save(); $("#live").hidden = true;
+  if (s?.swings.length) views.openReport(s.id, "today"); else views.go("today");
 }
 $("#endBtn").onclick = () => {
   const now = Date.now();
@@ -259,9 +186,6 @@ $("#endBtn").onclick = () => {
   endArmed = now; $("#endBtn").textContent = "Tap again"; $("#endBtn").classList.add("warn");
   setTimeout(() => { $("#endBtn").textContent = "End"; $("#endBtn").classList.remove("warn"); }, 3000);
 };
-$("#startPlan").onclick = () => start("plan");
-$("#startCalib").onclick = () => start("calib");
-$("#startFree").onclick = () => start("free");
 $("#nextBtn").onclick = () => advanceBlock(true);
 $("#lockPill").onclick = () => { lock = null; say("Looking for you again. Stand in the middle."); };
 
@@ -324,7 +248,7 @@ function onSwing(sw) {
     session.swings.push(rec); lastSwing = rec; lastDetail = "";
     const nCal = session.swings.filter((w) => w.calib && !w.practice).length;
     const line = `${session.blockDone + 1} of ${blk.balls}.` + (nCal === 1 ? " Now say how it flew, for example: straight, or slice." : "");
-    verdict("", "CAPTURED", `${blk.name} · ${camWord(S.view)}`, "No corrections during calibration. Say how it flew.");
+    verdict("", "CAPTURED", `${blk.name}, ${camWord(S.view)}`, "No corrections during calibration. Say how it flew.");
     say(line, { remember: true });
     $("#count").textContent = `${session.swings.filter((w) => !w.practice).length} swings`;
     renderThumbs(sw, null);
@@ -333,7 +257,7 @@ function onSwing(sw) {
     save(); return;
   }
   swingsSinceHint++;
-  const r = coach(DB.coach, checks, m, grp, S.view, S.mode, { cameraHint: sessionMode === "free" && swingsSinceHint >= 5 });
+  const r = coach(DB.coach, checks, m, grp, S.view, S.mode, { cameraHint: sessionMode === "free" && swingsSinceHint >= 5, name: S.profile.name });
   if (r.event?.type === "camera") swingsSinceHint = 0;
   const rec = { t: Date.now(), clubId, club: grp, cat: blk ? blk.cat : clubById(clubId).cat, block: blk?.phase || null, blockIdx: session.blockIdx ?? null,
     view: S.view, m, checks, items: r.items, focus: r.focusId, said: r.speech, q };
@@ -376,7 +300,7 @@ function markWrong() {
   session.disputes[id] = (session.disputes[id] || 0) + 1;
   if (session.disputes[id] >= 2 && !session.muted.includes(id)) { session.muted.push(id); say(`OK. I'll stop checking ${ruleById(id).title.toLowerCase()} today.`); }
   else say("OK, that one doesn't count.");
-  $("#focusHome").innerHTML = focusText(); save();
+  save();
 }
 function doSkip() { const n = skipFocus(DB.coach, group()); say(n ? `New focus: ${n.title.toLowerCase()}.` : "No other focus right now."); save(); }
 function doStatus() {
@@ -478,48 +402,5 @@ function draw(poses, idx, f) {
   });
 }
 
-// ---------- Report ----------
-$("#toReport").onclick = () => { renderReport(DB.sessions.at(-1)?.id); show("report"); };
-const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0);
-function renderReport(sid) {
-  const list = DB.sessions.slice(-6);
-  $("#sessSeg").innerHTML = list.map((s) => `<button data-s="${s.id}" aria-pressed="${s.id === sid}">${new Date(s.start).toLocaleDateString(undefined, { day: "numeric", month: "short" })}</button>`).join("");
-  $("#sessSeg").onclick = (e) => { const b = e.target.closest("button"); if (b) renderReport(b.dataset.s); };
-  const s = DB.sessions.find((x) => x.id === sid);
-  if (!s) { $("#repBody").innerHTML = `<p class="hint">No sessions yet. Your first report appears here after you hit some balls.</p>`; $("#repText").textContent = ""; return; }
-  const st = sessionStats(s), cs = catStats([s], 1), flights = Object.entries(st.results);
-  const bad = flights.filter(([r]) => r !== "straight").reduce((a, [, n]) => a + n, 0), logged = flights.reduce((a, [, n]) => a + n, 0);
-  $("#repBody").innerHTML = `
-    <div class="stats">
-      <div class="stat"><b>${st.n}</b><span class="hint">swings</span></div>
-      <div class="stat"><b>${logged ? pct(bad, logged) + "%" : "–"}</b><span class="hint">bad shots</span></div>
-      <div class="stat"><b>${st.faults[0] ? st.faults[0].rate + "%" : "0%"}</b><span class="hint">top fault</span></div>
-    </div>
-    <span class="eyebrow">By club group</span>
-    <div class="scroll"><table class="cats"><tr><th>Group</th><th>Swings</th><th>Bad shots</th><th>Faults</th></tr>
-      ${Object.entries(cs).map(([c, o]) => `<tr><td>${CATS[c]?.name || c}</td><td>${o.n}</td><td>${o.logged ? pct(o.bad, o.logged) + "%" : "–"}</td><td>${o.checks ? pct(o.fails, o.checks) + "%" : "–"}</td></tr>`).join("")}</table></div>
-    <span class="eyebrow">Faults, failed out of checked</span>
-    ${st.faults.length ? st.faults.map((f) => `<div class="bar"><span>${ruleById(f.id)?.title || f.id}${ruleById(f.id)?.conf === "low" ? " <span class='tag'>weak</span>" : ""}</span><span class="num">${f.fail}/${f.n}</span><i><span style="width:${f.rate}%"></span></i></div>`).join("") : '<p class="hint">No checks yet.</p>'}
-    ${flights.length ? `<span class="eyebrow">Ball flight</span><p style="margin:0">${flights.map(([r, n]) => `${r === "top" ? "thin" : r} <b>${n}</b>`).join(" · ")}</p>` : ""}
-    ${s.disputes && Object.keys(s.disputes).length ? `<span class="eyebrow">You said these were wrong</span><p style="margin:0">${Object.entries(s.disputes).map(([id, n]) => `${ruleById(id)?.title} ×${n}`).join(", ")}</p>` : ""}`;
-  $("#repText").textContent = reportText(DB.sessions, s.id, DB.coach);
-}
-$("#copyRep").onclick = async () => {
-  const t = $("#repText").textContent;
-  try { await navigator.clipboard.writeText(t); $("#copyRep").textContent = "Copied"; }
-  catch (e) { const r = document.createRange(); r.selectNodeContents($("#repText")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); $("#copyRep").textContent = "Selected, tap Copy"; }
-  setTimeout(() => ($("#copyRep").textContent = "Copy report"), 2500);
-};
-
-// ---------- Manual ----------
-$("#toManual").onclick = () => { renderManual(); show("manual"); };
-function renderManual() {
-  $("#wordList").innerHTML = VOICE_HELP.map(([w, d]) => `<dt>${w}</dt><dd>${d}</dd>`).join("");
-  const auto = RULES.filter((r) => r.auto).sort((a, b) => a.priority - b.priority), man = RULES.filter((r) => !r.auto);
-  const viewName = (v) => v === "dtl" ? "camera behind" : v === "face" ? "camera in front" : "any camera";
-  const item = (r) => { const v = VIDEOS[r.src]; return `<div class="rule"><h3>${r.title}${r.auto ? `<span class="tag">${viewName(r.view)}</span>` : ""}${r.conf === "low" ? `<span class="tag">weak</span>` : ""}</h3>
-    <span>${r.rule}</span>
-    <small>${v.url ? `<a href="${v.url}" target="_blank" rel="noopener">${v.who}: ${v.title}</a>` : v.title}${r.clubs ? " · " + r.clubs.map((c) => CLUBS[c]).join(", ") : ""}</small></div>`; };
-  $("#manBody").innerHTML = `<span class="eyebrow">Checked by the camera, in the order we fix them</span>${auto.map(item).join("")}
-    <span class="eyebrow" style="margin-top:8px">Read and practise</span>${man.map(item).join("")}`;
-}
+views.init({ start });
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});

@@ -6,176 +6,210 @@
 <title>Golf Bible Coach</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Swing Coach">
-<meta name="theme-color" content="#1f6b45">
+<meta name="theme-color" content="#0F4C3A">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
 <style>
-/* Layout: one column; live screen readable from 3 metres (verdict first, details below). */
+/* Concept: a yardage book and a scorecard. Deep fairway green, clean paper, hairline grids.
+   One family (Archivo) in two widths: condensed for numbers and titles, normal for reading. */
 :root {
-  --bg: #f3f4ef; --surface: #ffffff; --ink: #18231c; --muted: #5d6a60; --line: #d9ddd3;
-  --accent: #1f6b45; --accent-ink: #ffffff; --flag: #e0b12a;
-  --good: #1f7a47; --bad: #b8402c; --good-bg: #e4f2e8; --bad-bg: #f8e6e1;
-  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
-  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --paper: #f5f7f3; --card: #ffffff; --ink: #10201a; --ink2: #536459; --line: #dde4dd; --line2: #c9d3ca;
+  --fairway: #0f4c3a; --fairway2: #1d6b52; --on-fairway: #ffffff; --tint: #e6efe9; --gold: #b38a2a;
+  --good: #1d8757; --bad: #c4452c; --good-bg: #e2f1e8; --bad-bg: #fae8e2;
+  --cond: "Archivo", "Arial Narrow", system-ui, sans-serif; --text: "Archivo", system-ui, -apple-system, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root {
-  --bg: #0f1511; --surface: #18201b; --ink: #eef2ec; --muted: #9aa79c; --line: #2b352e;
-  --accent: #3fa772; --accent-ink: #08130c; --flag: #e8bf45;
-  --good: #57c088; --bad: #ef7a63; --good-bg: #17301f; --bad-bg: #3a1c16; color-scheme: dark } }
+  --paper: #0b1410; --card: #111d18; --ink: #e7efea; --ink2: #9aaea2; --line: #20312a; --line2: #2c4037;
+  --fairway: #2f9a6f; --fairway2: #3db382; --on-fairway: #04120c; --tint: #15261f; --gold: #d6b157;
+  --good: #4fc08a; --bad: #ee7a5f; --good-bg: #12291e; --bad-bg: #321810; color-scheme: dark } }
 * { box-sizing: border-box }
 html, body { height: 100% }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--body); -webkit-tap-highlight-color: transparent }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.5 var(--text); font-stretch: 100%; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased }
 [hidden] { display: none !important }
-h1, h2, h3 { font-family: var(--display); letter-spacing: .01em; text-wrap: balance; margin: 0 }
-h1 { font-size: 2.1rem; line-height: 1 } h2 { font-size: 1.5rem } h3 { font-size: 1.15rem }
-.wrap { max-width: 640px; margin: 0 auto; padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-bottom, 0px));
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px }
-.eyebrow { font: 600 .75rem var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted) }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; min-width: 0 }
-.seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 6px; background: var(--bg); border-radius: 12px; padding: 4px }
-.seg button { border: 0; background: transparent; color: var(--ink); font: 600 1rem var(--body); padding: 10px 6px; border-radius: 9px; min-height: 46px }
-.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink) }
-.btn { border: 0; border-radius: 12px; font: 700 1.15rem var(--display); letter-spacing: .04em; text-transform: uppercase; padding: 14px; min-height: 54px; background: var(--accent); color: var(--accent-ink); width: 100% }
-.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line) }
-.btn.small { width: auto; min-height: 44px; padding: 8px 14px; font-size: 1rem }
-.btn.warn { background: var(--bad); color: #fff }
-button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--flag); outline-offset: 2px }
-.row { display: flex; gap: 10px; flex-wrap: wrap } .row > * { flex: 1 1 0; min-width: 0 }
-.hint { color: var(--muted); font-size: .93rem; margin: 0 }
-label.sw { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px }
-label.sw input { width: 24px; height: 24px; accent-color: var(--accent); flex: none }
-.focusline { font: 600 1.02rem var(--body) } .focusline b { font-family: var(--display); font-size: 1.2rem }
-.balls { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center }
-.balls input { font: 700 2rem var(--display); width: 100%; padding: 6px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums }
-.chips { display: flex; gap: 6px; flex-wrap: wrap }
-.chips button { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 8px 14px; font: 600 .95rem var(--body); min-height: 40px }
-ol.plan { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; counter-reset: b }
-ol.plan li { counter-increment: b; display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line) }
-ol.plan li:first-child { border-top: 0 }
-ol.plan li::before { content: counter(b); font: 700 1.3rem var(--display); color: var(--muted); grid-row: span 2 }
-ol.plan li b { font-family: var(--display); font-size: 1.15rem }
-ol.plan li .n { font: 700 1.2rem var(--display); font-variant-numeric: tabular-nums }
-ol.plan li small { grid-column: 2 / -1; color: var(--muted) }
-ol.plan li.done { opacity: .45 } ol.plan li.now b { color: var(--accent) }
-.bag { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 12px }
+button, input, select { font: inherit; color: inherit }
+h1, h2, h3 { margin: 0; font-family: var(--cond); font-stretch: 78%; text-wrap: balance }
+h1 { font-size: 2.4rem; line-height: 1; font-weight: 780; letter-spacing: -.01em }
+h2 { font-size: 1.45rem; font-weight: 720; line-height: 1.1 }
+h3 { font-size: 1.15rem; font-weight: 700; line-height: 1.15 }
+p { margin: 0 }
+.num, td { font-variant-numeric: tabular-nums }
+.muted { color: var(--ink2) }
+.small { font-size: .9rem }
+a { color: var(--fairway2) }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px }
 
-/* Live session */
-#live { position: fixed; inset: 0; background: #000; display: grid; grid-template-rows: minmax(0, 1fr) auto }
+/* Shell */
+.screen { max-width: 680px; margin: 0 auto; padding-block: calc(18px + env(safe-area-inset-top, 0px)) calc(96px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 18px; align-content: start }
+.lt { display: grid; gap: 4px; padding-top: 6px }
+.lt .greet { color: var(--ink2); font-size: .95rem }
+#tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, 1fr);
+  padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+  background: color-mix(in srgb, var(--card) 88%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-top: 1px solid var(--line) }
+#tabbar button { border: 0; background: none; display: grid; justify-items: center; gap: 2px; padding: 6px 0; color: var(--ink2); font-size: .72rem; font-weight: 600; min-height: 50px }
+#tabbar button svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+#tabbar button[aria-current="page"] { color: var(--fairway) }
+
+/* Surfaces */
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: grid; gap: 14px; min-width: 0 }
+.panel.hero { background: var(--fairway); color: var(--on-fairway); border-color: transparent }
+.panel.hero .muted { color: color-mix(in srgb, var(--on-fairway) 78%, transparent) }
+.sect { display: flex; justify-content: space-between; align-items: baseline; gap: 10px }
+.linkbtn { background: none; border: 0; color: var(--fairway2); font-weight: 600; padding: 4px 0; min-height: 36px }
+
+/* Buttons */
+.btn { display: inline-flex; justify-content: center; align-items: center; gap: 8px; border: 0; border-radius: 14px; padding: 14px 18px; min-height: 54px; width: 100%;
+  background: var(--fairway); color: var(--on-fairway); font-family: var(--cond); font-stretch: 85%; font-weight: 700; font-size: 1.2rem; letter-spacing: .01em }
+.panel.hero .btn { background: var(--on-fairway); color: var(--fairway) }
+.btn.quiet { background: var(--tint); color: var(--fairway) }
+.btn.line { background: transparent; color: var(--ink); border: 1px solid var(--line2) }
+.btn.danger { background: var(--bad); color: #fff }
+.btn.sm { width: auto; min-height: 44px; padding: 8px 14px; font-size: 1.05rem; border-radius: 12px }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 4px }
+.seg button { border: 0; background: transparent; border-radius: 9px; padding: 9px 6px; min-height: 42px; font-weight: 600; font-size: .95rem }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--fairway); box-shadow: 0 1px 2px rgb(0 0 0 / .12) }
+
+/* Balls stepper */
+.stepper { display: grid; grid-template-columns: 56px minmax(0, 1fr) 56px; align-items: center; gap: 8px }
+.stepper button { height: 56px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--on-fairway) 35%, transparent); background: transparent; font-size: 1.8rem; line-height: 1; color: inherit }
+.stepper output { text-align: center; font-family: var(--cond); font-stretch: 70%; font-weight: 800; font-size: 4rem; line-height: 1; font-variant-numeric: tabular-nums }
+.stepper output small { display: block; font: 600 .85rem var(--text); font-stretch: 100%; opacity: .8 }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center }
+.chips button { border: 1px solid color-mix(in srgb, var(--on-fairway) 35%, transparent); background: transparent; border-radius: 999px; padding: 6px 14px; min-height: 36px; font-weight: 600; font-size: .9rem }
+.chips button[aria-pressed="true"] { background: var(--on-fairway); color: var(--fairway) }
+
+/* Scorecard: the plan */
+.card-scroll { overflow-x: auto; border: 1px solid var(--line2); border-radius: 12px }
+table.score { width: 100%; border-collapse: collapse; font-size: .95rem; min-width: 320px }
+table.score th { background: var(--fairway); color: var(--on-fairway); font-family: var(--cond); font-stretch: 85%; font-weight: 700; font-size: .95rem; text-align: left; padding: 8px 10px }
+table.score td { padding: 9px 10px; border-top: 1px solid var(--line); vertical-align: top }
+table.score td + td, table.score th + th { border-left: 1px solid var(--line) }
+table.score .c { text-align: center } table.score .n { text-align: center; font-family: var(--cond); font-stretch: 80%; font-weight: 750; font-size: 1.1rem }
+table.score tr.tot td { background: var(--tint); font-weight: 700 }
+table.score td small { display: block; color: var(--ink2); font-size: .82rem; line-height: 1.35; margin-top: 2px }
+.cam { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; color: var(--ink2); white-space: nowrap }
+.cam svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8 }
+details.why summary { cursor: pointer; color: var(--fairway2); font-weight: 600; list-style: none; min-height: 36px; display: flex; align-items: center }
+details.why summary::-webkit-details-marker { display: none }
+details.why p { color: var(--ink2); font-size: .93rem; margin-top: 6px }
+
+/* Focus */
+.focus { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 14px; align-items: center }
+.ring { width: 76px; height: 76px } .ring circle { fill: none; stroke-width: 8 } .ring .bg { stroke: var(--line) } .ring .fg { stroke: var(--fairway); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50% }
+.ring text { font-family: var(--cond); font-stretch: 75%; font-weight: 800; font-size: 24px; fill: var(--ink); text-anchor: middle; dominant-baseline: central }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px }
+.stat { display: grid; gap: 2px }
+.stat b { font-family: var(--cond); font-stretch: 72%; font-weight: 800; font-size: 2.2rem; line-height: 1 }
+.stat span { font-size: .85rem; color: var(--ink2) }
+
+/* Calendar */
+.cal-head { display: flex; justify-content: space-between; align-items: center }
+.cal-head button { border: 1px solid var(--line); background: var(--card); border-radius: 10px; width: 44px; height: 44px; font-size: 1.2rem }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center }
+.cal .dow { font-size: .75rem; color: var(--ink2); font-weight: 600; padding-bottom: 4px }
+.cal button { border: 0; background: none; aspect-ratio: 1; display: grid; place-items: center; font-family: var(--cond); font-stretch: 85%; font-weight: 650; font-size: 1.05rem; position: relative; border-radius: 10px }
+.cal button.out { opacity: .3 } .cal button.today { color: var(--fairway); font-weight: 800 }
+.cal button.sel { background: var(--tint) }
+.cal button .mk { position: absolute; inset: 14%; border: 2px solid var(--fairway) }
+.cal button .mk.circle { border-radius: 50% } .cal button .mk.square { border-color: var(--bad); border-radius: 3px } .cal button .mk.dot { border-style: dashed; border-color: var(--ink2); border-radius: 50% }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .82rem; color: var(--ink2) }
+.legend i { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--fairway); border-radius: 50%; vertical-align: -2px; margin-right: 5px }
+.legend i.square { border-color: var(--bad); border-radius: 2px } .legend i.dot { border-style: dashed; border-color: var(--ink2) }
+.rows { display: grid } .rows button { border: 0; border-top: 1px solid var(--line); background: none; text-align: left; padding: 12px 2px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; min-height: 56px }
+.rows button:first-child { border-top: 0 } .rows b { font-weight: 650 } .rows small { color: var(--ink2) } .rows .r { text-align: right; font-family: var(--cond); font-stretch: 80%; font-weight: 750; font-size: 1.15rem }
+
+/* Charts and bars */
+svg.chart { width: 100%; height: auto; display: block }
+svg.chart text { font: 500 11px var(--text); fill: var(--ink2) }
+.bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; font-size: .93rem }
+.bar i { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; display: block }
+.bar i span { display: block; height: 100%; background: var(--bad); border-radius: 4px }
+.bar.good i span { background: var(--good) }
+.tag { display: inline-block; font-size: .72rem; font-weight: 650; padding: 1px 8px; border-radius: 999px; background: var(--tint); color: var(--fairway2); margin-left: 6px; vertical-align: middle }
+.tag.weak { background: var(--paper); color: var(--ink2); border: 1px solid var(--line) }
+.notes { display: grid; gap: 10px } .notes p { line-height: 1.55 }
+pre.rep { white-space: pre-wrap; word-break: break-word; font: .78rem/1.45 ui-monospace, Menlo, monospace; background: var(--paper); border: 1px solid var(--line); padding: 10px; border-radius: 10px; max-height: 260px; overflow: auto; margin: 0 }
+
+/* Library */
+details.chap { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 4px 18px }
+details.chap > summary { list-style: none; cursor: pointer; padding: 14px 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 56px }
+details.chap > summary::-webkit-details-marker { display: none }
+details.chap > summary::after { content: "+"; font-size: 1.5rem; color: var(--ink2) } details.chap[open] > summary::after { content: "\2212" }
+details.chap .body { display: grid; gap: 14px; padding-bottom: 16px }
+.rule { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 12px } .rule:first-child { border-top: 0; padding-top: 0 }
+.rule small { color: var(--ink2) }
+ol.steps { margin: 0; padding-left: 1.2rem; display: grid; gap: 8px }
+dl.words { display: grid; grid-template-columns: minmax(0, 9rem) minmax(0, 1fr); gap: 8px 14px; margin: 0 } dl.words dt { font-weight: 700 } dl.words dd { margin: 0; color: var(--ink2) }
+.diagram { width: 100%; max-width: 420px; justify-self: center }
+.diagram text { font: 600 12px var(--text); fill: var(--ink2) }
+
+/* Profile */
+.me { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; align-items: center }
+.avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--fairway); color: var(--on-fairway); display: grid; place-items: center; font-family: var(--cond); font-stretch: 80%; font-weight: 800; font-size: 1.5rem }
+.field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; border-top: 1px solid var(--line); padding-top: 12px; min-height: 48px }
+.field:first-child { border-top: 0; padding-top: 0 }
+.field input[type="text"], .field input[type="number"], .field select { border: 1px solid var(--line2); background: var(--paper); border-radius: 10px; padding: 8px 10px; min-height: 42px; max-width: 12rem; text-align: right }
+.field input[type="checkbox"] { width: 24px; height: 24px; accent-color: var(--fairway) }
+.bag { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px }
+.bag label { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line2); border-radius: 12px; padding: 10px 12px; min-height: 48px; font-weight: 600 }
+.bag label:has(input:checked) { border-color: var(--fairway); background: var(--tint); color: var(--fairway) }
+.bag input { width: 20px; height: 20px; accent-color: var(--fairway) }
+
+/* Live session: camera UI, always dark */
+#live { position: fixed; inset: 0; z-index: 50; background: #000; color: #eef3ef; display: grid; grid-template-rows: minmax(0, 1fr) auto }
 #stage { position: relative; overflow: hidden; min-height: 0 }
 #video, #overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain }
-#topbar { position: absolute; left: 0; right: 0; top: 0; padding: calc(10px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 10px max(12px, env(safe-area-inset-left, 0px));
-  display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: linear-gradient(#000a, #0000) }
-.pill { background: #000b; color: #fff; border: 1px solid #fff3; border-radius: 999px; padding: 7px 12px; font: 600 .88rem var(--body) }
-.pill.ready { background: #1f7a47; border-color: transparent }
-.pill.busy { background: #e0b12a; color: #1b1400; border-color: transparent }
-.pill.off { background: #5b2a22; border-color: transparent }
-button.pill { cursor: pointer }
-#guide { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: 12px; background: #000c; color: #fff; border-radius: 12px; padding: 12px 14px; font-size: 1rem }
-#panel { background: var(--surface); color: var(--ink); padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 10px; max-height: 58vh; overflow-y: auto }
-.blockbar { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; font: 600 .95rem var(--body); color: var(--muted) }
-.blockbar b { font: 700 1.25rem var(--display); color: var(--ink) }
+#topbar { position: absolute; left: 0; right: 0; top: 0; padding: calc(10px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 14px max(12px, env(safe-area-inset-left, 0px));
+  display: flex; gap: 6px; flex-wrap: wrap; background: linear-gradient(#000c, #0000) }
+.pill { background: rgb(18 30 25 / .82); color: #eef3ef; border: 1px solid rgb(255 255 255 / .14); border-radius: 999px; padding: 7px 12px; font-size: .85rem; font-weight: 600; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px) }
+.pill.ready { background: #1d8757; border-color: transparent } .pill.busy { background: #c99a2a; color: #160f00; border-color: transparent } .pill.off { background: #7a2d1f; border-color: transparent }
+#guide { position: absolute; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px)); bottom: 12px; background: rgb(10 18 15 / .86); border: 1px solid rgb(255 255 255 / .12); border-radius: 14px; padding: 12px 14px; font-size: 1rem; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px) }
+#panel { background: #0f1a15; border-top: 1px solid #22332b; padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 12px; max-height: 60vh; overflow-y: auto }
+.blocks { display: grid; gap: 6px } .blocks .top { display: flex; justify-content: space-between; gap: 10px; font-size: .9rem; color: #9fb4a8 } .blocks .top b { color: #eef3ef; font-family: var(--cond); font-stretch: 85%; font-size: 1.15rem }
+.segbar { display: grid; grid-auto-flow: column; gap: 3px; height: 6px } .segbar i { border-radius: 3px; background: #2a3c33 } .segbar i.done { background: #3db382 } .segbar i.now { background: linear-gradient(90deg, #3db382 var(--p, 0%), #2a3c33 var(--p, 0%)) }
 .verdict { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 14px; align-items: center }
-.verdict .word { font: 800 3.4rem/0.9 var(--display); letter-spacing: .02em; grid-row: span 2; color: var(--muted) }
-.verdict.good .word { color: var(--good) } .verdict.bad .word { color: var(--bad) }
-.verdict .what { font: 700 1.35rem/1.1 var(--display) }
-.verdict .cue { font: 500 1rem/1.3 var(--body); color: var(--muted) }
+.verdict .word { font-family: var(--cond); font-stretch: 68%; font-weight: 800; font-size: 3.8rem; line-height: .9; color: #9fb4a8; grid-row: span 2 }
+.verdict.good .word { color: #4fc08a } .verdict.bad .word { color: #f0876c }
+.verdict .what { font-family: var(--cond); font-stretch: 85%; font-weight: 720; font-size: 1.35rem; line-height: 1.1 }
+.verdict .cue { color: #a9bcb1; font-size: .98rem; line-height: 1.35 }
 .thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px }
-.thumbs figure { margin: 0; display: grid; gap: 2px } .thumbs canvas { width: 100%; border-radius: 8px; background: #000; aspect-ratio: 3 / 4 }
-.thumbs figcaption { font: 600 .72rem var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: center }
+.thumbs figure { margin: 0; display: grid; gap: 3px } .thumbs canvas { width: 100%; border-radius: 10px; background: #000; aspect-ratio: 3 / 4 }
+.thumbs figcaption { font-size: .72rem; font-weight: 600; color: #8ea398; text-align: center }
 .res { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px }
-.res button { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; min-height: 50px; font: 600 .98rem var(--body) }
-.res button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
-.acts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px }
-.acts button { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 10px; min-height: 44px; font: 600 .92rem var(--body) }
-.mini { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
-.mini > * { flex: 1 1 auto; min-width: 0 }
-.mini select { font: 600 1rem var(--body); padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-height: 44px }
-
-/* Report and manual */
-.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px }
-.stat { background: var(--bg); border-radius: 10px; padding: 10px } .stat b { display: block; font: 700 1.8rem var(--display); font-variant-numeric: tabular-nums }
-.bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; font-size: .92rem }
-.bar i { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; display: block }
-.bar i span { display: block; height: 100%; background: var(--bad) }
-.num { font-variant-numeric: tabular-nums; color: var(--muted) }
-table.cats { width: 100%; border-collapse: collapse; font-size: .92rem; font-variant-numeric: tabular-nums }
-table.cats th, table.cats td { text-align: left; padding: 6px 4px; border-top: 1px solid var(--line) } table.cats th { color: var(--muted); font-weight: 600 }
-.scroll { overflow-x: auto }
-pre.rep { white-space: pre-wrap; word-break: break-word; font: .8rem/1.4 ui-monospace, Menlo, monospace; background: var(--bg); padding: 10px; border-radius: 10px; max-height: 240px; overflow: auto; margin: 0 }
-.rule { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 4px } .rule:first-of-type { border-top: 0; padding-top: 0 }
-.rule small { color: var(--muted) } .rule a { color: var(--accent) }
-.tag { display: inline-block; font: 600 .7rem var(--body); letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--bg); color: var(--muted); margin-left: 6px; vertical-align: middle }
-dl.words { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 12px; margin: 0 } dl.words dt { font-weight: 600 } dl.words dd { margin: 0; color: var(--muted) }
-nav.tabs { display: flex; gap: 8px } nav.tabs .btn { font-size: 1rem; min-height: 48px; padding: 10px }
-@media (prefers-reduced-motion: no-preference) { .pill { transition: background .2s } }
+.res button, .acts button { border: 1px solid #2c4037; background: #15231d; color: #eef3ef; border-radius: 12px; min-height: 50px; font-weight: 600; font-size: .95rem }
+.res button[aria-pressed="true"] { background: #eef3ef; color: #0f1a15; border-color: #eef3ef }
+.acts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px } .acts button { min-height: 44px; background: transparent }
+.mini { display: flex; gap: 8px; flex-wrap: wrap; align-items: center } .mini > * { flex: 1 1 auto; min-width: 0 }
+.mini select { border: 1px solid #2c4037; background: #15231d; color: #eef3ef; border-radius: 12px; padding: 10px; min-height: 44px; font-weight: 600 }
+#live .btn { background: #3db382; color: #04120c } #live .btn.line { background: transparent; color: #eef3ef; border-color: #2c4037 } #live .btn.danger { background: #c4452c; color: #fff }
+@media (prefers-reduced-motion: no-preference) { .pill, .seg button, #tabbar button { transition: background .2s, color .2s } }
 </style>
 </head>
 <body>
+<main id="tab-today" class="screen"></main>
+<main id="tab-history" class="screen" hidden></main>
+<main id="tab-progress" class="screen" hidden></main>
+<main id="tab-library" class="screen" hidden></main>
+<main id="tab-profile" class="screen" hidden></main>
+<main id="screen-report" class="screen" hidden></main>
 
-<!-- HOME -->
-<main id="home" class="wrap">
-  <header style="display:grid;gap:6px">
-    <span class="eyebrow">Golf bible coach</span>
-    <h1>Hit, wait, listen.</h1>
-    <p class="hint">One correction at a time, only from your playlist. Earphones in, camera set up, swing.</p>
-  </header>
+<nav id="tabbar" aria-label="Sections">
+  <button data-tab="today"><svg viewBox="0 0 24 24"><path d="M6 21V3l11 4-11 4"/><path d="M3 21h14"/></svg>Today</button>
+  <button data-tab="history"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>History</button>
+  <button data-tab="progress"><svg viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M5 15l4.5-4.5 3.5 3L19 7"/></svg>Progress</button>
+  <button data-tab="library"><svg viewBox="0 0 24 24"><path d="M5 4.5h9.5A4.5 4.5 0 0 1 19 9v10.5H9.5A4.5 4.5 0 0 1 5 15z"/><path d="M9 9h6M9 13h4"/></svg>Library</button>
+  <button data-tab="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4.5 20c1.3-3.6 4.2-5.5 7.5-5.5s6.2 1.9 7.5 5.5"/></svg>Profile</button>
+</nav>
 
-  <section class="card" id="calibCard">
-    <span class="eyebrow">Trial period, step 1</span>
-    <h3>Calibration session</h3>
-    <p class="hint">A full bucket with the number of balls below, before your real sessions. Same order of clubs as a normal plan, every club from both camera sides. The app does not correct you: it tests the voice, checks that it catches every swing, and measures how your swing reads on camera. Say how each ball flew. Then paste the report to Claude to tune the rules.</p>
-    <p class="hint" id="calibState"></p>
-    <button class="btn" id="startCalib">Start calibration</button>
-  </section>
-
-  <section class="card">
-    <span class="eyebrow">Today</span>
-    <div class="balls">
-      <input id="ballsIn" type="number" inputmode="numeric" min="10" max="300" value="100" aria-label="Balls in your bucket">
-      <span class="hint">balls</span>
-    </div>
-    <div class="chips" id="ballChips"><button>30</button><button>50</button><button>80</button><button>100</button></div>
-    <div class="focusline" id="focusHome"></div>
-    <ol class="plan" id="planList"></ol>
-    <button class="btn" id="startPlan">Start this plan</button>
-    <button class="btn ghost" id="toFree">Free practice instead</button>
-  </section>
-
-  <section class="card" id="freeCard" hidden>
-    <span class="eyebrow">Free practice</span>
-    <label class="hint" for="clubFree">Club</label>
-    <select id="clubFree" class="btn ghost" style="text-transform:none;font-family:var(--body);font-size:1rem"></select>
-    <span class="eyebrow">Camera</span>
-    <div class="seg" id="viewSeg"><button data-v="face">In front</button><button data-v="dtl">Behind</button></div>
-    <p class="hint" id="viewHint"></p>
-    <button class="btn" id="startFree">Start free practice</button>
-  </section>
-
-  <section class="card">
-    <span class="eyebrow">Settings</span>
-    <span>Corrections per swing</span>
-    <div class="seg" id="modeSeg"><button data-m="1">1, the most important</button><button data-m="3">Up to 3</button></div>
-    <label class="sw" for="voiceOn">Speak the feedback <input type="checkbox" id="voiceOn"></label>
-    <label class="sw" for="micOn">Voice commands through the earphones <input type="checkbox" id="micOn"></label>
-    <label class="sw" for="askResult">Show ball flight buttons <input type="checkbox" id="askResult"></label>
-    <span class="eyebrow">Clubs in your bag</span>
-    <div class="bag" id="bagList"></div>
-  </section>
-
-  <nav class="tabs">
-    <button class="btn ghost" id="toReport">Reports</button>
-    <button class="btn ghost" id="toManual">Manual</button>
-  </nav>
-  <p class="hint" id="loadState">Loading the pose model…</p>
-</main>
-
-<!-- LIVE -->
 <section id="live" hidden>
   <div id="stage">
     <video id="video" playsinline muted autoplay></video>
@@ -183,13 +217,13 @@ nav.tabs { display: flex; gap: 8px } nav.tabs .btn { font-size: 1rem; min-height
     <div id="topbar">
       <span class="pill" id="status">Starting camera</span>
       <button class="pill" id="micPill" type="button">Mic off</button>
-      <button class="pill" id="lockPill" type="button">Not locked</button>
+      <button class="pill" id="lockPill" type="button">Looking for you</button>
       <span class="pill" id="count">0 swings</span>
     </div>
     <div id="guide"></div>
   </div>
   <div id="panel">
-    <div class="blockbar" id="blockbar"></div>
+    <div class="blocks" id="blockbar"></div>
     <div class="verdict" id="verdict"><span class="word" id="vWord">READY</span><span class="what" id="vWhat">Get into your setup</span><span class="cue" id="vCue">I start when you stand still.</span></div>
     <div class="thumbs" id="thumbs" hidden>
       <figure><canvas width="150" height="200"></canvas><figcaption>Setup</figcaption></figure>
@@ -199,42 +233,18 @@ nav.tabs { display: flex; gap: 8px } nav.tabs .btn { font-size: 1rem; min-height
     </div>
     <div class="res" id="res" hidden>
       <button data-r="straight">Straight</button><button data-r="slice">Slice</button><button data-r="hook">Hook</button><button data-r="push">Push</button>
-      <button data-r="pull">Pull</button><button data-r="top">Thin / top</button><button data-r="fat">Fat</button><button data-r="practice">Practice</button>
+      <button data-r="pull">Pull</button><button data-r="top">Thin</button><button data-r="fat">Fat</button><button data-r="practice">Practice</button>
     </div>
     <div class="acts"><button id="wrongBtn">That's wrong</button><button id="skipBtn">Skip focus</button><button id="explainBtn">Explain</button></div>
     <div class="mini">
       <select id="clubLive" aria-label="Club"></select>
       <select id="viewLive" aria-label="Camera"><option value="face">Camera in front</option><option value="dtl">Camera behind</option></select>
-      <button class="btn small ghost" id="nextBtn">Next block</button>
-      <button class="btn small" id="endBtn">End</button>
+      <button class="btn sm line" id="nextBtn">Next block</button>
+      <button class="btn sm danger" id="endBtn">End</button>
     </div>
   </div>
 </section>
 
-<!-- REPORT -->
-<main id="report" class="wrap" hidden>
-  <header class="mini"><h2>Reports</h2><button class="btn small ghost" data-back style="flex:none">Back</button></header>
-  <div class="seg" id="sessSeg" style="grid-template-columns:repeat(auto-fit,minmax(90px,1fr))"></div>
-  <section class="card" id="repBody"></section>
-  <section class="card">
-    <span class="eyebrow">Send to Claude</span>
-    <p class="hint">Copy this report and paste it in your chat with Claude for a full review and to tune the rules.</p>
-    <button class="btn" id="copyRep">Copy report</button>
-    <pre class="rep" id="repText"></pre>
-  </section>
-</main>
-
-<!-- MANUAL -->
-<main id="manual" class="wrap" hidden>
-  <header class="mini"><h2>Swing manual</h2><button class="btn small ghost" data-back style="flex:none">Back</button></header>
-  <section class="card">
-    <span class="eyebrow">Say these words through your earphones</span>
-    <dl class="words" id="wordList"></dl>
-  </section>
-  <p class="hint">Every rule comes from your Golf bible playlist. Camera rules are checked on every swing; weak ones are only mentioned in "up to 3" mode.</p>
-  <section class="card" id="manBody"></section>
-</main>
-
-<script type="module" src="app.js?v=4"></script>
+<script type="module" src="app.js?v=5"></script>
 </body>
 </html>

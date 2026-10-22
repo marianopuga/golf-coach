@@ -36,7 +36,7 @@ export const clubById = (id) => BAG.find((c) => c.id === id) || BAG[5];
 
 // Practice categories, in the order they are played after the warm up (short to long).
 export const CATS = {
-  warmup: { name: "Warm up", pick: ["PW", "9i", "SW"], base: 0, note: "Half swings, easy tempo." },
+  warmup: { name: "Warm up", pick: ["PW", "9i", "SW"], base: 0, note: "Half swings: hands to hip height back and through, about half speed. With the pitching wedge the ball carries roughly 40 to 60 m. It only loosens you up." },
   short:  { name: "Short irons", pick: ["9i", "8i", "PW"], base: 12 },
   mid:    { name: "Mid irons", pick: ["7i", "6i"], base: 25 },
   long:   { name: "Long irons", pick: ["5i", "4i"], base: 8 },

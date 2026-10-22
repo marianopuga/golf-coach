@@ -1,6 +1,6 @@
 // Pure logic: pose features, golfer lock, swing detection, metrics, coaching, voice commands,
 // session planning and reports. No DOM here, so everything can be tested in Node.
-import { RULES, RESULT_TIPS, BAD_RESULTS, CLUBS, BAG, CATS, CAT_ORDER, clubById } from "./rules.js?v=4";
+import { RULES, RESULT_TIPS, BAD_RESULTS, CLUBS, BAG, CATS, CAT_ORDER, clubById } from "./rules.js?v=5";
 
 const I = { nose: 0, lSh: 11, rSh: 12, lEl: 13, rEl: 14, lWr: 15, rWr: 16, lHip: 23, rHip: 24,
   lKn: 25, rKn: 26, lAn: 27, rAn: 28, lHe: 29, rHe: 30, lTo: 31, rTo: 32 };
@@ -434,6 +434,41 @@ export function calibSummary(s) {
   const avg = (k) => { const v = q.map((x) => x[k]).filter((x) => typeof x === "number"); return v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 10) / 10 : null; };
   return { mic: s.calib?.mic ?? null, heard: s.calib?.heard ?? null, swings: sw.length, practice: (s.swings || []).filter((w) => w.calib && w.practice).length,
     fps: avg("fps"), otherPeople: q.filter((x) => x.poses > 1).length, logged: sw.filter((w) => w.result).length, groups: out };
+}
+
+// ---------- Coach notes: a short written summary of a session ----------
+export function coachNotes(s, sessions, cs) {
+  const st = sessionStats(s), N = [];
+  if (!st.n) return ["No swings were recorded in this session."];
+  const clubs = Object.keys(st.byClub).length;
+  if (s.calib) N.push(`Calibration session: ${st.n} swings with ${clubs} clubs and no corrections. Copy the report below and paste it to Claude so the rules can be tuned to your body and your camera.`);
+  else N.push(`${st.n} swings with ${clubs} club${clubs > 1 ? "s" : ""}${s.plan ? `, following a ${s.plan.total} ball plan` : ""}.`);
+  const per = {};
+  for (const w of (s.swings || []).filter((w) => !w.practice && w.block !== "warmup")) {
+    const k = w.clubId ? clubById(w.clubId).name : (CLUBS[w.club] || w.club);
+    const o = (per[k] ??= { logged: 0, straight: 0, bad: 0, res: {} });
+    if (w.result) { o.logged++; o.res[w.result] = (o.res[w.result] || 0) + 1; if (w.result === "straight") o.straight++; if (BAD_RESULTS.includes(w.result)) o.bad++; }
+  }
+  const ranked = Object.entries(per).filter(([, o]) => o.logged >= 3).sort((a, b) => a[1].bad / a[1].logged - b[1].bad / b[1].logged);
+  if (ranked.length >= 2) {
+    const [bn, b] = ranked[0], [wn, w] = ranked[ranked.length - 1];
+    const top = Object.entries(w.res).filter(([r]) => r !== "straight").sort((a, b) => b[1] - a[1])[0]?.[0];
+    N.push(`Best club today: ${bn.toLowerCase()}, ${b.straight} of ${b.logged} straight. Weakest: ${wn.toLowerCase()}, ${w.bad} of ${w.logged} went wrong${top ? `, mostly ${top === "top" ? "thin" : top}` : ""}.`);
+    if (top && RESULT_TIPS[top]) N.push(RESULT_TIPS[top]);
+  } else if (!Object.values(st.results).length) {
+    N.push("No ball flights were logged, so the plan can only use your swing faults. Say how each ball flew next time: it is the only way the app knows the result.");
+  }
+  const tf = st.faults.find((f) => ruleById(f.id)?.conf === "high" && f.fail > 0);
+  if (tf) { const r = ruleById(tf.id); N.push(`The fault that showed up most: ${r.title.toLowerCase()}, in ${tf.fail} of ${tf.n} swings. ${r.rule.split(". ")[0]}.`); }
+  if (cs?.focus && !s.calib) { const l5 = cs.focus.hist.slice(-5); N.push(`Your focus now is ${ruleById(cs.focus.id).title.toLowerCase()}: ${l5.filter(Boolean).length} of your last ${l5.length} right.`); }
+  const d = Object.keys(s.disputes || {});
+  if (d.length) N.push(`You said ${d.map((id) => ruleById(id)?.title.toLowerCase()).join(" and ")} was wrong. Claude will look at that rule with this report.`);
+  return N;
+}
+// Bad shot rate of a session (null when no flights were logged)
+export function badRate(s) {
+  const r = (s.swings || []).filter((w) => !w.practice && w.result);
+  return r.length ? r.filter((w) => BAD_RESULTS.includes(w.result)).length / r.length : null;
 }
 
 // ---------- Reports ----------
