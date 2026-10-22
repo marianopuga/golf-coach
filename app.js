@@ -1,7 +1,7 @@
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-import { RULES, CLUBS, VIDEOS, CAMERA, BAG, CATS, VOICE_HELP, clubById } from "./rules.js";
+import { RULES, CLUBS, VIDEOS, CAMERA, BAG, CATS, VOICE_HELP, clubById } from "./rules.js?v=2";
 import { features, frameHint, pickGolfer, SwingDetector, analyze, runChecks, coach, emptyCoachState, ruleById,
-  dispute, skipFocus, parseCommand, buildPlan, catStats, sessionStats, reportText, keyTimes } from "./engine.js";
+  dispute, skipFocus, parseCommand, buildPlan, catStats, sessionStats, reportText, keyTimes } from "./engine.js?v=2";
 
 const $ = (s) => document.querySelector(s);
 const KEY = "golfcoach.v2";
