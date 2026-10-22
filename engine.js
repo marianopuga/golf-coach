@@ -1,60 +1,83 @@
-// Pure logic: pose features, swing detection, metrics, focus selection, reports.
-// No DOM here, so it can be tested in Node.
-import { RULES, RESULT_TIPS, CLUBS, VIDEOS } from "./rules.js";
+// Pure logic: pose features, golfer lock, swing detection, metrics, coaching, voice commands,
+// session planning and reports. No DOM here, so everything can be tested in Node.
+import { RULES, RESULT_TIPS, BAD_RESULTS, CLUBS, BAG, CATS, CAT_ORDER, clubById } from "./rules.js";
 
 const I = { nose: 0, lSh: 11, rSh: 12, lEl: 13, rEl: 14, lWr: 15, rWr: 16, lHip: 23, rHip: 24,
   lKn: 25, rKn: 26, lAn: 27, rAn: 28, lHe: 29, rHe: 30, lTo: 31, rTo: 32 };
-const REQUIRED = [I.nose, I.lSh, I.rSh, I.lHip, I.rHip, I.lAn, I.rAn, I.lWr, I.rWr];
+const FACE_REQ = [I.nose, I.lSh, I.rSh, I.lHip, I.rHip, I.lAn, I.rAn, I.lWr, I.rWr];
+// Down the line: the far side of the body is hidden, so one of each pair is enough.
+const DTL_REQ = [[I.nose], [I.lSh, I.rSh], [I.lHip, I.rHip], [I.lAn, I.rAn], [I.lWr, I.rWr]];
 
 const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const deg = (r) => (r * 180) / Math.PI;
-function angle(a, b, c) { // angle at b
+function angle(a, b, c) {
   const v1 = { x: a.x - b.x, y: a.y - b.y }, v2 = { x: c.x - b.x, y: c.y - b.y };
   const d = Math.hypot(v1.x, v1.y) * Math.hypot(v2.x, v2.y);
   if (!d) return null;
   return deg(Math.acos(Math.max(-1, Math.min(1, (v1.x * v2.x + v1.y * v2.y) / d))));
 }
+const seen = (q) => q.v >= 0.5 && q.nx > 0.01 && q.nx < 0.99 && q.ny > 0.01 && q.ny < 0.99;
 
-// lm: 33 landmarks with normalized x,y and visibility. W,H: video size in pixels.
-export function features(lm, W, H) {
-  if (!lm || lm.length < 33) return { ok: false, why: "nobody" };
+// lm: 33 landmarks, normalized x,y + visibility. W,H: video size in pixels.
+export function features(lm, W, H, view = "face") {
+  if (!lm || lm.length < 33) return { ok: false, why: "nobody", missing: [] };
   const p = lm.map((l) => ({ x: l.x * W, y: l.y * H, v: l.visibility ?? 1, nx: l.x, ny: l.y }));
   const missing = [];
-  for (const i of REQUIRED) {
-    const q = p[i];
-    if (q.v < 0.5 || q.nx < 0.01 || q.nx > 0.99 || q.ny < 0.01 || q.ny > 0.99) missing.push(i);
-  }
+  if (view === "dtl") { for (const g of DTL_REQ) if (!g.some((i) => seen(p[i]))) missing.push(g[0]); }
+  else for (const i of FACE_REQ) if (!seen(p[i])) missing.push(i);
   const sh = mid(p[I.lSh], p[I.rSh]), hp = mid(p[I.lHip], p[I.rHip]);
   const T = dist(sh, hp) || 1;
-  const f = {
-    ok: missing.length === 0, missing,
-    p, sh, hp, T,
-    hands: mid(p[I.lWr], p[I.rWr]),
-    nose: p[I.nose],
+  return {
+    ok: missing.length === 0, missing, p, sh, hp, T,
+    hands: mid(p[I.lWr], p[I.rWr]), nose: p[I.nose],
     span: Math.abs(p[I.lSh].x - p[I.rSh].x),
-    lAn: p[I.lAn], rAn: p[I.rAn],
-    ankMid: mid(p[I.lAn], p[I.rAn]),
-    heelMid: mid(p[I.lHe], p[I.rHe]),
-    toeMid: mid(p[I.lTo], p[I.rTo]),
-    bodyH: Math.max(...[I.lAn, I.rAn].map((i) => p[i].y)) - p[I.nose].y,
-    H,
+    lAn: p[I.lAn], rAn: p[I.rAn], ankMid: mid(p[I.lAn], p[I.rAn]),
+    heelMid: mid(p[I.lHe], p[I.rHe]), toeMid: mid(p[I.lTo], p[I.rTo]),
+    bodyH: Math.max(p[I.lAn].y, p[I.rAn].y) - p[I.nose].y, H,
   };
-  return f;
 }
 
-// Problems with the camera picture, as short spoken hints.
 export function frameHint(f, view) {
   if (!f || !f.p) return "I can't see you. Step into the picture.";
   const m = new Set(f.missing);
-  if (m.has(I.lAn) || m.has(I.rAn)) return "I can't see your feet. Move the phone further back or point it lower.";
-  if (m.has(I.nose)) return "I can't see your head. Move the phone further back or point it higher.";
-  if (m.size) return "Part of your body is out of the picture. Move the phone back a little.";
-  const h = f.bodyH / f.H;
-  if (h < 0.35) return "You are too far away. Move the phone a bit closer.";
-  if (view === "face" && f.span < 0.45 * f.T) return "This looks like a down the line view. Move the phone in front of you, or switch the view.";
-  if (view === "dtl" && f.span > 0.75 * f.T) return "This looks like a face on view. Move the phone behind you, or switch the view.";
+  if (m.has(I.lAn) || m.has(I.rAn)) return "I can't see your feet. Move the camera back or point it lower.";
+  if (m.has(I.nose)) return "I can't see your head. Move the camera back or point it higher.";
+  if (m.size) return "Part of your body is out of the picture. Move the camera back a little.";
+  if (f.bodyH / f.H < 0.35) return "You are too far away. Move the camera a bit closer.";
+  if (view === "face" && f.span < 0.45 * f.T) return "This looks like a view from behind. Put the camera in front of you.";
+  if (view === "dtl" && f.span > 0.75 * f.T) return "This looks like a view from the front. Put the camera behind you.";
   return null;
+}
+
+// ---------- Golfer lock: ignore other people in the picture ----------
+// poses: array of landmark arrays. lock: {x, y, size} in normalized units, or null.
+export function pickGolfer(poses, lock) {
+  const info = (poses || []).map((lm, idx) => {
+    const hx = (lm[I.lHip].x + lm[I.rHip].x) / 2, hy = (lm[I.lHip].y + lm[I.rHip].y) / 2;
+    const size = Math.max(lm[I.lAn].y, lm[I.rAn].y) - lm[I.nose].y;
+    return { idx, x: hx, y: hy, size };
+  });
+  if (!info.length) return { idx: -1, lock };
+  let best = null;
+  if (lock) {
+    for (const c of info) {
+      const d = Math.hypot(c.x - lock.x, c.y - lock.y);
+      const sizeOk = c.size > lock.size * 0.6 && c.size < lock.size * 1.6;
+      if (d < 0.2 && sizeOk && (!best || d < best.d)) best = { ...c, d };
+    }
+    if (!best) return { idx: -1, lock };
+  } else {
+    // First lock: among the biggest bodies, the one closest to the middle of the picture.
+    const maxSize = Math.max(...info.map((c) => c.size));
+    for (const c of info.filter((c) => c.size >= 0.6 * maxSize)) {
+      const d = Math.abs(c.x - 0.5);
+      if (!best || d < best.d) best = { ...c, d };
+    }
+  }
+  const k = lock ? 0.3 : 1; // smooth the lock so a fast swing does not drag it away
+  const nl = lock ? { x: lock.x + (best.x - lock.x) * k, y: lock.y + (best.y - lock.y) * k, size: lock.size + (best.size - lock.size) * k } : { x: best.x, y: best.y, size: best.size };
+  return { idx: best.idx, lock: nl };
 }
 
 // ---------- Swing detector ----------
@@ -65,39 +88,26 @@ export class SwingDetector {
   push(t, f) {
     this.hist.push({ t, f });
     while (this.hist.length && t - this.hist[0].t > 2000) this.hist.shift();
-
-    if (this.state === "cooldown") {
-      if (t > this.until) this.state = "idle";
-      return null;
-    }
+    if (this.state === "cooldown") { if (t > this.until) this.state = "idle"; return null; }
     if (this.state === "swing") return this._swing(t, f);
-
-    if (!f.ok) {
-      if (this.state === "address") { this.state = "idle"; return { type: "lost" }; }
-      return null;
-    }
+    if (!f.ok) { if (this.state === "address") { this.state = "idle"; return { type: "lost" }; } return null; }
     const still = this._stillWindow(t, f.T);
     const low = f.hands.y > f.sh.y + 0.7 * f.T;
     if (this.state === "idle") {
       if (still && low) { this.state = "address"; this.addr = still; return { type: "ready" }; }
       return null;
     }
-    // address
     if (still && low) this.addr = still;
     const rise = this.addr.hands.y - f.hands.y;
-    const need = (this.club === "wedge" ? 0.3 : 0.55) * this.addr.T;
-    if (rise > need) {
-      this.state = "swing";
-      this.start = t;
-      const t0 = this.addr.t0;
-      this.frames = this.hist.filter((h) => h.t >= t0 && h.f.ok);
+    if (rise > (this.club === "wedge" ? 0.3 : 0.55) * this.addr.T) {
+      this.state = "swing"; this.start = t;
+      this.frames = this.hist.filter((h) => h.t >= this.addr.t0 && h.f.ok);
       this.top = null; this.down = false; this.imp = null;
       return { type: "started" };
     }
     if (Math.abs(f.hands.x - this.addr.hands.x) > 1.2 * this.addr.T) { this.state = "idle"; return { type: "lost" }; }
     return null;
   }
-
   _stillWindow(t, T) {
     const w = this.hist.filter((h) => t - h.t <= 500 && h.f.ok);
     if (w.length < 4 || t - w[0].t < 350) return null;
@@ -106,19 +116,19 @@ export class SwingDetector {
     for (const h of w) if (Math.hypot(h.f.hands.x - cx, h.f.hands.y - cy) > 0.06 * T) return null;
     return { t0: w[0].t, t1: w[w.length - 1].t, hands: { x: cx, y: cy }, T: w[w.length - 1].f.T };
   }
-
   _swing(t, f) {
     if (f.ok) this.frames.push({ t, f });
     const A = this.addr;
     if (t - this.start > 3500) { this._cool(t, 1000); return { type: "discard", why: "too slow" }; }
     if (!f.ok) return null;
-    if (!this.top || f.hands.y < this.top.f.hands.y) { if (!this.down) this.top = { t, f }; }
+    if (!this.down && (!this.top || f.hands.y < this.top.f.hands.y)) this.top = { t, f };
     if (!this.down && this.top && f.hands.y >= A.hands.y - 0.25 * A.T && t > this.top.t) this.down = true;
     if (this.down) {
       const d = dist(f.hands, A.hands);
       if (!this.imp || (d < this.imp.d && t - this.imp.t < 250)) this.imp = { t, d };
       if (t - this.imp.t > 900) {
-        const out = { type: "swing", frames: this.frames.slice(), addr: A, topT: this.top.t, impT: this.imp.t, club: this.club };
+        const downFrames = this.frames.filter((x) => x.t > this.top.t && x.t <= this.imp.t).length;
+        const out = { type: "swing", frames: this.frames.slice(), addr: A, topT: this.top.t, impT: this.imp.t, club: this.club, downFrames };
         this._cool(t, 1500);
         return out;
       }
@@ -132,8 +142,7 @@ export class SwingDetector {
 function avgFeat(list) {
   if (!list.length) return null;
   const n = list.length, acc = (fn) => list.reduce((s, x) => s + fn(x), 0) / n;
-  const P = (i) => ({ x: acc((x) => x.p[i].x), y: acc((x) => x.p[i].y) });
-  const p = []; for (let i = 0; i < 33; i++) p.push(P(i));
+  const p = []; for (let i = 0; i < 33; i++) p.push({ x: acc((x) => x.p[i].x), y: acc((x) => x.p[i].y) });
   return {
     p, sh: mid(p[I.lSh], p[I.rSh]), hp: mid(p[I.lHip], p[I.rHip]), T: acc((x) => x.T),
     hands: mid(p[I.lWr], p[I.rWr]), nose: p[I.nose], span: Math.abs(p[I.lSh].x - p[I.rSh].x),
@@ -142,70 +151,57 @@ function avgFeat(list) {
   };
 }
 const near = (frames, t, w) => frames.filter((x) => Math.abs(x.t - t) <= w).map((x) => x.f);
+export const keyTimes = (sw) => ({ setup: sw.addr.t1, top: sw.topT, impact: sw.impT, finish: sw.impT + 800 });
 
 export function analyze(sw, view) {
   const fr = sw.frames;
-  const addr = avgFeat(fr.filter((x) => x.t >= sw.addr.t0 && x.t <= sw.addr.t1 + 60).map((x) => x.f))
-    || avgFeat(fr.slice(0, 3).map((x) => x.f));
+  const addr = avgFeat(fr.filter((x) => x.t >= sw.addr.t0 && x.t <= sw.addr.t1 + 60).map((x) => x.f)) || avgFeat(fr.slice(0, 3).map((x) => x.f));
   const top = avgFeat(near(fr, sw.topT, 40));
   const imp = avgFeat(near(fr, sw.impT, 40));
   const fin = avgFeat(fr.filter((x) => x.t >= sw.impT + 600).map((x) => x.f)) || avgFeat(fr.slice(-2).map((x) => x.f));
   const T = addr.T;
-  const m = {};
-
-  // Head height change addr -> impact (positive = stood up). Works in both views.
+  const impactOk = (sw.downFrames ?? 5) >= 3; // enough frames to trust what happens at impact
+  const m = { downFrames: sw.downFrames ?? null };
   m.headRise = (addr.nose.y - imp.nose.y) / T;
 
   if (view === "face") {
-    // Right handed golfer: left shoulder is toward the target. dir = +1 if target is to image right.
-    const dir = Math.sign(addr.p[I.lSh].x - addr.p[I.rSh].x) || 1;
+    const dir = Math.sign(addr.p[I.lSh].x - addr.p[I.rSh].x) || 1; // +1: target to image right
     const lead = { sh: addr.p[I.lSh], an: addr.lAn }, trail = { sh: addr.p[I.rSh], an: addr.rAn };
     const stanceW = Math.abs(addr.lAn.x - addr.rAn.x) || 1;
+    // Camera roll: the ankles stand on flat ground, so their line is the horizon.
+    const slope = (addr.lAn.y - addr.rAn.y) / ((addr.lAn.x - addr.rAn.x) || 1);
+    m.cameraRollDeg = deg(Math.atan(slope));
     m.stanceRatio = stanceW / (addr.span || 1);
-    // Spine tilt away from target (positive = upper body behind the ball)
-    m.tiltDeg = deg(Math.atan2((addr.hp.x - addr.sh.x) * dir, addr.hp.y - addr.sh.y));
-    m.leadShHigher = (trail.sh.y - lead.sh.y) / T;
+    const sx = addr.sh.x - addr.hp.x, sy = addr.sh.y - addr.hp.y, th = -Math.atan(slope);
+    const rx = sx * Math.cos(th) - sy * Math.sin(th), ry = sx * Math.sin(th) + sy * Math.cos(th);
+    m.tiltDeg = deg(Math.atan2(-rx * dir, -ry)); // positive: upper body behind the ball
+    m.leadShHigher = ((trail.sh.y - lead.sh.y) - slope * (trail.sh.x - lead.sh.x)) / T;
     m.sway = ((addr.hp.x - top.hp.x) * dir) / stanceW;
     m.shoulderTurn = top.span / (addr.span || 1);
-    m.upperAhead = ((imp.sh.x - imp.hp.x) * dir) / T;
     m.transfer = ((fin.hp.x - trail.an.x) * dir) / (((lead.an.x - trail.an.x) * dir) || 1);
-    // Weight split proxy: middle of chest and pelvis between the feet (0 = right foot, 1 = left foot)
     const feetSpan = ((lead.an.x - trail.an.x) * dir) || 1;
     const centre = (f) => (f.sh.x + f.hp.x) / 2;
     m.addrWeight = ((centre(addr) - trail.an.x) * dir) / feetSpan;
-    m.impWeight = ((centre(imp) - trail.an.x) * dir) / feetSpan;
+    m.impWeight = impactOk ? ((centre(imp) - trail.an.x) * dir) / feetSpan : null;
+    m.upperAhead = impactOk ? ((imp.sh.x - imp.hp.x) * dir) / T : null;
     m.feetMoved = Math.max(dist(fin.lAn, addr.lAn), dist(fin.rAn, addr.rAn)) / stanceW;
-    // Hand speed: speed at impact vs peak
-    let peak = 0, peakT = 0; const sp = [];
-    for (let i = 1; i < fr.length; i++) {
-      const dt = (fr[i].t - fr[i - 1].t) / 1000; if (dt <= 0) continue;
-      const v = dist(fr[i].f.hands, fr[i - 1].f.hands) / T / dt;
-      sp.push({ t: fr[i].t, v });
-      if (fr[i].t > sw.topT && fr[i].t < sw.impT + 300 && v > peak) { peak = v; peakT = fr[i].t; }
-    }
-    const atImp = sp.filter((s) => Math.abs(s.t - sw.impT) <= 50).reduce((a, s) => Math.max(a, s.v), 0);
-    m.speedRatio = peak > 0 ? Math.min(1.5, atImp / peak) : null;
   } else {
     const facing = Math.sign(addr.toeMid.x - addr.heelMid.x) || 1;
     m.hingeDeg = deg(Math.atan2(Math.abs(addr.sh.x - addr.hp.x), addr.hp.y - addr.sh.y));
-    const near1 = facing > 0 ? "r" : "l"; // the side closer to the camera
-    const k = (s) => s === "l" ? angle(addr.p[I.lHip], addr.p[I.lKn], addr.p[I.lAn]) : angle(addr.p[I.rHip], addr.p[I.rKn], addr.p[I.rAn]);
-    const ka = [k("l"), k("r")].filter((x) => x != null);
+    const ka = [angle(addr.p[I.lHip], addr.p[I.lKn], addr.p[I.lAn]), angle(addr.p[I.rHip], addr.p[I.rKn], addr.p[I.rAn])].filter((x) => x != null);
     m.kneeDeg = ka.length ? ka.reduce((a, b) => a + b, 0) / ka.length : null;
     m.shoulderOverFeet = ((addr.sh.x - addr.ankMid.x) * facing) / T;
     const hingeImp = deg(Math.atan2(Math.abs(imp.sh.x - imp.hp.x), imp.hp.y - imp.sh.y));
-    m.hingeLoss = m.hingeDeg - hingeImp;
-    m.hipToBall = ((imp.hp.x - addr.hp.x) * facing) / T;
-    void near1;
+    m.hingeLoss = impactOk ? m.hingeDeg - hingeImp : null;
   }
   for (const k of Object.keys(m)) if (typeof m[k] === "number") m[k] = Math.round(m[k] * 1000) / 1000;
   return m;
 }
 
-export function runChecks(m, club, view) {
+export function runChecks(m, club, view, muted = []) {
   const out = [];
   for (const r of RULES) {
-    if (!r.auto || !r.clubs.includes(club)) continue;
+    if (!r.auto || !r.clubs.includes(club) || muted.includes(r.id)) continue;
     if (r.view !== "both" && r.view !== view) continue;
     const pass = r.check(m, club);
     if (pass === null || pass === undefined) continue;
@@ -214,119 +210,220 @@ export function runChecks(m, club, view) {
   return out;
 }
 
-// ---------- Focus and feedback ----------
+// ---------- Coaching ----------
 export const ruleById = (id) => RULES.find((r) => r.id === id);
-const text = (v, m, club) => (typeof v === "function" ? v(m, club) : v);
+const say = (v, m, club) => (typeof v === "function" ? v(m, club) : v);
+export function emptyCoachState() { return { v: 2, focus: null, hist: {}, mastered: [], disputes: {}, skipped: {} }; }
+const applies = (r, club) => r && r.auto && r.clubs.includes(club);
 
-// state: { focus: {club: {id, hist: []}}, hist: {club: {ruleId: [bool...]}}, mastered: {club: [ids]} }
-export function emptyCoachState() { return { focus: {}, hist: {}, mastered: {} }; }
+function pickFocus(state, club, failingIds, exclude) {
+  const H = state.hist;
+  const cands = RULES.filter((r) => applies(r, club) && r.conf === "high" && r.id !== exclude && !(state.skipped[r.id] > 0) && (
+    failingIds.includes(r.id) || ((H[r.id] || []).slice(-5).filter((x) => !x).length >= 3)));
+  cands.sort((a, b) => a.priority - b.priority);
+  return cands[0] || null;
+}
 
-export function coach(state, checks, m, club, view, mode, name = "Mariano") {
-  state.hist[club] ??= {}; state.mastered[club] ??= [];
-  const H = state.hist[club];
-  for (const c of checks) { (H[c.id] ??= []).push(c.pass); if (H[c.id].length > 10) H[c.id].shift(); }
+// One focus for all clubs. A rule that does not apply to the club in your hands is paused, not lost.
+export function coach(state, checks, m, club, view, mode, opts = {}) {
+  const name = opts.name || "Mariano";
+  for (const k of Object.keys(state.skipped)) state.skipped[k]--;
+  for (const c of checks) { (state.hist[c.id] ??= []).push(c.pass); if (state.hist[c.id].length > 12) state.hist[c.id].shift(); }
   const failing = checks.filter((c) => !c.pass).map((c) => ruleById(c.id)).sort((a, b) => a.priority - b.priority);
-  const lines = []; const items = []; let event = null;
+  const failingHigh = failing.filter((r) => r.conf === "high");
+  const lines = [], items = []; let event = null;
 
-  const pickFocus = (exclude) => {
-    // failing now, or failing in 3 of the last 5, highest priority first
-    const cands = RULES.filter((r) => r.auto && r.clubs.includes(club) && r.id !== exclude && (
-      failing.some((f) => f.id === r.id) ||
-      ((H[r.id] || []).slice(-5).filter((x) => !x).length >= 3)));
-    cands.sort((a, b) => a.priority - b.priority);
-    return cands[0] || null;
-  };
+  if (!state.focus) { const r = pickFocus(state, club, failing.map((r) => r.id)); if (r) state.focus = { id: r.id, hist: [] }; }
+  const F = state.focus, fr = F && ruleById(F.id);
+  const fc = F && checks.find((c) => c.id === F.id);
 
-  let F = state.focus[club];
-  if (!F) { const r = pickFocus(); if (r) F = state.focus[club] = { id: r.id, hist: [] }; }
-
-  if (F) {
-    const fr = ruleById(F.id);
-    const fc = checks.find((c) => c.id === F.id);
-    if (fc) {
-      F.hist.push(fc.pass); if (F.hist.length > 10) F.hist.shift();
-      const last5 = F.hist.slice(-5), good = last5.filter(Boolean).length;
-      items.push({ id: F.id, pass: fc.pass, focus: true });
-      if (fc.pass) lines.push(`${name}, ${text(fr.good, m, club)} That is ${good} of your last ${last5.length}.`);
-      else lines.push(`${name}, ${text(fr.bad, m, club)}`);
-      if (last5.length >= 5 && good >= 4) {
-        state.mastered[club].push(F.id);
-        const next = pickFocus(F.id);
-        event = { type: "mastered", id: F.id, next: next?.id || null };
-        lines.push(`You fixed it: ${fr.title.toLowerCase()}.` + (next ? ` Next focus: ${next.title.toLowerCase()}.` : " Keep swinging like that."));
-        state.focus[club] = next ? { id: next.id, hist: [] } : null;
-      }
-    } else {
-      // focus not visible from this camera angle
-      const other = failing[0];
-      if (other) { items.push({ id: other.id, pass: false }); lines.push(`${name}, ${text(other.bad, m, club)}`); }
-      else lines.push(`${name}, nothing big to fix from this angle.`);
-      const v = fr.view === "dtl" ? "down the line, behind you" : "face on, in front of you";
-      lines.push(`To check your main focus, ${fr.title.toLowerCase()}, put the camera ${v}.`);
-      event = { type: "camera", view: fr.view };
+  if (fc) {
+    F.hist.push(fc.pass); if (F.hist.length > 10) F.hist.shift();
+    const last5 = F.hist.slice(-5), good = last5.filter(Boolean).length;
+    items.push({ id: F.id, pass: fc.pass, focus: true });
+    lines.push(fc.pass ? `Good. ${say(fr.ok, m, club)} ${good} of ${last5.length}.` : say(fr.cue, m, club));
+    if (last5.length >= 5 && good >= 4) {
+      state.mastered.push(F.id);
+      const next = pickFocus(state, club, failing.map((r) => r.id), F.id);
+      event = { type: "mastered", id: F.id, next: next?.id || null };
+      lines.push(`${name}, you fixed it: ${fr.title.toLowerCase()}.` + (next ? ` Next focus: ${next.title.toLowerCase()}.` : ""));
+      state.focus = next ? { id: next.id, hist: [] } : null;
     }
   } else {
-    lines.push(`${name}, good swing. Nothing to fix from this angle.`);
+    // Focus not measurable now (other camera or other club): coach the top reliable fault instead.
+    const other = failingHigh[0];
+    if (other) { items.push({ id: other.id, pass: false }); lines.push(say(other.cue, m, club)); }
+    else lines.push("Good swing.");
+    if (F && opts.cameraHint && applies(fr, club) && fr.view !== "both" && fr.view !== view) {
+      lines.push(`Your focus needs the camera ${fr.view === "dtl" ? "behind you" : "in front of you"}.`);
+      event = { type: "camera", view: fr.view };
+    }
   }
-
   if (mode === 3) {
     for (const r of failing) {
       if (items.length >= 3) break;
       if (items.some((i) => i.id === r.id)) continue;
       items.push({ id: r.id, pass: false });
-      lines.push(`Also, ${text(r.bad, m, club)}`);
+      lines.push(`Also: ${say(r.cue, m, club)}`);
     }
   }
-  return { speech: lines.join(" "), items, event, focusId: state.focus[club]?.id || null };
+  const detail = items.length ? ruleById(items[0].id).rule : "";
+  return { speech: lines.join(" "), items, event, detail, focusId: state.focus?.id || null };
+}
+
+// "wrong": undo the last result for that rule so a bad measurement does not count.
+export function dispute(state, ruleId) {
+  const h = state.hist[ruleId]; if (h?.length) h.pop();
+  if (state.focus?.id === ruleId && state.focus.hist.length) state.focus.hist.pop();
+  state.disputes[ruleId] = (state.disputes[ruleId] || 0) + 1;
+}
+// "skip": move to the next focus and keep the old one away for 20 swings.
+export function skipFocus(state, club) {
+  const old = state.focus?.id; if (old) state.skipped[old] = 20;
+  const failingRecent = Object.entries(state.hist).filter(([, h]) => h.slice(-5).some((x) => !x)).map(([id]) => id);
+  const next = pickFocus(state, club, failingRecent, old);
+  state.focus = next ? { id: next.id, hist: [] } : null;
+  return next;
+}
+
+// ---------- Voice commands ----------
+const CMD = [
+  ["wrong", /\b(wrong|mistake|incorrect|not true|no way)\b/],
+  ["practice", /\b(practice|practise|no ball|air swing|ignore)\b/],
+  ["skip", /\b(skip|change focus|new focus)\b/],
+  ["explain", /\b(explain|why|how do i|tell me more)\b/],
+  ["repeat", /\b(repeat|again|say that|what did you say)\b/],
+  ["next", /\b(next block|next|move on)\b/],
+  ["status", /\b(status|how many|balls left)\b/],
+];
+const RES = [
+  ["straight", /\b(straight|perfect|great shot|good shot|pure|flushed?)\b/],
+  ["slice", /\b(slice|sliced|fade|banana)\b/],
+  ["hook", /\b(hook|hooked|draw)\b/],
+  ["push", /\b(push|pushed)\b/],
+  ["pull", /\b(pull|pulled)\b/],
+  ["top", /\b(thin|thinned|top|topped|skull|skulled)\b/],
+  ["fat", /\b(fat|chunk|chunked|heavy|duff)\b/],
+];
+export function parseCommand(text) {
+  const t = String(text || "").toLowerCase().trim();
+  if (!t) return null;
+  for (const [type, re] of CMD) if (re.test(t)) return { type };
+  for (const [value, re] of RES) if (re.test(t)) return { type: "result", value };
+  return null;
+}
+
+// ---------- Stats and session plan ----------
+const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0);
+const catOf = (w) => w.cat || (w.club === "driver" ? "driver" : w.club === "hybrid" ? "hybrid" : w.club === "wedge" ? "chip" : "mid");
+
+export function catStats(sessions, lastN = 3) {
+  const out = {};
+  for (const s of (sessions || []).slice(-lastN)) for (const w of s.swings || []) {
+    if (w.practice || w.block === "warmup") continue;
+    const c = catOf(w); const o = (out[c] ??= { n: 0, logged: 0, bad: 0, checks: 0, fails: 0 });
+    o.n++;
+    if (w.result) { o.logged++; if (BAD_RESULTS.includes(w.result)) o.bad++; }
+    for (const ch of w.checks || []) { if (ruleById(ch.id)?.conf !== "high") continue; o.checks++; if (!ch.pass) o.fails++; }
+  }
+  for (const o of Object.values(out)) {
+    o.badRate = o.logged ? o.bad / o.logged : null;
+    o.faultRate = o.checks ? o.fails / o.checks : null;
+    o.score = o.badRate != null && o.logged >= 5 ? 0.6 * o.badRate + 0.4 * (o.faultRate ?? o.badRate) : o.faultRate;
+  }
+  return out;
+}
+
+// total balls -> ordered blocks. The weakest category gets more balls, goes first after the
+// warm up (when you are fresh) and comes back at the end as a retest.
+export function buildPlan(total, bagIds, sessions, focusView) {
+  total = Math.max(10, Math.min(300, Math.round(total || 50)));
+  const bag = new Set(bagIds && bagIds.length ? bagIds : BAG.map((c) => c.id));
+  const pick = (cat) => CATS[cat].pick.find((id) => bag.has(id)) || null;
+  const stats = catStats(sessions);
+  const cats = CAT_ORDER.filter((c) => pick(c));
+  const warm = Math.max(4, Math.round(total * 0.08));
+  const rest = total - warm;
+  const w = {};
+  for (const c of cats) { const s = stats[c]?.score; w[c] = CATS[c].base * (s == null ? 1 : 0.6 + 1.2 * s); }
+  const sumW = Object.values(w).reduce((a, b) => a + b, 0) || 1;
+  const balls = {}; let used = 0;
+  for (const c of cats) { balls[c] = Math.max(3, Math.round((rest * w[c]) / sumW)); used += balls[c]; }
+  // fix rounding on the biggest category
+  const biggest = cats.slice().sort((a, b) => balls[b] - balls[a])[0];
+  if (biggest) balls[biggest] += rest - used;
+  const scored = cats.filter((c) => stats[c]?.score != null);
+  const worst = scored.length ? scored.sort((a, b) => stats[b].score - stats[a].score)[0] : null;
+
+  const why = (c) => {
+    const s = stats[c];
+    if (!s || s.score == null) return "Standard share. It adapts after your first sessions.";
+    const parts = [];
+    if (s.badRate != null && s.logged >= 5) parts.push(`${pct(s.bad, s.logged)}% bad shots`);
+    if (s.faultRate != null) parts.push(`${pct(s.fails, s.checks)}% swing faults`);
+    return (c === worst ? "Your weakest lately: " : "Lately: ") + parts.join(", ") + ".";
+  };
+  const blocks = [];
+  const view0 = focusView === "face" ? "face" : "dtl";
+  // Camera alternates block by block so every club gets checked from both sides.
+  const add = (cat, n, phase) => {
+    const id = pick(cat === "warmup" ? "warmup" : cat); if (!id || n <= 0) return;
+    const parts = Math.ceil(n / 10);
+    for (let part = 0; part < parts; part++) {
+      const b = Math.floor(n / parts) + (part < n % parts ? 1 : 0);
+      const v = blocks.length === 0 ? view0 : (blocks[blocks.length - 1].view === "dtl" ? "face" : "dtl");
+      blocks.push({ cat, clubId: id, name: clubById(id).name, balls: b, view: v, phase,
+        why: phase === "warmup" ? CATS.warmup.note : phase === "retest" ? "Retest your weakest club now that you are warm." : why(cat) + (CATS[cat].note ? " " + CATS[cat].note : "") });
+    }
+  };
+  add("warmup", warm, "warmup");
+  if (worst) { const first = Math.ceil(balls[worst] * 0.6); add(worst, first, "focus"); balls[worst] -= first; }
+  for (const c of cats) if (c !== worst) add(c, balls[c], "main");
+  if (worst) add(worst, balls[worst], "retest");
+  return { total, blocks, stats, worst };
 }
 
 // ---------- Reports ----------
-const pct = (a, b) => (b ? Math.round((100 * a) / b) : 0);
-
 export function sessionStats(s) {
-  const swings = s.swings || [];
+  const swings = (s.swings || []).filter((w) => !w.practice);
   const byClub = {}, results = {}, faults = {};
   for (const w of swings) {
-    byClub[w.club] = (byClub[w.club] || 0) + 1;
+    const k = w.clubId ? clubById(w.clubId).name : (CLUBS[w.club] || w.club);
+    byClub[k] = (byClub[k] || 0) + 1;
     if (w.result) results[w.result] = (results[w.result] || 0) + 1;
-    for (const c of w.checks || []) {
-      const k = c.id; faults[k] ??= { fail: 0, n: 0 };
-      faults[k].n++; if (!c.pass) faults[k].fail++;
-    }
+    for (const c of w.checks || []) { faults[c.id] ??= { fail: 0, n: 0 }; faults[c.id].n++; if (!c.pass) faults[c.id].fail++; }
   }
-  const faultList = Object.entries(faults).map(([id, v]) => ({ id, ...v, rate: pct(v.fail, v.n) }))
-    .sort((a, b) => b.rate - a.rate || b.fail - a.fail);
-  return { n: swings.length, byClub, results, faults: faultList };
+  const faultList = Object.entries(faults).map(([id, v]) => ({ id, ...v, rate: pct(v.fail, v.n) })).sort((a, b) => b.rate - a.rate || b.fail - a.fail);
+  return { n: swings.length, practice: (s.swings || []).length - swings.length, byClub, results, faults: faultList };
 }
 
-export function reportText(sessions, sid) {
+export function reportText(sessions, sid, coachState) {
   const s = sessions.find((x) => x.id === sid) || sessions[sessions.length - 1];
   if (!s) return "No sessions yet.";
-  const st = sessionStats(s);
-  const L = [];
-  L.push(`GOLF COACH SESSION REPORT`);
-  L.push(`Date: ${new Date(s.start).toLocaleString()}  Swings: ${st.n}`);
-  L.push(`Clubs: ` + Object.entries(st.byClub).map(([c, n]) => `${CLUBS[c] || c} ${n}`).join(", "));
+  const st = sessionStats(s), L = [];
+  L.push("GOLF COACH SESSION REPORT");
+  L.push(`Date: ${new Date(s.start).toLocaleString()}  Swings: ${st.n}  Practice swings ignored: ${st.practice}`);
+  if (s.plan) L.push(`Plan: ${s.plan.total} balls, ${s.plan.blocks.length} blocks, finished ${Math.min(s.blockIdx ?? 0, s.plan.blocks.length)} blocks`);
+  L.push("Clubs: " + Object.entries(st.byClub).map(([c, n]) => `${c} ${n}`).join(", "));
   const logged = Object.values(st.results).reduce((a, b) => a + b, 0);
   if (logged) L.push(`Ball flight (${logged} logged): ` + Object.entries(st.results).map(([r, n]) => `${r} ${n}`).join(", "));
-  L.push(``);
-  L.push(`Faults this session (failed / checked):`);
-  for (const f of st.faults) { const r = ruleById(f.id); L.push(`  ${r ? r.title : f.id}: ${f.fail}/${f.n} (${f.rate}%)`); }
-  // Trend vs previous sessions
+  L.push("", "Faults this session (failed / checked):");
+  for (const f of st.faults) { const r = ruleById(f.id); L.push(`  ${r ? r.title : f.id}${r?.conf === "low" ? " (weak measurement)" : ""}: ${f.fail}/${f.n} (${f.rate}%)`); }
+  const cs = catStats([s], 1);
+  L.push("", "By category (bad shots, swing faults):");
+  for (const [c, o] of Object.entries(cs)) L.push(`  ${CATS[c]?.name || c}: ${o.n} swings, ${o.logged ? pct(o.bad, o.logged) + "% bad of " + o.logged + " logged" : "no flights logged"}, ${o.checks ? pct(o.fails, o.checks) + "% faults" : "no checks"}`);
+  if (s.disputes && Object.keys(s.disputes).length) L.push("", "Corrections you said were wrong: " + Object.entries(s.disputes).map(([id, n]) => `${ruleById(id)?.title || id} x${n}`).join(", "));
   const prev = sessions.filter((x) => x.start < s.start).slice(-5);
   if (prev.length) {
-    L.push(``);
-    L.push(`Trend (fail rate, older to newer, this session last):`);
+    L.push("", "Trend (fail rate, older to newer, this session last):");
     for (const f of st.faults.slice(0, 5)) {
       const seq = [...prev, s].map((x) => { const q = sessionStats(x).faults.find((y) => y.id === f.id); return q ? q.rate + "%" : "-"; });
-      const r = ruleById(f.id); L.push(`  ${r ? r.title : f.id}: ${seq.join(" > ")}`);
+      L.push(`  ${ruleById(f.id)?.title || f.id}: ${seq.join(" > ")}`);
     }
   }
   const tips = Object.entries(st.results).filter(([r, n]) => RESULT_TIPS[r] && n >= 3).map(([r]) => RESULT_TIPS[r]);
-  if (tips.length) { L.push(``); L.push(`From your playlist, about your ball flight:`); tips.forEach((t) => L.push(`  ${t}`)); }
-  L.push(``);
-  L.push(`Raw swings: ` + JSON.stringify((s.swings || []).map((w) => ({ c: w.club, v: w.view, r: w.result || null, f: (w.checks || []).filter((c) => !c.pass).map((c) => c.id), m: w.m }))));
+  if (tips.length) { L.push("", "From your playlist, about your ball flight:"); tips.forEach((t) => L.push("  " + t)); }
+  if (coachState?.focus) L.push("", `Current focus: ${ruleById(coachState.focus.id)?.title}`);
+  L.push("", "Raw swings: " + JSON.stringify((s.swings || []).map((w) => ({ c: w.clubId || w.club, v: w.view, r: w.result || null, p: w.practice ? 1 : 0, f: (w.checks || []).filter((c) => !c.pass).map((c) => c.id), m: w.m }))));
   return L.join("\n");
 }
-
-export { VIDEOS };
