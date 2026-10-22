@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Golf Bible Coach</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Swing Coach">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column, thumb reach at the bottom. Range use: big targets, high contrast. */
+:root {
+  --bg: #f3f4ef; --surface: #ffffff; --ink: #18231c; --muted: #5d6a60; --line: #d9ddd3;
+  --accent: #1f6b45; --accent-ink: #ffffff; --flag: #e0b12a;
+  --good: #1f7a47; --bad: #b8402c; --good-bg: #e4f2e8; --bad-bg: #f8e6e1;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #0f1511; --surface: #18201b; --ink: #eef2ec; --muted: #9aa79c; --line: #2b352e;
+  --accent: #3fa772; --accent-ink: #08130c; --flag: #e8bf45;
+  --good: #57c088; --bad: #ef7a63; --good-bg: #17301f; --bad-bg: #3a1c16; color-scheme: dark } }
+* { box-sizing: border-box }
+html, body { height: 100% }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 var(--body); -webkit-tap-highlight-color: transparent }
+[hidden] { display: none !important }
+h1, h2, h3 { font-family: var(--display); letter-spacing: .01em; text-wrap: balance; margin: 0 }
+h1 { font-size: 2.1rem; line-height: 1 }
+h2 { font-size: 1.5rem }
+.wrap { max-width: 640px; margin: 0 auto; padding-block: calc(16px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 18px }
+.eyebrow { font: 600 .75rem var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted) }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px }
+.seg { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 6px; background: var(--bg); border-radius: 12px; padding: 4px }
+.seg button { border: 0; background: transparent; color: var(--ink); font: 600 1rem var(--body); padding: 12px 6px; border-radius: 9px; min-height: 48px }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink) }
+.btn { border: 0; border-radius: 12px; font: 700 1.15rem var(--display); letter-spacing: .04em; text-transform: uppercase; padding: 16px; min-height: 56px; background: var(--accent); color: var(--accent-ink); width: 100% }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line) }
+.btn:focus-visible, .seg button:focus-visible, .res button:focus-visible { outline: 3px solid var(--flag); outline-offset: 2px }
+.row { display: flex; gap: 10px; flex-wrap: wrap } .row > * { flex: 1 1 0; min-width: 0 }
+.hint { color: var(--muted); font-size: .95rem }
+label.sw { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px }
+label.sw input { width: 24px; height: 24px; accent-color: var(--accent) }
+.focusline { font: 600 1.05rem var(--body) } .focusline b { font-family: var(--display); font-size: 1.25rem }
+
+/* Live session */
+#live { position: fixed; inset: 0; background: #000; display: grid; grid-template-rows: 1fr auto }
+#stage { position: relative; overflow: hidden; min-height: 0 }
+#video, #overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain }
+#topbar { position: absolute; left: 0; right: 0; top: 0; padding: calc(10px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 10px max(12px, env(safe-area-inset-left, 0px));
+  display: flex; gap: 8px; align-items: center; justify-content: space-between; background: linear-gradient(#000a, #0000) }
+.pill { background: #000b; color: #fff; border: 1px solid #fff3; border-radius: 999px; padding: 8px 14px; font: 600 .9rem var(--body) }
+.pill.ready { background: var(--good); border-color: transparent }
+.pill.busy { background: var(--flag); color: #1b1400; border-color: transparent }
+#guide { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: 16px; background: #000c; color: #fff; border-radius: 12px; padding: 12px 14px; font-size: .95rem }
+#panel { background: var(--surface); color: var(--ink); padding: 14px max(16px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 10px; max-height: 50vh; overflow-y: auto }
+#said { font: 500 1.05rem/1.4 var(--body); margin: 0 }
+.items { display: grid; gap: 6px }
+.item { border-radius: 10px; padding: 8px 10px; font-size: .92rem; display: flex; gap: 8px; align-items: baseline }
+.item.ok { background: var(--good-bg); color: var(--good) } .item.no { background: var(--bad-bg); color: var(--bad) }
+.item b { font-family: var(--display); font-size: 1rem; letter-spacing: .03em; white-space: nowrap }
+.res { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px }
+.res button { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; min-height: 48px; font: 600 .95rem var(--body) }
+.res button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+.mini { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between }
+.mini select { font: 600 1rem var(--body); padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-height: 44px }
+.mini .btn { width: auto; min-height: 44px; padding: 10px 14px; font-size: 1rem }
+
+/* Report and manual */
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px }
+.stat { background: var(--bg); border-radius: 10px; padding: 10px } .stat b { display: block; font: 700 1.8rem var(--display); font-variant-numeric: tabular-nums }
+.bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; font-size: .92rem }
+.bar i { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; display: block }
+.bar i span { display: block; height: 100%; background: var(--bad) }
+.num { font-variant-numeric: tabular-nums; color: var(--muted) }
+pre.rep { white-space: pre-wrap; word-break: break-word; font: .8rem/1.4 ui-monospace, Menlo, monospace; background: var(--bg); padding: 10px; border-radius: 10px; max-height: 240px; overflow: auto }
+.rule { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 4px } .rule:first-child { border-top: 0; padding-top: 0 }
+.rule small { color: var(--muted) } .rule a { color: var(--accent) }
+.tag { display: inline-block; font: 600 .7rem var(--body); letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--bg); color: var(--muted); margin-left: 6px; vertical-align: middle }
+nav.tabs { display: flex; gap: 8px } nav.tabs .btn { font-size: 1rem; min-height: 48px; padding: 10px }
+@media (prefers-reduced-motion: no-preference) { .pill { transition: background .2s } }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<main id="home" class="wrap">
+  <header style="display:grid;gap:6px">
+    <span class="eyebrow">Golf bible coach</span>
+    <h1>Hit, wait, listen.</h1>
+    <p class="hint" style="margin:0">One correction at a time, only from your playlist. Put your earphones in, set the phone up, and swing.</p>
+  </header>
+
+  <section class="card">
+    <span class="eyebrow">Club</span>
+    <div class="seg" id="clubSeg"></div>
+    <span class="eyebrow">Camera</span>
+    <div class="seg" id="viewSeg">
+      <button data-v="face">Face on</button>
+      <button data-v="dtl">Down the line</button>
+    </div>
+    <p class="hint" id="viewHint" style="margin:0"></p>
+    <div class="focusline" id="focusHome"></div>
+    <button class="btn" id="startBtn">Start session</button>
+  </section>
+
+  <section class="card">
+    <span class="eyebrow">Settings</span>
+    <span>Corrections per swing</span>
+    <div class="seg" id="modeSeg"><button data-m="1">1, the most important</button><button data-m="3">Up to 3</button></div>
+    <label class="sw" for="voiceOn">Speak the feedback <input type="checkbox" id="voiceOn"></label>
+    <label class="sw" for="askResult">Ask for the ball flight after each swing <input type="checkbox" id="askResult"></label>
+  </section>
+
+  <nav class="tabs">
+    <button class="btn ghost" id="toReport">Reports</button>
+    <button class="btn ghost" id="toManual">Manual</button>
+  </nav>
+  <p class="hint" id="loadState" style="margin:0">Loading the pose model…</p>
+</main>
+
+<!-- LIVE -->
+<section id="live" hidden>
+  <div id="stage">
+    <video id="video" playsinline muted autoplay></video>
+    <canvas id="overlay"></canvas>
+    <div id="topbar"><span class="pill" id="status">Starting camera</span><span class="pill" id="count">0 swings</span></div>
+    <div id="guide"></div>
+  </div>
+  <div id="panel">
+    <div class="focusline" id="focusLive"></div>
+    <p id="said">Get into your setup. I start listening when you are still.</p>
+    <div class="items" id="items"></div>
+    <div class="res" id="res" hidden>
+      <button data-r="straight">Straight</button><button data-r="slice">Slice</button><button data-r="hook">Hook</button><button data-r="push">Push</button>
+      <button data-r="pull">Pull</button><button data-r="top">Topped</button><button data-r="fat">Fat</button><button data-r="skip">No ball</button>
+    </div>
+    <div class="mini">
+      <select id="clubLive" aria-label="Club"></select>
+      <select id="viewLive" aria-label="Camera"><option value="face">Face on</option><option value="dtl">Down the line</option></select>
+      <button class="btn" id="endBtn">End</button>
+    </div>
+  </div>
+</section>
+
+<!-- REPORT -->
+<main id="report" class="wrap" hidden>
+  <header class="mini"><h2>Reports</h2><button class="btn ghost" data-back style="width:auto">Back</button></header>
+  <div class="seg" id="sessSeg" style="grid-template-columns:repeat(auto-fit,minmax(90px,1fr))"></div>
+  <section class="card" id="repBody"></section>
+  <section class="card">
+    <span class="eyebrow">Send to Claude</span>
+    <p class="hint" style="margin:0">Copy this report and paste it in your chat with Claude for a full review and to tune the rules.</p>
+    <button class="btn" id="copyRep">Copy report</button>
+    <pre class="rep" id="repText"></pre>
+  </section>
+</main>
+
+<!-- MANUAL -->
+<main id="manual" class="wrap" hidden>
+  <header class="mini"><h2>Swing manual</h2><button class="btn ghost" data-back style="width:auto">Back</button></header>
+  <p class="hint" style="margin:0">Every rule comes from your Golf bible playlist. Rules marked camera are checked on every swing. The rest are for you to read and practise.</p>
+  <section class="card" id="manBody"></section>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
