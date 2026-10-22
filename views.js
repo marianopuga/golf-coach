@@ -53,7 +53,7 @@ function renderToday() {
     ${calibDone() ? "" : `
     <section class="panel">
       <h2>Start with a calibration session</h2>
-      <p class="muted">During the trial period, your first bucket is a calibration. Same clubs and order as a normal plan, every club from both camera sides, and no corrections. It tests the voice, checks that every swing is caught, and measures how your swing reads on camera. Then you paste the report to Claude to tune the rules.</p>
+      <p class="muted">For the trial period, your first bucket is a calibration: the plan below with no corrections, so the app can test the voice and learn how your swing reads on camera. Afterwards, send the report to Claude to tune the rules.</p>
       <button class="btn" id="goCalib">Start calibration with ${S.balls} balls</button>
     </section>`}
     <section class="panel hero">
@@ -66,9 +66,10 @@ function renderToday() {
       <div class="sect"><h2>Your plan</h2><span class="muted small">${plan.blocks.length} blocks</span></div>
       <div class="card-scroll"><table class="score">
         <tr><th class="c">#</th><th>Club</th><th class="c">Balls</th><th>Camera</th></tr>
-        ${plan.blocks.map((b, i) => `<tr><td class="n">${i + 1}</td><td><b>${b.name}</b><small>${esc(b.why)}</small></td><td class="n">${b.balls}</td><td><span class="cam">${CAM_ICON}${camText(b.view)}</span></td></tr>`).join("")}
+        ${plan.blocks.map((b, i) => `<tr><td class="n">${i + 1}</td><td><b>${b.name}</b>${b.why ? `<small>${esc(b.why)}</small>` : ""}</td><td class="n">${b.balls}</td><td><span class="cam">${CAM_ICON}${camText(b.view)}</span></td></tr>`).join("")}
         <tr class="tot"><td></td><td>Total</td><td class="n">${plan.total}</td><td></td></tr>
       </table></div>
+      ${plan.adapted ? "" : `<p class="muted small">Balls are split by a standard share for now. After your first sessions the plan gives more balls to the clubs you hit worst.</p>`}
       <details class="why"><summary>Why this order</summary>
         <p>You start with half swings to loosen up, then go from short clubs to long ones, so your body is warm before the driver. Chips come last, when you are tired and only need touch. The 7 iron gets the most balls because it is your reference club. Each club is split in two blocks so the camera sees it from both sides. After a few sessions, the club you hit worst moves to second place and comes back at the end as a retest.</p>
       </details>

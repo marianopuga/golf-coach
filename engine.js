@@ -357,7 +357,7 @@ export function buildPlan(total, bagIds, sessions, focusView) {
 
   const why = (c) => {
     const s = stats[c];
-    if (!s || s.score == null) return "Standard share. It adapts after your first sessions.";
+    if (!s || s.score == null) return "";
     const parts = [];
     if (s.badRate != null && s.logged >= 5) parts.push(`${pct(s.bad, s.logged)}% bad shots`);
     if (s.faultRate != null) parts.push(`${pct(s.fails, s.checks)}% swing faults`);
@@ -373,14 +373,14 @@ export function buildPlan(total, bagIds, sessions, focusView) {
       const b = Math.floor(n / parts) + (part < n % parts ? 1 : 0);
       const v = blocks.length === 0 ? view0 : (blocks[blocks.length - 1].view === "dtl" ? "face" : "dtl");
       blocks.push({ cat, clubId: id, name: clubById(id).name, balls: b, view: v, phase,
-        why: phase === "warmup" ? CATS.warmup.note : phase === "retest" ? "Retest your weakest club now that you are warm." : why(cat) + (CATS[cat].note ? " " + CATS[cat].note : "") });
+        why: phase === "warmup" ? CATS.warmup.short : phase === "retest" ? "Retest your weakest club now that you are warm." : [why(cat), CATS[cat].note].filter(Boolean).join(" ") });
     }
   };
   add("warmup", warm, "warmup");
   if (worst) { const first = Math.ceil(balls[worst] * 0.6); add(worst, first, "focus"); balls[worst] -= first; }
   for (const c of cats) if (c !== worst) add(c, balls[c], "main");
   if (worst) add(worst, balls[worst], "retest");
-  return { total, blocks, stats, worst };
+  return { total, blocks, stats, worst, adapted: scored.length > 0 };
 }
 
 // ---------- Calibration (trial period) ----------
@@ -399,7 +399,7 @@ export function calibrationPlan(total, bagIds) {
   if (biggest) balls[biggest] += rest - used;
   const why = "Calibration: swing normally, no corrections. Say how each ball flew.";
   const blocks = [];
-  const push = (cat, id, n, view, phase) => blocks.push({ cat, clubId: id, name: clubById(id).name, balls: n, view, phase, why: phase === "warmup" ? CATS.warmup.note + " No corrections." : why });
+  const push = (cat, id, n, view, phase) => blocks.push({ cat, clubId: id, name: clubById(id).name, balls: n, view, phase, why: phase === "warmup" ? CATS.warmup.short : why });
   let view = "dtl";
   const w = pick("warmup"); if (w) push("warmup", w, warm, view, "warmup");
   for (const c of cats) {
