@@ -1,6 +1,6 @@
 // Pure logic: pose features, golfer lock, swing detection, metrics, coaching, voice commands,
 // session planning and reports. No DOM here, so everything can be tested in Node.
-import { RULES, RESULT_TIPS, BAD_RESULTS, CLUBS, BAG, CATS, CAT_ORDER, clubById } from "./rules.js?v=6";
+import { RULES, RESULT_TIPS, BAD_RESULTS, CLUBS, BAG, CATS, CAT_ORDER, clubById } from "./rules.js?v=7";
 
 const I = { nose: 0, lSh: 11, rSh: 12, lEl: 13, rEl: 14, lWr: 15, rWr: 16, lHip: 23, rHip: 24,
   lKn: 25, rKn: 26, lAn: 27, rAn: 28, lHe: 29, rHe: 30, lTo: 31, rTo: 32 };

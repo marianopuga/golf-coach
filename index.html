@@ -22,13 +22,15 @@
   --paper: #f5f7f3; --card: #ffffff; --ink: #10201a; --ink2: #536459; --line: #dde4dd; --line2: #c9d3ca;
   --fairway: #0f4c3a; --fairway2: #1d6b52; --on-fairway: #ffffff; --tint: #e6efe9; --gold: #b38a2a;
   --good: #1d8757; --bad: #c4452c; --good-bg: #e2f1e8; --bad-bg: #fae8e2;
+  --hero: #0f4c3a; --hero-ink: #ffffff; --head: #0f4c3a; --head-ink: #ffffff;
   --cond: "Archivo", "Arial Narrow", system-ui, sans-serif; --text: "Archivo", system-ui, -apple-system, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root {
   --paper: #0b1410; --card: #111d18; --ink: #e7efea; --ink2: #9aaea2; --line: #20312a; --line2: #2c4037;
   --fairway: #2f9a6f; --fairway2: #3db382; --on-fairway: #04120c; --tint: #15261f; --gold: #d6b157;
-  --good: #4fc08a; --bad: #ee7a5f; --good-bg: #12291e; --bad-bg: #321810; color-scheme: dark } }
+  --good: #4fc08a; --bad: #ee7a5f; --good-bg: #12291e; --bad-bg: #321810;
+  --hero: #133a2c; --hero-ink: #e7efea; --head: #1a3a2d; --head-ink: #e7efea; color-scheme: dark } }
 * { box-sizing: border-box }
 html, body { height: 100% }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.5 var(--text); font-stretch: 100%; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: antialiased }
@@ -55,19 +57,22 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   background: color-mix(in srgb, var(--card) 88%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-top: 1px solid var(--line) }
 #tabbar button { border: 0; background: none; display: grid; justify-items: center; gap: 2px; padding: 6px 0; color: var(--ink2); font-size: .72rem; font-weight: 600; min-height: 50px }
 #tabbar button svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
-#tabbar button[aria-current="page"] { color: var(--fairway) }
+#tabbar button { color: color-mix(in srgb, var(--ink2) 85%, transparent) }
+#tabbar button[aria-current="page"] { color: var(--fairway); font-weight: 750 }
+#tabbar button svg { box-sizing: content-box; padding: 3px 12px; border-radius: 12px }
+#tabbar button[aria-current="page"] svg { background: var(--tint); stroke-width: 2.1 }
 
 /* Surfaces */
 .panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: grid; gap: 14px; min-width: 0 }
-.panel.hero { background: var(--fairway); color: var(--on-fairway); border-color: transparent }
-.panel.hero .muted { color: color-mix(in srgb, var(--on-fairway) 78%, transparent) }
+.panel.hero { background: var(--hero); color: var(--hero-ink); border-color: transparent }
+.panel.hero .muted { color: color-mix(in srgb, var(--hero-ink) 78%, transparent) }
 .sect { display: flex; justify-content: space-between; align-items: baseline; gap: 10px }
 .linkbtn { background: none; border: 0; color: var(--fairway2); font-weight: 600; padding: 4px 0; min-height: 36px }
 
 /* Buttons */
 .btn { display: inline-flex; justify-content: center; align-items: center; gap: 8px; border: 0; border-radius: 14px; padding: 14px 18px; min-height: 54px; width: 100%;
   background: var(--fairway); color: var(--on-fairway); font-family: var(--cond); font-stretch: 85%; font-weight: 700; font-size: 1.2rem; letter-spacing: .01em }
-.panel.hero .btn { background: var(--on-fairway); color: var(--fairway) }
+.panel.hero .btn { background: var(--hero-ink); color: var(--hero) }
 .btn.quiet { background: var(--tint); color: var(--fairway) }
 .btn.line { background: transparent; color: var(--ink); border: 1px solid var(--line2) }
 .btn.danger { background: var(--bad); color: #fff }
@@ -78,17 +83,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 
 /* Balls stepper */
 .stepper { display: grid; grid-template-columns: 56px minmax(0, 1fr) 56px; align-items: center; gap: 8px }
-.stepper button { height: 56px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--on-fairway) 35%, transparent); background: transparent; font-size: 1.8rem; line-height: 1; color: inherit }
+.stepper button { height: 56px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--hero-ink) 35%, transparent); background: transparent; font-size: 1.8rem; line-height: 1; color: inherit }
 .stepper output { text-align: center; font-family: var(--cond); font-stretch: 70%; font-weight: 800; font-size: 4rem; line-height: 1; font-variant-numeric: tabular-nums }
 .stepper output small { display: block; font: 600 .85rem var(--text); font-stretch: 100%; opacity: .8 }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center }
-.chips button { border: 1px solid color-mix(in srgb, var(--on-fairway) 35%, transparent); background: transparent; border-radius: 999px; padding: 6px 14px; min-height: 36px; font-weight: 600; font-size: .9rem }
-.chips button[aria-pressed="true"] { background: var(--on-fairway); color: var(--fairway) }
+.chips button { border: 1px solid color-mix(in srgb, var(--hero-ink) 35%, transparent); background: transparent; border-radius: 999px; padding: 6px 14px; min-height: 36px; font-weight: 600; font-size: .9rem }
+.chips button[aria-pressed="true"] { background: var(--hero-ink); color: var(--hero) }
 
 /* Scorecard: the plan */
 .card-scroll { overflow-x: auto; border: 1px solid var(--line2); border-radius: 12px }
 table.score { width: 100%; border-collapse: collapse; font-size: .95rem; min-width: 320px }
-table.score th { background: var(--fairway); color: var(--on-fairway); font-family: var(--cond); font-stretch: 85%; font-weight: 700; font-size: .95rem; text-align: left; padding: 8px 10px }
+table.score th { background: var(--head); color: var(--head-ink); font-family: var(--cond); font-stretch: 85%; font-weight: 700; font-size: .95rem; text-align: left; padding: 8px 10px }
 table.score td { padding: 9px 10px; border-top: 1px solid var(--line); vertical-align: top }
 table.score td + td, table.score th + th { border-left: 1px solid var(--line) }
 table.score .c { text-align: center } table.score .n { text-align: center; font-family: var(--cond); font-stretch: 80%; font-weight: 750; font-size: 1.1rem }
@@ -245,6 +250,6 @@ dl.words { display: grid; grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
   </div>
 </section>
 
-<script type="module" src="app.js?v=6"></script>
+<script type="module" src="app.js?v=7"></script>
 </body>
 </html>

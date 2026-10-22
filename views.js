@@ -1,7 +1,7 @@
 // Tabs: Today, History, Progress, Library, Profile, plus the session report screen.
-import { CLUBS, VIDEOS, CAMERA, BAG, CATS, VOICE_HELP, BAD_RESULTS, clubById } from "./rules.js?v=6";
-import { buildPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate } from "./engine.js?v=6";
-import { DB, S, save, resetCoach, clearHistory } from "./store.js?v=6";
+import { CLUBS, VIDEOS, CAMERA, BAG, CATS, VOICE_HELP, BAD_RESULTS, clubById } from "./rules.js?v=7";
+import { buildPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate } from "./engine.js?v=7";
+import { DB, S, save, resetCoach, clearHistory } from "./store.js?v=7";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -165,7 +165,7 @@ function lineChart(points) { // points: [{label, v (0..1)}]
   const grid = [0, 0.5, 1].map((g) => `<line x1="${L}" x2="${W - R}" y1="${y(g)}" y2="${y(g)}" stroke="var(--line)"/><text x="${L - 6}" y="${y(g) + 4}" text-anchor="end">${g * 100}%</text>`).join("");
   const path = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join("");
   const area = `${path}L${x(points.length - 1)},${y(0)}L${x(0)},${y(0)}Z`;
-  const labels = points.map((p, i) => (points.length <= 6 || i % Math.ceil(points.length / 6) === 0 || i === points.length - 1) ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${p.label}</text>` : "").join("");
+  const labels = points.map((p, i) => (points.length <= 6 || i % Math.ceil(points.length / 6) === 0 || i === points.length - 1) ? `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === points.length - 1 && points.length > 1 ? "end" : i === 0 && points.length > 1 ? "start" : "middle"}">${p.label}</text>` : "").join("");
   const dots = points.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.v)}" r="${i === points.length - 1 ? 4.5 : 3}" fill="var(--fairway)"/>`).join("");
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Bad shots per session">${grid}<path d="${area}" fill="var(--tint)"/><path d="${path}" fill="none" stroke="var(--fairway)" stroke-width="2.2"/>${dots}${labels}</svg>`;
 }
@@ -238,10 +238,11 @@ function campDiagram() {
     <ellipse cx="128" cy="168" rx="16" ry="26" fill="var(--tint)" stroke="var(--fairway)" stroke-width="2"/>
     <circle cx="128" cy="168" r="9" fill="var(--fairway)"/>
     <text x="70" y="140">You</text>
+    <circle cx="150" cy="176" r="4" fill="var(--gold)"/><text x="88" y="214">Hands</text>
     <g transform="translate(276 154)"><rect width="18" height="30" rx="4" fill="var(--fairway)"/><text x="-28" y="50">In front, 3 m</text></g>
     <path d="M272 169 L180 169" stroke="var(--fairway)" stroke-width="1.5" stroke-dasharray="3 4"/>
-    <g transform="translate(119 252)"><rect width="18" height="30" rx="4" fill="var(--gold)"/><text x="26" y="20">Behind, 3 m</text></g>
-    <path d="M128 250 L128 198" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="3 4"/>
+    <g transform="translate(141 252)"><rect width="18" height="30" rx="4" fill="var(--gold)"/><text x="26" y="20">Behind, 3 m</text></g>
+    <path d="M150 250 L150 182" stroke="var(--gold)" stroke-width="1.5" stroke-dasharray="3 4"/>
   </svg>`;
 }
 function ruleHtml(r) {
