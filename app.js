@@ -1,10 +1,10 @@
 // Live session: camera, pose model, swing detection, voice in and out.
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-import { CAMERA, BAG, clubById } from "./rules.js?v=5";
+import { CAMERA, BAG, clubById } from "./rules.js?v=6";
 import { features, frameHint, pickGolfer, SwingDetector, analyze, runChecks, coach, ruleById,
-  dispute, skipFocus, parseCommand, buildPlan, keyTimes, calibrationPlan } from "./engine.js?v=5";
-import { DB, S, save } from "./store.js?v=5";
-import * as views from "./views.js?v=5";
+  dispute, skipFocus, parseCommand, buildPlan, keyTimes, calibrationPlan } from "./engine.js?v=6";
+import { DB, S, save } from "./store.js?v=6";
+import * as views from "./views.js?v=6";
 
 const $ = (s) => document.querySelector(s);
 const camWord = (v) => (v === "dtl" ? "camera behind" : "camera in front");

@@ -1,6 +1,6 @@
 // Saved data: settings, profile, coaching state and sessions. Everything stays on the phone.
-import { BAG } from "./rules.js?v=5";
-import { emptyCoachState } from "./engine.js?v=5";
+import { BAG } from "./rules.js?v=6";
+import { emptyCoachState } from "./engine.js?v=6";
 
 const KEY = "golfcoach.v2";
 function load() {

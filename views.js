@@ -1,7 +1,7 @@
 // Tabs: Today, History, Progress, Library, Profile, plus the session report screen.
-import { CLUBS, VIDEOS, CAMERA, BAG, CATS, VOICE_HELP, BAD_RESULTS, clubById } from "./rules.js?v=5";
-import { buildPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate } from "./engine.js?v=5";
-import { DB, S, save, resetCoach, clearHistory } from "./store.js?v=5";
+import { CLUBS, VIDEOS, CAMERA, BAG, CATS, VOICE_HELP, BAD_RESULTS, clubById } from "./rules.js?v=6";
+import { buildPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate } from "./engine.js?v=6";
+import { DB, S, save, resetCoach, clearHistory } from "./store.js?v=6";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
