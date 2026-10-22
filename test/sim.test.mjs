@@ -129,9 +129,15 @@ const rep = reportText([{ id: "a", start: Date.now(), swings: [1, 2, 3].map(() =
 expect("report has faults and tips", /Faults this session/.test(rep) && /Slices/.test(rep) && /By category/.test(rep));
 
 // Calibration
-const cp = calibrationPlan(null);
-expect("calibration is 20 balls in 4 blocks", cp.blocks.length === 4 && cp.blocks.reduce((a, b) => a + b.balls, 0) === 20);
-expect("calibration covers both cameras", cp.blocks.some((b) => b.view === "dtl") && cp.blocks.some((b) => b.view === "face"));
+const cp = calibrationPlan(100, null);
+console.log(" calibration:", cp.blocks.map((b) => `${b.name} ${b.balls} ${b.view}`).join(" | "));
+expect("calibration uses the whole bucket", cp.blocks.reduce((a, b) => a + b.balls, 0) === 100);
+for (const c of ["short", "mid", "long", "hybrid", "driver", "chip"]) {
+  const v = new Set(cp.blocks.filter((b) => b.cat === c).map((b) => b.view));
+  expect(`calibration sees ${c} from both sides`, v.size === 2);
+}
+let moves = 0; for (let i = 1; i < cp.blocks.length; i++) if (cp.blocks[i].view !== cp.blocks[i - 1].view) moves++;
+expect("camera moves only every second block", moves <= Math.ceil(cp.blocks.length / 2));
 const calS = { id: "c", start: Date.now(), calib: { mic: "ok", heard: "straight" }, swings: [1, 2, 3].map(() => ({ calib: true, clubId: "7i", view: "face", m, q: { fps: 24, poses: 2 } })) };
 const cs2 = calibSummary(calS);
 expect("calibration summary groups metrics", cs2.groups[0].metrics.sway && cs2.fps === 24 && cs2.otherPeople === 3);

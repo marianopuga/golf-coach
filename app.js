@@ -1,7 +1,7 @@
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-import { RULES, CLUBS, VIDEOS, CAMERA, BAG, CATS, VOICE_HELP, clubById } from "./rules.js?v=3";
+import { RULES, CLUBS, VIDEOS, CAMERA, BAG, CATS, VOICE_HELP, clubById } from "./rules.js?v=4";
 import { features, frameHint, pickGolfer, SwingDetector, analyze, runChecks, coach, emptyCoachState, ruleById,
-  dispute, skipFocus, parseCommand, buildPlan, catStats, sessionStats, reportText, keyTimes, calibrationPlan } from "./engine.js?v=3";
+  dispute, skipFocus, parseCommand, buildPlan, catStats, sessionStats, reportText, keyTimes, calibrationPlan } from "./engine.js?v=4";
 
 const $ = (s) => document.querySelector(s);
 const KEY = "golfcoach.v2";
@@ -21,7 +21,7 @@ function load() {
 const DB = load();
 const S = DB.settings;
 S.clubId ??= "7i"; S.view ??= "face"; S.mode ??= 1; S.voice ??= true; S.mic ??= true; S.ask ??= true;
-S.bag ??= BAG.map((c) => c.id); S.balls ??= 50;
+S.bag ??= BAG.map((c) => c.id); S.balls ??= 100;
 function save() {
   if (DB.sessions.length > 80) DB.sessions = DB.sessions.slice(-80);
   try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) { console.warn("save failed", e); }
@@ -163,6 +163,7 @@ let stream = null, running = false, session = null, lastSwing = null, wakeLock =
 let lock = null, lockMissSince = 0, lastHintAt = 0, notOkSince = 0, lastVideoTime = -1, status = "";
 let fpsCount = 0, fpsT0 = 0, fps = 30, slowSince = 0, slowWarned = false, swingsSinceHint = 99, endArmed = 0, lastPoses = 0;
 const group = () => (sessionMode === "plan" && currentBlock()?.phase === "warmup") ? "wedge" : clubById(S.clubId).group;
+const isCalibBlock = () => !!(session?.calib && currentBlock());
 const currentBlock = () => session?.plan?.blocks[session.blockIdx] || null;
 
 function setStatus(text, cls = "") { if (status === text) return; status = text; const el = $("#status"); el.textContent = text; el.className = "pill " + cls; }
@@ -188,7 +189,7 @@ async function start(kind) {
   if (!landmarker) { running = false; stopListening(); verdict("", "ERROR", "Pose model did not load", "Check your internet and reload the app."); return; }
   try { wakeLock = await navigator.wakeLock?.request("screen"); } catch (e) {}
   session = { id: String(Date.now()), start: Date.now(), swings: [], disputes: {}, muted: [] };
-  if (calib) { session.calib = { mic: null }; session.plan = calibrationPlan(S.bag); session.blockIdx = 0; session.blockDone = 0; }
+  if (calib) { session.calib = { mic: null }; session.plan = calibrationPlan(S.balls, S.bag); session.blockIdx = 0; session.blockDone = 0; }
   else if (kind === "plan") { session.plan = buildPlan(S.balls, S.bag, DB.sessions, DB.coach.focus ? ruleById(DB.coach.focus.id)?.view : null); session.blockIdx = 0; session.blockDone = 0; }
   DB.sessions.push(session); save();
   det.reset(); lock = null; lastSwing = null; slowWarned = false; swingsSinceHint = 99;
@@ -318,12 +319,12 @@ function onSwing(sw) {
   const grp = group(), clubId = S.clubId, blk = currentBlock();
   const checks = runChecks(m, grp, S.view, session.muted);
   const q = { fps: Math.round(fps), poses: lastPoses, down: m.downFrames };
-  if (session.calib && blk) {
-    const rec = { t: Date.now(), clubId, club: grp, cat: blk.cat, block: "calib", blockIdx: session.blockIdx, view: S.view, m, checks, items: [], calib: true, q };
+  if (isCalibBlock()) {
+    const rec = { t: Date.now(), clubId, club: grp, cat: blk.cat, block: blk.phase, blockIdx: session.blockIdx, view: S.view, m, checks, items: [], calib: true, q };
     session.swings.push(rec); lastSwing = rec; lastDetail = "";
     const nCal = session.swings.filter((w) => w.calib && !w.practice).length;
-    const line = `Captured, ${session.blockDone + 1} of ${blk.balls}.` + (nCal === 1 ? " Say how it flew, for example: straight, or slice." : "");
-    verdict("", "CAPTURED", `${blk.name} · ${camWord(S.view)}`, "No corrections during calibration.");
+    const line = `${session.blockDone + 1} of ${blk.balls}.` + (nCal === 1 ? " Now say how it flew, for example: straight, or slice." : "");
+    verdict("", "CAPTURED", `${blk.name} · ${camWord(S.view)}`, "No corrections during calibration. Say how it flew.");
     say(line, { remember: true });
     $("#count").textContent = `${session.swings.filter((w) => !w.practice).length} swings`;
     renderThumbs(sw, null);

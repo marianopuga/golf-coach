@@ -1,6 +1,6 @@
 // Pure logic: pose features, golfer lock, swing detection, metrics, coaching, voice commands,
 // session planning and reports. No DOM here, so everything can be tested in Node.
-import { RULES, RESULT_TIPS, BAD_RESULTS, CLUBS, BAG, CATS, CAT_ORDER, clubById } from "./rules.js?v=3";
+import { RULES, RESULT_TIPS, BAD_RESULTS, CLUBS, BAG, CATS, CAT_ORDER, clubById } from "./rules.js?v=4";
 
 const I = { nose: 0, lSh: 11, rSh: 12, lEl: 13, rEl: 14, lWr: 15, rWr: 16, lHip: 23, rHip: 24,
   lKn: 25, rKn: 26, lAn: 27, rAn: 28, lHe: 29, rHe: 30, lTo: 31, rTo: 32 };
@@ -384,14 +384,31 @@ export function buildPlan(total, bagIds, sessions, focusView) {
 }
 
 // ---------- Calibration (trial period) ----------
-// 20 balls with no corrections: checks the camera, the voice and how much each measurement moves.
-export function calibrationPlan(bagIds) {
+// A full bucket with no corrections, every club category from both camera sides. Each category
+// is split in two blocks and the order is chosen so the camera only moves every second block.
+export function calibrationPlan(total, bagIds) {
+  total = Math.max(20, Math.min(300, Math.round(total || 100)));
   const bag = new Set(bagIds && bagIds.length ? bagIds : BAG.map((c) => c.id));
-  const mid = ["7i", "6i", "8i"].find((id) => bag.has(id)) || "7i";
-  const long = ["driver", "hybrid"].find((id) => bag.has(id)) || mid;
-  const why = "Calibration: swing normally, no corrections.";
-  const b = (clubId, view) => ({ cat: clubById(clubId).cat, clubId, name: clubById(clubId).name, balls: 5, view, phase: "calib", why });
-  return { total: 20, calib: true, blocks: [b(mid, "dtl"), b(mid, "face"), b(long, "face"), b(long, "dtl")] };
+  const pick = (cat) => CATS[cat].pick.find((id) => bag.has(id)) || null;
+  const cats = CAT_ORDER.filter((c) => pick(c));
+  const warm = Math.max(4, Math.round(total * 0.08)), rest = total - warm;
+  const sumW = cats.reduce((a, c) => a + CATS[c].base, 0) || 1;
+  const balls = {}; let used = 0;
+  for (const c of cats) { balls[c] = Math.max(4, Math.round((rest * CATS[c].base) / sumW)); used += balls[c]; }
+  const biggest = cats.slice().sort((a, b) => balls[b] - balls[a])[0];
+  if (biggest) balls[biggest] += rest - used;
+  const why = "Calibration: swing normally, no corrections. Say how each ball flew.";
+  const blocks = [];
+  const push = (cat, id, n, view, phase) => blocks.push({ cat, clubId: id, name: clubById(id).name, balls: n, view, phase, why: phase === "warmup" ? CATS.warmup.note + " No corrections." : why });
+  let view = "dtl";
+  const w = pick("warmup"); if (w) push("warmup", w, warm, view, "warmup");
+  for (const c of cats) {
+    const a = Math.ceil(balls[c] / 2), b = balls[c] - a;
+    push(c, pick(c), a, view, "calib");
+    view = view === "dtl" ? "face" : "dtl";
+    if (b > 0) push(c, pick(c), b, view, "calib");
+  }
+  return { total, calib: true, blocks };
 }
 const CAL_KEYS = {
   face: ["stanceRatio", "tiltDeg", "leadShHigher", "addrWeight", "sway", "shoulderTurn", "impWeight", "upperAhead", "transfer", "feetMoved", "headRise", "cameraRollDeg", "downFrames"],
@@ -463,7 +480,7 @@ export function reportText(sessions, sid, coachState) {
     const c = calibSummary(s);
     L.push("", "Calibration checks:");
     L.push(`  Voice test: ${c.mic === "ok" ? "worked" + (c.heard ? ` (heard "${c.heard}")` : "") : c.mic === "no" ? "did not hear anything" : "not run"}`);
-    L.push(`  Swings captured: ${c.swings} of 20 planned, practice swings: ${c.practice}, ball flights logged: ${c.logged}`);
+    L.push(`  Swings captured: ${c.swings} of ${s.plan?.total ?? "?"} planned, practice swings: ${c.practice}, ball flights logged: ${c.logged}`);
     L.push(`  Camera speed: ${c.fps ?? "?"} frames per second, swings with another person in the picture: ${c.otherPeople}`);
     for (const g of c.groups) {
       L.push(`  ${clubById(g.clubId).name}, camera ${g.view === "dtl" ? "behind" : "in front"} (${g.n} swings):`);

@@ -129,7 +129,7 @@ nav.tabs { display: flex; gap: 8px } nav.tabs .btn { font-size: 1rem; min-height
   <section class="card" id="calibCard">
     <span class="eyebrow">Trial period, step 1</span>
     <h3>Calibration session</h3>
-    <p class="hint">20 balls, about 15 minutes, before your real sessions. The app does not correct you: it tests the voice, checks that it catches every swing from both camera sides, and measures how your swing reads on camera. Then you paste the report to Claude to tune the rules.</p>
+    <p class="hint">A full bucket with the number of balls below, before your real sessions. Same order of clubs as a normal plan, every club from both camera sides. The app does not correct you: it tests the voice, checks that it catches every swing, and measures how your swing reads on camera. Say how each ball flew. Then paste the report to Claude to tune the rules.</p>
     <p class="hint" id="calibState"></p>
     <button class="btn" id="startCalib">Start calibration</button>
   </section>
@@ -137,7 +137,7 @@ nav.tabs { display: flex; gap: 8px } nav.tabs .btn { font-size: 1rem; min-height
   <section class="card">
     <span class="eyebrow">Today</span>
     <div class="balls">
-      <input id="ballsIn" type="number" inputmode="numeric" min="10" max="300" value="50" aria-label="Balls in your bucket">
+      <input id="ballsIn" type="number" inputmode="numeric" min="10" max="300" value="100" aria-label="Balls in your bucket">
       <span class="hint">balls</span>
     </div>
     <div class="chips" id="ballChips"><button>30</button><button>50</button><button>80</button><button>100</button></div>
@@ -235,6 +235,6 @@ nav.tabs { display: flex; gap: 8px } nav.tabs .btn { font-size: 1rem; min-height
   <section class="card" id="manBody"></section>
 </main>
 
-<script type="module" src="app.js?v=3"></script>
+<script type="module" src="app.js?v=4"></script>
 </body>
 </html>
