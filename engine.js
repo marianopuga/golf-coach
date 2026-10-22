@@ -1,6 +1,6 @@
 // Pure logic: pose features, golfer lock, swing detection, metrics, coaching, voice commands,
 // session planning and reports. No DOM here, so everything can be tested in Node.
-import { RULES, RESULT_TIPS, BAD_RESULTS, CLUBS, BAG, CATS, CAT_ORDER, clubById } from "./rules.js?v=2";
+import { RULES, RESULT_TIPS, BAD_RESULTS, CLUBS, BAG, CATS, CAT_ORDER, clubById } from "./rules.js?v=3";
 
 const I = { nose: 0, lSh: 11, rSh: 12, lEl: 13, rEl: 14, lWr: 15, rWr: 16, lHip: 23, rHip: 24,
   lKn: 25, rKn: 26, lAn: 27, rAn: 28, lHe: 29, rHe: 30, lTo: 31, rTo: 32 };
@@ -383,6 +383,42 @@ export function buildPlan(total, bagIds, sessions, focusView) {
   return { total, blocks, stats, worst };
 }
 
+// ---------- Calibration (trial period) ----------
+// 20 balls with no corrections: checks the camera, the voice and how much each measurement moves.
+export function calibrationPlan(bagIds) {
+  const bag = new Set(bagIds && bagIds.length ? bagIds : BAG.map((c) => c.id));
+  const mid = ["7i", "6i", "8i"].find((id) => bag.has(id)) || "7i";
+  const long = ["driver", "hybrid"].find((id) => bag.has(id)) || mid;
+  const why = "Calibration: swing normally, no corrections.";
+  const b = (clubId, view) => ({ cat: clubById(clubId).cat, clubId, name: clubById(clubId).name, balls: 5, view, phase: "calib", why });
+  return { total: 20, calib: true, blocks: [b(mid, "dtl"), b(mid, "face"), b(long, "face"), b(long, "dtl")] };
+}
+const CAL_KEYS = {
+  face: ["stanceRatio", "tiltDeg", "leadShHigher", "addrWeight", "sway", "shoulderTurn", "impWeight", "upperAhead", "transfer", "feetMoved", "headRise", "cameraRollDeg", "downFrames"],
+  dtl: ["hingeDeg", "kneeDeg", "shoulderOverFeet", "hingeLoss", "headRise", "downFrames"],
+};
+export function calibSummary(s) {
+  const sw = (s.swings || []).filter((w) => w.calib && !w.practice);
+  const groups = {};
+  for (const w of sw) (groups[`${w.clubId}|${w.view}`] ??= []).push(w);
+  const stat = (vals) => {
+    const v = vals.filter((x) => typeof x === "number" && isFinite(x)); if (!v.length) return null;
+    const mean = v.reduce((a, b) => a + b, 0) / v.length;
+    const sd = Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / v.length);
+    const r = (x) => Math.round(x * 1000) / 1000;
+    return { n: v.length, mean: r(mean), sd: r(sd), min: r(Math.min(...v)), max: r(Math.max(...v)) };
+  };
+  const out = Object.entries(groups).map(([k, ws]) => {
+    const [clubId, view] = k.split("|"), metrics = {};
+    for (const key of CAL_KEYS[view] || []) { const st = stat(ws.map((w) => w.m?.[key])); if (st) metrics[key] = st; }
+    return { clubId, view, n: ws.length, metrics };
+  });
+  const q = sw.map((w) => w.q || {});
+  const avg = (k) => { const v = q.map((x) => x[k]).filter((x) => typeof x === "number"); return v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 10) / 10 : null; };
+  return { mic: s.calib?.mic ?? null, heard: s.calib?.heard ?? null, swings: sw.length, practice: (s.swings || []).filter((w) => w.calib && w.practice).length,
+    fps: avg("fps"), otherPeople: q.filter((x) => x.poses > 1).length, logged: sw.filter((w) => w.result).length, groups: out };
+}
+
 // ---------- Reports ----------
 export function sessionStats(s) {
   const swings = (s.swings || []).filter((w) => !w.practice);
@@ -401,7 +437,7 @@ export function reportText(sessions, sid, coachState) {
   const s = sessions.find((x) => x.id === sid) || sessions[sessions.length - 1];
   if (!s) return "No sessions yet.";
   const st = sessionStats(s), L = [];
-  L.push("GOLF COACH SESSION REPORT");
+  L.push(s.calib ? "GOLF COACH CALIBRATION REPORT" : "GOLF COACH SESSION REPORT");
   L.push(`Date: ${new Date(s.start).toLocaleString()}  Swings: ${st.n}  Practice swings ignored: ${st.practice}`);
   if (s.plan) L.push(`Plan: ${s.plan.total} balls, ${s.plan.blocks.length} blocks, finished ${Math.min(s.blockIdx ?? 0, s.plan.blocks.length)} blocks`);
   L.push("Clubs: " + Object.entries(st.byClub).map(([c, n]) => `${c} ${n}`).join(", "));
@@ -423,7 +459,18 @@ export function reportText(sessions, sid, coachState) {
   }
   const tips = Object.entries(st.results).filter(([r, n]) => RESULT_TIPS[r] && n >= 3).map(([r]) => RESULT_TIPS[r]);
   if (tips.length) { L.push("", "From your playlist, about your ball flight:"); tips.forEach((t) => L.push("  " + t)); }
+  if (s.calib) {
+    const c = calibSummary(s);
+    L.push("", "Calibration checks:");
+    L.push(`  Voice test: ${c.mic === "ok" ? "worked" + (c.heard ? ` (heard "${c.heard}")` : "") : c.mic === "no" ? "did not hear anything" : "not run"}`);
+    L.push(`  Swings captured: ${c.swings} of 20 planned, practice swings: ${c.practice}, ball flights logged: ${c.logged}`);
+    L.push(`  Camera speed: ${c.fps ?? "?"} frames per second, swings with another person in the picture: ${c.otherPeople}`);
+    for (const g of c.groups) {
+      L.push(`  ${clubById(g.clubId).name}, camera ${g.view === "dtl" ? "behind" : "in front"} (${g.n} swings):`);
+      for (const [k, v] of Object.entries(g.metrics)) L.push(`    ${k}: mean ${v.mean}, sd ${v.sd}, min ${v.min}, max ${v.max}`);
+    }
+  }
   if (coachState?.focus) L.push("", `Current focus: ${ruleById(coachState.focus.id)?.title}`);
-  L.push("", "Raw swings: " + JSON.stringify((s.swings || []).map((w) => ({ c: w.clubId || w.club, v: w.view, r: w.result || null, p: w.practice ? 1 : 0, f: (w.checks || []).filter((c) => !c.pass).map((c) => c.id), m: w.m }))));
+  L.push("", "Raw swings: " + JSON.stringify((s.swings || []).map((w) => ({ c: w.clubId || w.club, v: w.view, r: w.result || null, p: w.practice ? 1 : 0, q: w.q || null, f: (w.checks || []).filter((c) => !c.pass).map((c) => c.id), m: w.m }))));
   return L.join("\n");
 }

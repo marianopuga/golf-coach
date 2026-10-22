@@ -126,6 +126,14 @@ nav.tabs { display: flex; gap: 8px } nav.tabs .btn { font-size: 1rem; min-height
     <p class="hint">One correction at a time, only from your playlist. Earphones in, camera set up, swing.</p>
   </header>
 
+  <section class="card" id="calibCard">
+    <span class="eyebrow">Trial period, step 1</span>
+    <h3>Calibration session</h3>
+    <p class="hint">20 balls, about 15 minutes, before your real sessions. The app does not correct you: it tests the voice, checks that it catches every swing from both camera sides, and measures how your swing reads on camera. Then you paste the report to Claude to tune the rules.</p>
+    <p class="hint" id="calibState"></p>
+    <button class="btn" id="startCalib">Start calibration</button>
+  </section>
+
   <section class="card">
     <span class="eyebrow">Today</span>
     <div class="balls">
@@ -227,6 +235,6 @@ nav.tabs { display: flex; gap: 8px } nav.tabs .btn { font-size: 1rem; min-height
   <section class="card" id="manBody"></section>
 </main>
 
-<script type="module" src="app.js?v=2"></script>
+<script type="module" src="app.js?v=3"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // Simulated swings and unit checks for the engine.
 import { features, SwingDetector, analyze, runChecks, coach, emptyCoachState, reportText, frameHint,
-  pickGolfer, parseCommand, buildPlan, dispute, skipFocus } from "../engine.js";
+  pickGolfer, parseCommand, buildPlan, dispute, skipFocus, calibrationPlan, calibSummary } from "../engine.js";
 
 const W = 720, H = 1280;
 function body({ hipShiftX = 0, handsX = 0.5, handsY = 0.62, spanScale = 1, noseDy = 0, stance = 0.16, shTilt = 0.01, upperX = 0, dx = 0, roll = 0 }) {
@@ -127,6 +127,15 @@ expect("blocks at most 10 balls", plan.blocks.every((b) => b.balls <= 10));
 // Report
 const rep = reportText([{ id: "a", start: Date.now(), swings: [1, 2, 3].map(() => ({ club: "iron", clubId: "7i", cat: "mid", view: "face", result: "slice", checks: chb, m: mb })) }], "a", st);
 expect("report has faults and tips", /Faults this session/.test(rep) && /Slices/.test(rep) && /By category/.test(rep));
+
+// Calibration
+const cp = calibrationPlan(null);
+expect("calibration is 20 balls in 4 blocks", cp.blocks.length === 4 && cp.blocks.reduce((a, b) => a + b.balls, 0) === 20);
+expect("calibration covers both cameras", cp.blocks.some((b) => b.view === "dtl") && cp.blocks.some((b) => b.view === "face"));
+const calS = { id: "c", start: Date.now(), calib: { mic: "ok", heard: "straight" }, swings: [1, 2, 3].map(() => ({ calib: true, clubId: "7i", view: "face", m, q: { fps: 24, poses: 2 } })) };
+const cs2 = calibSummary(calS);
+expect("calibration summary groups metrics", cs2.groups[0].metrics.sway && cs2.fps === 24 && cs2.otherPeople === 3);
+expect("calibration report", /CALIBRATION REPORT/.test(reportText([calS], "c")) && /Voice test: worked/.test(reportText([calS], "c")));
 
 const lm = body({}); lm[27].visibility = 0.1;
 expect("feet hint", /feet/.test(frameHint(features(lm, W, H), "face")));

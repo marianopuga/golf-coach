@@ -1,7 +1,7 @@
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-import { RULES, CLUBS, VIDEOS, CAMERA, BAG, CATS, VOICE_HELP, clubById } from "./rules.js?v=2";
+import { RULES, CLUBS, VIDEOS, CAMERA, BAG, CATS, VOICE_HELP, clubById } from "./rules.js?v=3";
 import { features, frameHint, pickGolfer, SwingDetector, analyze, runChecks, coach, emptyCoachState, ruleById,
-  dispute, skipFocus, parseCommand, buildPlan, catStats, sessionStats, reportText, keyTimes } from "./engine.js?v=2";
+  dispute, skipFocus, parseCommand, buildPlan, catStats, sessionStats, reportText, keyTimes, calibrationPlan } from "./engine.js?v=3";
 
 const $ = (s) => document.querySelector(s);
 const KEY = "golfcoach.v2";
@@ -122,7 +122,16 @@ function renderPlanPreview() {
   previewPlan = buildPlan(S.balls, S.bag, DB.sessions, fv);
   $("#planList").innerHTML = previewPlan.blocks.map((b) => `<li><b>${b.name}</b><span class="n">${b.balls}</span><small>${camWord(b.view)} · ${b.why}</small></li>`).join("");
 }
+function renderCalibCard() {
+  const last = DB.sessions.filter((s) => s.calib && (s.swings || []).length).at(-1);
+  $("#calibState").innerHTML = last
+    ? `Last calibration: ${new Date(last.start).toLocaleDateString(undefined, { day: "numeric", month: "short" })}, ${last.swings.filter((w) => !w.practice).length} swings, voice ${last.calib.mic === "ok" ? "worked" : last.calib.mic === "no" ? "not heard" : "off"}. Copy its report in Reports and paste it to Claude.`
+    : "Not done yet. Do this first, at the range.";
+  $("#startCalib").textContent = last ? "Run calibration again" : "Start calibration";
+  $("#startCalib").classList.toggle("ghost", !!last);
+}
 function refresh() {
+  renderCalibCard();
   $("#viewHint").textContent = CAMERA[S.view];
   $("#focusHome").innerHTML = focusText();
   $("#clubFree").innerHTML = clubOptions(); $("#clubFree").value = S.clubId;
@@ -152,7 +161,7 @@ const video = $("#video"), canvas = $("#overlay"), ctx = canvas.getContext("2d")
 const det = new SwingDetector();
 let stream = null, running = false, session = null, lastSwing = null, wakeLock = null, sessionMode = "free";
 let lock = null, lockMissSince = 0, lastHintAt = 0, notOkSince = 0, lastVideoTime = -1, status = "";
-let fpsCount = 0, fpsT0 = 0, fps = 30, slowSince = 0, slowWarned = false, swingsSinceHint = 99, endArmed = 0;
+let fpsCount = 0, fpsT0 = 0, fps = 30, slowSince = 0, slowWarned = false, swingsSinceHint = 99, endArmed = 0, lastPoses = 0;
 const group = () => (sessionMode === "plan" && currentBlock()?.phase === "warmup") ? "wedge" : clubById(S.clubId).group;
 const currentBlock = () => session?.plan?.blocks[session.blockIdx] || null;
 
@@ -168,8 +177,9 @@ async function startCamera() {
 }
 
 async function start(kind) {
+  const calib = kind === "calib"; if (calib) kind = "plan";
   sessionMode = kind; running = true;
-  say(kind === "plan" ? "Starting your plan." : "Starting free practice.", { force: true }); // first speech must come from a tap
+  say(calib ? "Starting calibration." : kind === "plan" ? "Starting your plan." : "Starting free practice.", { force: true }); // first speech must come from a tap
   startListening(); // iPhone only allows the microphone to start from a tap
   show("live");
   try { await startCamera(); }
@@ -178,23 +188,38 @@ async function start(kind) {
   if (!landmarker) { running = false; stopListening(); verdict("", "ERROR", "Pose model did not load", "Check your internet and reload the app."); return; }
   try { wakeLock = await navigator.wakeLock?.request("screen"); } catch (e) {}
   session = { id: String(Date.now()), start: Date.now(), swings: [], disputes: {}, muted: [] };
-  if (kind === "plan") { session.plan = buildPlan(S.balls, S.bag, DB.sessions, DB.coach.focus ? ruleById(DB.coach.focus.id)?.view : null); session.blockIdx = 0; session.blockDone = 0; }
+  if (calib) { session.calib = { mic: null }; session.plan = calibrationPlan(S.bag); session.blockIdx = 0; session.blockDone = 0; }
+  else if (kind === "plan") { session.plan = buildPlan(S.balls, S.bag, DB.sessions, DB.coach.focus ? ruleById(DB.coach.focus.id)?.view : null); session.blockIdx = 0; session.blockDone = 0; }
   DB.sessions.push(session); save();
   det.reset(); lock = null; lastSwing = null; slowWarned = false; swingsSinceHint = 99;
   $("#thumbs").hidden = true; $("#res").hidden = true; $("#count").textContent = "0 swings";
   $("#nextBtn").hidden = kind !== "plan"; $("#viewLive").disabled = kind === "plan"; $("#clubLive").disabled = kind === "plan";
   verdict("", "READY", "Get into your setup", "I start when you stand still.");
-  if (kind === "plan") applyBlock(true); else { det.club = group(); guide(CAMERA[S.view]); renderBlockbar(); }
+  if (calib && S.mic && Rec && micState !== "blocked") {
+    // Voice test first, then the first block
+    verdict("", "VOICE", "Voice test", "Say the word: straight");
+    say("First a voice test. Say the word: straight.", { queue: true });
+    setTimeout(() => {
+      if (!session?.calib || session.calib.mic) return;
+      session.calib.mic = "no"; save();
+      say("I did not hear you. Use the buttons for the ball flight. For voice, check that Dictation is on in your iPhone settings.", { queue: true });
+      verdict("", "READY", "Get into your setup", "I start when you stand still."); applyBlock(true, true);
+    }, 16000);
+    renderBlockbar();
+  } else if (kind === "plan") { if (calib) session.calib.mic = "off"; applyBlock(true, calib); }
+  else { det.club = group(); guide(CAMERA[S.view]); renderBlockbar(); }
   requestAnimationFrame(loop);
 }
 
-function applyBlock(first) {
+function applyBlock(first, queue = !first) {
   const b = currentBlock(); if (!b) return;
   S.clubId = b.clubId; S.view = b.view; det.club = group(); save();
   $("#clubLive").value = b.clubId; $("#viewLive").value = b.view;
   guide(`${b.name}, ${b.balls} balls. ${CAMERA[b.view]}`);
   const n = session.plan.blocks.length;
-  say(`${first ? "Mariano, block" : "Block"} ${session.blockIdx + 1} of ${n}. ${b.name}, ${b.balls} balls. ${b.view === "dtl" ? "Camera behind you." : "Camera in front of you."}${b.phase === "warmup" ? " Half swings." : b.phase === "retest" ? " Retest time." : ""}`, { queue: !first });
+  const cam = b.view === "dtl" ? "Camera behind you." : "Camera in front of you.";
+  if (b.phase === "calib") say(`${first ? "Mariano, calibration" : "Calibration"} step ${session.blockIdx + 1} of ${n}. ${b.name}, ${b.balls} balls. ${cam} Swing normally, I won't correct you.`, { queue });
+  else say(`${first ? "Mariano, block" : "Block"} ${session.blockIdx + 1} of ${n}. ${b.name}, ${b.balls} balls. ${cam}${b.phase === "warmup" ? " Half swings." : b.phase === "retest" ? " Retest time." : ""}`, { queue });
   renderBlockbar();
 }
 function advanceBlock(manual) {
@@ -204,16 +229,18 @@ function advanceBlock(manual) {
     if (!manual) say("Block done.", { queue: true });
     applyBlock(false);
   } else {
-    session.blockIdx = session.plan.blocks.length; save(); renderBlockbar();
-    say("Plan done. Great work. Tap End to see your report.", { queue: true });
+    session.blockIdx = session.plan.blocks.length; renderBlockbar();
+    if (session.calib) { S.calibDoneAt = Date.now(); say("Calibration done. Tap End, then copy the report and paste it to Claude. You can keep hitting with free practice after that.", { queue: true }); }
+    else say("Plan done. Great work. Tap End to see your report.", { queue: true });
+    save();
   }
 }
 function renderBlockbar() {
   const bb = $("#blockbar");
   if (sessionMode !== "plan") { bb.innerHTML = `<span><b>${clubById(S.clubId).name}</b> · free practice</span><span>${camWord(S.view)}</span>`; return; }
   const b = currentBlock(), n = session.plan.blocks.length;
-  if (!b) { bb.innerHTML = `<span><b>Plan done</b></span><span>${n} blocks</span>`; return; }
-  bb.innerHTML = `<span><b>${b.name}</b> · ${session.blockDone}/${b.balls} balls</span><span>block ${session.blockIdx + 1}/${n} · ${camWord(b.view)}</span>`;
+  if (!b) { bb.innerHTML = `<span><b>${session.calib ? "Calibration" : "Plan"} done</b></span><span>${n} blocks</span>`; return; }
+  bb.innerHTML = `<span><b>${b.name}</b> · ${session.blockDone}/${b.balls} balls</span><span>${session.calib ? "calibration" : "block"} ${session.blockIdx + 1}/${n} · ${camWord(b.view)}</span>`;
 }
 
 function stop() {
@@ -232,6 +259,7 @@ $("#endBtn").onclick = () => {
   setTimeout(() => { $("#endBtn").textContent = "End"; $("#endBtn").classList.remove("warn"); }, 3000);
 };
 $("#startPlan").onclick = () => start("plan");
+$("#startCalib").onclick = () => start("calib");
 $("#startFree").onclick = () => start("free");
 $("#nextBtn").onclick = () => advanceBlock(true);
 $("#lockPill").onclick = () => { lock = null; say("Looking for you again. Stand in the middle."); };
@@ -250,6 +278,7 @@ function loop() {
     const now = performance.now();
     const res = landmarker.detectForVideo(video, now);
     const poses = res.landmarks || [];
+    if (det.state === "address" || det.state === "swing") lastPoses = Math.max(lastPoses, poses.length); else if (det.state === "idle") lastPoses = 0;
     const g = pickGolfer(poses, lock);
     let lm = null;
     if (g.idx >= 0) { lm = poses[g.idx]; lock = g.lock; lockMissSince = 0; }
@@ -288,11 +317,25 @@ function onSwing(sw) {
   try { m = analyze(sw, S.view); } catch (e) { console.warn(e); return; }
   const grp = group(), clubId = S.clubId, blk = currentBlock();
   const checks = runChecks(m, grp, S.view, session.muted);
+  const q = { fps: Math.round(fps), poses: lastPoses, down: m.downFrames };
+  if (session.calib && blk) {
+    const rec = { t: Date.now(), clubId, club: grp, cat: blk.cat, block: "calib", blockIdx: session.blockIdx, view: S.view, m, checks, items: [], calib: true, q };
+    session.swings.push(rec); lastSwing = rec; lastDetail = "";
+    const nCal = session.swings.filter((w) => w.calib && !w.practice).length;
+    const line = `Captured, ${session.blockDone + 1} of ${blk.balls}.` + (nCal === 1 ? " Say how it flew, for example: straight, or slice." : "");
+    verdict("", "CAPTURED", `${blk.name} · ${camWord(S.view)}`, "No corrections during calibration.");
+    say(line, { remember: true });
+    $("#count").textContent = `${session.swings.filter((w) => !w.practice).length} swings`;
+    renderThumbs(sw, null);
+    if (S.ask) { $("#res").hidden = false; $("#res").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", "false")); }
+    session.blockDone++; renderBlockbar(); if (session.blockDone >= blk.balls) advanceBlock(false);
+    save(); return;
+  }
   swingsSinceHint++;
   const r = coach(DB.coach, checks, m, grp, S.view, S.mode, { cameraHint: sessionMode === "free" && swingsSinceHint >= 5 });
   if (r.event?.type === "camera") swingsSinceHint = 0;
   const rec = { t: Date.now(), clubId, club: grp, cat: blk ? blk.cat : clubById(clubId).cat, block: blk?.phase || null, blockIdx: session.blockIdx ?? null,
-    view: S.view, m, checks, items: r.items, focus: r.focusId, said: r.speech };
+    view: S.view, m, checks, items: r.items, focus: r.focusId, said: r.speech, q };
   session.swings.push(rec); lastSwing = rec; lastDetail = r.detail;
   const first = r.items[0];
   if (first) verdict(first.pass ? "good" : "bad", first.pass ? "GOOD" : "FIX", ruleById(first.id).title, r.speech);
@@ -315,7 +358,7 @@ function setResult(value) {
 function markPractice() {
   const w = lastSwing; if (!w || w.practice) return;
   w.practice = true;
-  for (const c of w.checks) { const h = DB.coach.hist[c.id]; if (h?.length) h.pop(); if (DB.coach.focus?.id === c.id && DB.coach.focus.hist.length) DB.coach.focus.hist.pop(); }
+  if (!w.calib) for (const c of w.checks) { const h = DB.coach.hist[c.id]; if (h?.length) h.pop(); if (DB.coach.focus?.id === c.id && DB.coach.focus.hist.length) DB.coach.focus.hist.pop(); }
   if (sessionMode === "plan") {
     if (w.blockIdx !== session.blockIdx) { session.blockIdx = w.blockIdx; session.blockDone = Math.max(0, currentBlock().balls - 1); say(`OK, practice swing. One more ball with the ${currentBlock().name}.`); }
     else { session.blockDone = Math.max(0, session.blockDone - 1); say("OK, practice swing, not counted."); }
@@ -341,6 +384,12 @@ function doStatus() {
 }
 function onVoice(alts) {
   if (!running || speaking) return; // ignore what the mic hears while the app is talking
+  if (session?.calib && session.calib.mic == null) {
+    session.calib.mic = "ok"; session.calib.heard = alts[0] || ""; save();
+    say("Voice works.");
+    verdict("", "READY", "Get into your setup", "I start when you stand still.");
+    applyBlock(true, true); return;
+  }
   let cmd = null; for (const a of alts) { cmd = parseCommand(a); if (cmd) break; }
   if (!cmd) return;
   const recent = lastSwing && Date.now() - lastSwing.t < 30000;
