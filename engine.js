@@ -169,6 +169,11 @@ export function analyze(sw, view) {
     m.shoulderTurn = top.span / (addr.span || 1);
     m.upperAhead = ((imp.sh.x - imp.hp.x) * dir) / T;
     m.transfer = ((fin.hp.x - trail.an.x) * dir) / (((lead.an.x - trail.an.x) * dir) || 1);
+    // Weight split proxy: middle of chest and pelvis between the feet (0 = right foot, 1 = left foot)
+    const feetSpan = ((lead.an.x - trail.an.x) * dir) || 1;
+    const centre = (f) => (f.sh.x + f.hp.x) / 2;
+    m.addrWeight = ((centre(addr) - trail.an.x) * dir) / feetSpan;
+    m.impWeight = ((centre(imp) - trail.an.x) * dir) / feetSpan;
     m.feetMoved = Math.max(dist(fin.lAn, addr.lAn), dist(fin.rAn, addr.rAn)) / stanceW;
     // Hand speed: speed at impact vs peak
     let peak = 0, peakT = 0; const sp = [];

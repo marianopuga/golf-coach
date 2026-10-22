@@ -11,6 +11,7 @@ export const VIDEOS = {
   bunker:  { n: 6, title: "How To Do The Greenside Bunker Shot", who: "Videojug", url: "https://www.youtube.com/watch?v=nOnVGAO5dVw" },
   maude:   { n: 7, title: "To Hit Driver Straight Always Do This Before Every Swing", who: "Danny Maude", url: "https://www.youtube.com/watch?v=pGU1H5mXm98" },
   shiels:  { n: 8, title: "Top 5 Driver Golf Tips", who: "Rick Shiels", url: "https://www.youtube.com/watch?v=r5u52YuNVG8" },
+  irons:   { n: 9, title: "How to Stop Hitting Bad Iron Shots, 3 Simple Tips", who: "Rick Shiels", url: "https://www.youtube.com/watch?v=d5M7Tc2mZCc" },
   extra:   { n: 0, title: "Obvious fault (not in the playlist)", who: "Coach", url: "" },
 };
 
@@ -77,6 +78,16 @@ export const RULES = [
     check: (m, club) => m.tiltDeg == null ? null
       : club === "driver" ? (m.tiltDeg >= 3 && m.leadShHigher > 0)
       : m.leadShHigher >= 0.02,
+  },
+  {
+    id: "ironweight", auto: true, view: "face", clubs: ["iron"], priority: 5.5, src: "irons",
+    title: "Irons: weight 65% on the left foot",
+    rule: "With the irons, push the middle of your chest slightly toward the target so about 65% of your weight is on your left foot. Keep it there in the backswing without moving off the ball, and stay there through impact. Hanging back on the right foot to lift the ball causes thin and fat shots.",
+    bad: (m) => (m.addrWeight ?? 1) < 0.55
+      ? "your weight is centred at setup. Push your chest slightly toward the target, about 65 percent on your left foot, and keep it there."
+      : "your weight went back to your right foot at impact. Stay on your left side and hit the ball first, then the ground.",
+    good: "good, your weight stayed on your left side.",
+    check: (m) => m.addrWeight == null ? null : (m.addrWeight >= 0.55 && m.impWeight >= 0.55),
   },
   {
     id: "sway", auto: true, view: "face", clubs: ALL, priority: 6, src: "extra",
@@ -159,6 +170,10 @@ export const RULES = [
     rule: "1. Club behind the ball, face to the target, sole on the ground. 2. Feet shoulder width, ball slightly forward of middle. 3. Lean from the hips. 4. Unlock the knees, weight on the balls of the feet. 5. Take the grip, left shoulder higher." },
   { id: "forearms", auto: false, src: "maude", title: "Face to path: forearms at setup",
     rule: "If you slice: at setup your right elbow points out and your right arm sits higher than the left, so the face is open to your path. Fix: keep the right elbow pointing down, turn the right palm to face the target, and the left hand slightly more on top. Looking down the line you should no longer see the right arm above the left." },
+  { id: "ballpos", auto: false, src: "irons", title: "Ball position by club",
+    rule: "Wedges: ball in the middle of the stance. 7 iron: about one ball left of centre. 4 and 5 iron: about two balls left of centre. Woods: toward the left heel. Ball too far forward makes the low point happen behind the ball, so you hit thin or fat. Easy setup: club behind the ball in the middle of your feet, then a small step with the left foot and a slightly bigger one with the right." },
+  { id: "shaftlean", auto: false, src: "irons", title: "Irons: handle ahead at impact",
+    rule: "At impact the grip is ahead of the ball and the left arm, wrist and shaft make one straight line. Do not flip or cup the wrist trying to lift the ball; the club gets it in the air. Preset the handle slightly forward at setup and return to that position at impact. It should feel like hitting it lower." },
   { id: "driver-up", auto: false, src: "shiels", title: "Hit up with the driver",
     rule: "Like a plane taking off, the club moves up into the ball. Keep the upper body slightly tilted back through impact while the hips turn." },
   { id: "strike", auto: false, src: "shiels", title: "Hit the centre of the face",
@@ -176,8 +191,8 @@ export const RESULT_TIPS = {
   slice: "Slices: check your setup forearms (Danny Maude): right elbow down, right palm facing the target. Also check you are not aiming right (Videojug, set up mistakes) and that your upper body stays behind your hips at impact.",
   hook: "Hooks: Danny Maude says to go toward the opposite feeling. Your forearms may be too closed at setup, with the left hand too far on top.",
   pull: "Pulls left: weight on the heels makes the swing travel flat and pull the ball left (Videojug, set up mistakes).",
-  top: "Topped shots: keep your height through the swing and do not stand up before impact.",
-  fat: "Fat shots: keep your height constant, do not dip down. Check the ball position for each club.",
+  top: "Thin or topped shots (Rick Shiels, irons): check the ball is not too far forward, keep about 65% of your weight on the left foot through impact, and keep the handle ahead of the ball instead of flipping to lift it. Also keep your height and do not stand up before impact.",
+  fat: "Fat shots (Rick Shiels, irons): ball position for each club, weight on the left foot instead of hanging back, and handle ahead at impact. Keep your height constant, do not dip down.",
 };
 
 export const CAMERA = {

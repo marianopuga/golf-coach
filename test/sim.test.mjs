@@ -40,13 +40,17 @@ let fails = 0;
 const expect = (name, cond) => { console.log((cond ? "PASS " : "FAIL ") + name); if (!cond) fails++; };
 
 // 1. A good swing
-let sw = simulate({ base: {} });
+const GOOD = { base: { hipShiftX: 0.015 }, arrive: 0.015 };
+let sw = simulate(GOOD);
 expect("good swing detected", !!sw);
 let m = analyze(sw, "face"); let ch = runChecks(m, "iron", "face");
 console.log(" metrics", m);
 console.log(" checks", ch);
 expect("no sway on good swing", ch.find((c) => c.id === "sway")?.pass === true);
 expect("turn ok on good swing", ch.find((c) => c.id === "arms")?.pass === true);
+expect("iron weight ok on good swing", ch.find((c) => c.id === "ironweight")?.pass === true);
+const cs = runChecks(analyze(simulate({ base: {} }), "face"), "iron", "face");
+expect("centred weight flagged", cs.find((c) => c.id === "ironweight")?.pass === false);
 
 // 2. Sway + arms only
 sw = simulate({ base: {}, sway: 0.06, turn: 0.95 });
@@ -60,7 +64,7 @@ const st = emptyCoachState();
 let r = coach(st, ch, m, "iron", "face", 1);
 console.log(" coach:", r.speech);
 expect("focus set", !!r.focusId);
-const goodSw = simulate({ base: {} }); const gm = analyze(goodSw, "face"); const gch = runChecks(gm, "iron", "face");
+const goodSw = simulate(GOOD); const gm = analyze(goodSw, "face"); const gch = runChecks(gm, "iron", "face");
 for (let i = 0; i < 5; i++) r = coach(st, gch, gm, "iron", "face", 1);
 console.log(" coach after 5 good:", r.speech);
 expect("mastered event", JSON.stringify(st.mastered.iron).length > 2);
