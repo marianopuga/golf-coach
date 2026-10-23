@@ -1,10 +1,10 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, clubById } from "./rules.js?v=11";
-import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH } from "./engine.js?v=11";
-import { badWeight, resultLabel } from "./voice.js?v=11";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=11";
-import { artFor, heroArt, sequenceArt, SEQ_LABELS } from "./art.js?v=11";
-import { T } from "./lines.js?v=11";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, clubById } from "./rules.js?v=12";
+import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH } from "./engine.js?v=12";
+import { badWeight, resultLabel } from "./voice.js?v=12";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=12";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS } from "./art.js?v=12";
+import { T } from "./lines.js?v=12";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -276,7 +276,7 @@ function renderLibrary() {
       <li>Say "pause" when a friend hits and "resume" when you are back.</li>
       <li>At the end, tap End twice and open your report.</li></ol></div></details>
     <details class="chap"><summary><h2>The full swing</h2><span class="muted small">17 positions</span></summary><div class="body">${sequenceArt() || `<ol class="seq-labels">${SEQ_LABELS.map((l) => `<li>${esc(l)}</li>`).join("")}</ol>`}
-      <p class="muted small">Swipe through the swing. Face on, a 7 iron.</p></div></details>
+      <p class="muted small">Play it at the real tempo, slow back and quick down, or tap any position. Face on, a 7 iron.</p></div></details>
     <details class="chap"><summary><h2>Where to put the camera</h2></summary><div class="body">${campDiagram()}
       <p><b>In front</b>: facing your chest, across the ball. It checks stance, ball position, weight, turn, sway, balance and finish.</p>
       <p><b>Behind</b>: on the line from your hands to the target. It checks your posture from the hips, knees, distance to the ball and your arms.</p>

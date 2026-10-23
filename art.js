@@ -1,87 +1,102 @@
-// Pictures of the swing: the rendered 3D golfer (art/*.webp, sizes and guides in art-data.js).
-// Guides are drawn crisp on top in SVG. Pictures without a render (putting) fall back to the vector drawings.
-import { art } from "./illus.js?v=11";
-import { SEQ, HERO, FAULTS, FDIR, PLAY, PHOTO, PDIR } from "./art-data.js?v=11";
+// Pictures of the swing: photos of one golfer (art/p2, generated from our shot list, checked by hand) with translucent guides on top.
+// Sizes, captions and guide positions in pixels come from art-data.js. Tips without an approved photo show text only.
+import { PHOTO, PDIR, SWING, TEMPO, HERO } from "./art-data.js?v=12";
 
 export const SEQ_LABELS = ["Setup", "Takeaway", "Club parallel", "Lead arm parallel", "Three quarter", "Top", "Transition", "Downswing", "Delivery",
   "Impact", "Release", "Follow through", "Club up", "High", "Wrap", "Finish", "Hold"];
+const TEMPO_LABELS = ["Setup", "Takeaway", "Lead arm parallel", "Top", "Downswing", "Impact"];
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const n1 = (v) => Math.round(v * 10) / 10;
 
-const TONE = { g: "#CFE449", b: "#F2867E", n: "rgba(242,245,241,.6)" };
-function guides(list, w, h) {
-  const sw = Math.max(2.5, h / 130), dash = `stroke-dasharray="${sw * 3} ${sw * 2.6}"`, fs = Math.round(h / 15);
-  return list.map((g) => {
-    const c = TONE[g[g.length - 1]] || TONE.n;
-    if (g[0] === "line") return `<line x1="${g[1][0]}" y1="${g[1][1]}" x2="${g[2][0]}" y2="${g[2][1]}" stroke="${c}" stroke-width="${sw}" ${dash} stroke-linecap="round"/>`;
-    if (g[0] === "ring") return `<circle cx="${g[1][0]}" cy="${g[1][1]}" r="${g[2]}" fill="none" stroke="${c}" stroke-width="${sw}" ${dash}/>`;
-    if (g[0] === "poly") return `<polygon points="${g[1].map((p) => p.join(",")).join(" ")}" fill="none" stroke="${c}" stroke-width="${sw}" ${dash} stroke-linejoin="round"/>`;
-    if (g[0] === "arrow") {
-      const [a, b] = [g[1], g[2]], t = Math.atan2(b[1] - a[1], b[0] - a[0]), k = sw * 4;
-      return `<path d="M${a[0]} ${a[1]} L${b[0]} ${b[1]} M${b[0] - k * Math.cos(t - 0.5)} ${b[1] - k * Math.sin(t - 0.5)} L${b[0]} ${b[1]} L${b[0] - k * Math.cos(t + 0.5)} ${b[1] - k * Math.sin(t + 0.5)}" fill="none" stroke="${c}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
-    }
-    if (g[0] === "text") return `<text x="${g[1][0]}" y="${g[1][1]}" fill="${c}" font-size="${fs}" font-weight="700" text-anchor="middle" font-family="Inter, system-ui, sans-serif" paint-order="stroke" stroke="rgba(20,24,22,.75)" stroke-width="${fs / 5}">${esc(g[2])}</text>`;
-    return "";
-  }).join("");
-}
-const pic = (id, kind, f, label) => `<div class="pic3d" style="max-width:${Math.round(230 * f.w / f.h)}px"><img src="${FDIR}${id}-${kind}.webp" width="${f.w}" height="${f.h}" alt="${esc(label)}" loading="lazy" decoding="async"><svg viewBox="0 0 ${f.w} ${f.h}" aria-hidden="true">${guides(f[kind] || [], f.w, f.h)}</svg></div>`;
-
-// Photo demonstrations: the photo, then translucent guides drawn on top (dashed line from a body point, weight bar between the feet)
+// Guides: dashed line (optional dot at its start), path through joints, ring, weight bar. Tone w white, b coral (the fault), n faint reference.
 function photoGuides(list, w) {
-  const s = w / 300;
+  const s = w / 300, sw = n1(2.6 * s), dash = `${n1(8 * s)} ${n1(6 * s)}`;
+  const dot = (p, t) => `<circle cx="${p[0]}" cy="${p[1]}" r="${n1(4.5 * s)}" class="pg-dot ${t}"/>`;
+  const stroke = (t) => `class="pg-line ${t}" stroke-width="${t === "n" ? n1(sw * 0.7) : sw}" stroke-dasharray="${dash}"`;
   return list.map((g) => {
-    if (g[0] === "vline") return `<line x1="${g[1][0]}" y1="${g[1][1]}" x2="${g[2][0]}" y2="${g[2][1]}" class="pg-line" stroke-width="${(2.6 * s).toFixed(1)}" stroke-dasharray="${(8 * s).toFixed(1)} ${(6 * s).toFixed(1)}"/><circle cx="${g[1][0]}" cy="${g[1][1]}" r="${(4.5 * s).toFixed(1)}" class="pg-dot"/>`;
+    if (g[0] === "line") return `<line x1="${g[1][0]}" y1="${g[1][1]}" x2="${g[2][0]}" y2="${g[2][1]}" ${stroke(g[3])} stroke-linecap="round"/>${g[4] ? dot(g[1], g[3]) : ""}`;
+    if (g[0] === "path") {
+      const pts = g[1], closed = pts.length > 2 && pts[0][0] === pts.at(-1)[0] && pts[0][1] === pts.at(-1)[1];
+      return `<polyline points="${pts.map((p) => p.join(",")).join(" ")}" ${stroke(g[2])} stroke-linejoin="round"/>${(closed ? pts.slice(1) : pts).map((p) => dot(p, g[2])).join("")}`;
+    }
+    if (g[0] === "ring") return `<circle cx="${g[1][0]}" cy="${g[1][1]}" r="${g[2]}" class="pg-line ${g[3]}" stroke-width="${n1(sw * 0.8)}" stroke-dasharray="${n1(4 * s)} ${n1(3.4 * s)}"/>`;
     if (g[0] === "weight") {
-      const [a, b, pct] = [g[1], g[2], g[3]], x = a[0] + (b[0] - a[0]) * pct / 100, y = a[1], fs = (15 * s).toFixed(1);
-      return `<line x1="${a[0]}" y1="${y}" x2="${b[0]}" y2="${y}" class="pg-track" stroke-width="${(5 * s).toFixed(1)}"/>`
-        + `<text x="${a[0] - 11 * s}" y="${y + 5.2 * s}" class="pg-t" font-size="${fs}" text-anchor="end">R</text><text x="${b[0] + 11 * s}" y="${y + 5.2 * s}" class="pg-t" font-size="${fs}">L</text>`
-        + `<circle cx="${x}" cy="${y}" r="${(9 * s).toFixed(1)}" class="pg-knob"/>`;
+      const [a, b, pct] = [g[1], g[2], g[3]], [la, lb] = g[4] || ["R", "L"], x = n1(a[0] + (b[0] - a[0]) * pct / 100), y = a[1], fs = n1(20 * s);
+      return `<line x1="${a[0]}" y1="${y}" x2="${b[0]}" y2="${y}" class="pg-track" stroke-width="${n1(5 * s)}"/>`
+        + `<text x="${n1(a[0] - 13 * s)}" y="${n1(y + 7 * s)}" class="pg-t" font-size="${fs}" text-anchor="end">${esc(la)}</text><text x="${n1(b[0] + 13 * s)}" y="${n1(y + 7 * s)}" class="pg-t" font-size="${fs}">${esc(lb)}</text>`
+        + `<circle cx="${x}" cy="${y}" r="${n1(9 * s)}" class="pg-knob"/>`;
     }
     return "";
   }).join("");
 }
-const photoFrame = (f, i, caption) => `<figure class="pframe"><div class="pimg"><img src="${PDIR}${f.f}" width="${f.w}" height="${f.h}" alt="${esc(f.label + ": " + f.sub)}" loading="lazy" decoding="async"><svg viewBox="0 0 ${f.w} ${f.h}" aria-hidden="true">${photoGuides(f.g, f.w)}</svg></div>${caption ? `<figcaption><b>${i + 1}</b> ${esc(f.label)}<span>${esc(f.sub)}</span></figcaption>` : ""}</figure>`;
+const BADGE = { g: ["ok", "Right"], b: ["no", "Wrong"] };
+const photoFrame = (f, i, numbered, full = true) => `<figure class="pframe"${full ? ' role="listitem"' : ""}><div class="pimg"><img src="${PDIR}${f.f}" width="${f.w}" height="${f.h}" alt="${esc(f.label + ": " + f.sub)}" loading="lazy" decoding="async"><svg viewBox="0 0 ${f.w} ${f.h}" aria-hidden="true">${photoGuides(f.g, f.w)}</svg>${full && BADGE[f.tone] ? `<span class="pbadge ${BADGE[f.tone][0]}">${BADGE[f.tone][1]}</span>` : ""}</div>${full ? `<figcaption>${numbered ? `<b>${i + 1}</b> ` : ""}${esc(f.label)}<span>${esc(f.sub)}</span></figcaption>` : ""}</figure>`;
+
 function photoArt(id) {
   const p = PHOTO[id]; if (!p) return null; const live = p.frames[p.live ?? 0];
   return {
     bad: false, cap: [live.sub, ""],
-    figure(kind = "good", compact = false) { return kind === "good" ? photoFrame(live, p.live ?? 0, !compact) : ""; },
-    block() { return `<div class="pdemo" data-n="${p.frames.length}" role="list">${p.frames.map((f, i) => photoFrame(f, i, true)).join("")}</div>`; },
+    figure(kind = "good", compact = false) { return kind === "good" ? photoFrame(live, p.live ?? 0, false, !compact) : ""; },
+    block() { return `<div class="pdemo ${p.t}" data-n="${p.frames.length}" role="list">${p.frames.map((f, i) => photoFrame(f, i, p.t === "sequence")).join("")}</div>`; },
   };
 }
 
-export function artFor(id) {
-  const ph = photoArt(id); if (ph) return ph;
-  const a = art(id), f = FAULTS[id]; if (!a && !f) return null;
-  const goodCap = a?.goodCap || "", badCap = a?.badCap || "", hasBad = f ? !!f.b : !!a?.bad;
-  return {
-    bad: hasBad, cap: [goodCap, badCap],
-    figure(kind = "good", compact = false) {
-      const k = kind === "good" ? "g" : "b", cap = kind === "good" ? goodCap : badCap;
-      const body = f ? (f[k] ? pic(id, k, f, cap) : "") : (kind === "good" ? a.good : a.bad);
-      if (!body) return "";
-      return `<figure>${hasBad && !compact ? `<span class="badge ${kind === "good" ? "ok" : "no"}">${kind === "good" ? "Right" : "Wrong"}</span>` : ""}${body}${cap && !compact ? `<figcaption>${esc(cap)}</figcaption>` : ""}</figure>`;
-    },
-  };
-}
-export const heroArt = () => HERO ? `<img src="${HERO[0]}" width="${HERO[1]}" height="${HERO[2]}" alt="" decoding="async" fetchpriority="high">` : "";
-// Swing playback at a real 3:1 tempo (slow back, quick down), from one sprite with a fixed frame
+// Players: the full swing (17 positions) and the tempo (6 positions on a 3:1 clock). Same photos, swapped in place.
 const BEAT = [600, 150, 150, 150, 150, 220, 80, 60, 50, 80, 70, 90, 100, 110, 130, 320, 1000];
+const PLAYERS = {
+  swing: { frames: SWING, labels: SEQ_LABELS, beats: BEAT },
+  tempo: { frames: TEMPO, labels: TEMPO_LABELS, beats: [450, 250, 250, 250, 125, 125], fill: { 1: [75, 750], 4: [100, 250] } },  // back 750 ms, down 250 ms
+};
 const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-let playing = 0;
-if (typeof document !== "undefined") document.addEventListener("click", (e) => {
-  const b = e.target.closest?.("[data-swing-play]"); if (!b) return;
-  const box = b.closest(".swingplay"), sp = box.querySelector(".sp"), lab = box.querySelector(".sp-label"), n = PLAY[3], run = ++playing;
-  const show = (i) => { sp.style.backgroundPosition = `${(i / (n - 1)) * 100}% 0`; lab.textContent = `${i + 1} ${SEQ_LABELS[i]}`; };
-  if (reduced()) { const i = ((+sp.dataset.i || 0) + 1) % n; sp.dataset.i = i; show(i); return; }
-  b.disabled = true; let i = 0, t0 = performance.now(), due = BEAT[0]; show(0);
-  const tick = (t) => {
-    if (run !== playing || !sp.isConnected) return;
-    if (t - t0 >= due) { i++; if (i >= n) { b.disabled = false; return; } show(i); t0 = t; due = BEAT[i]; }
-    requestAnimationFrame(tick);
+const PLAY_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>`;
+function player(kind, extra = "", strip = "") {
+  const P = PLAYERS[kind], [f0] = P.frames; if (!f0) return "";
+  return `<div class="pplay" data-pp="${kind}"><div class="pimg pp-stage"><img src="${PDIR}${f0[0]}" width="${f0[1]}" height="${f0[2]}" alt="${esc(P.labels[0])}" decoding="async" loading="lazy"></div>${extra}
+    <div class="pp-bar"><p class="pp-label" aria-live="polite"><b>1</b> ${esc(P.labels[0])}</p><button class="linkbtn" data-pp-play>${PLAY_ICON}<span>${reduced() ? "Next position" : kind === "tempo" ? "Play the tempo" : "Play the swing"}</span></button></div>${strip}</div>`;
+}
+function show(box, i) {
+  const P = PLAYERS[box.dataset.pp], f = P.frames[i], img = box.querySelector(".pp-stage img");
+  img.src = PDIR + f[0]; img.alt = P.labels[i]; box.dataset.i = i;
+  box.querySelector(".pp-label").innerHTML = `<b>${i + 1}</b> ${esc(P.labels[i])}`;
+  const strip = box.querySelector(".pp-strip");
+  if (strip) {
+    strip.querySelectorAll("[data-pp-i]").forEach((b) => b.setAttribute("aria-current", String(+b.dataset.ppI === i)));
+    const th = strip.querySelector(`[data-pp-i="${i}"]`);
+    if (th) strip.scrollTo({ left: th.offsetLeft - strip.clientWidth / 2 + th.clientWidth / 2, behavior: reduced() ? "auto" : "smooth" });
+  }
+}
+const preload = (P) => Promise.all(P.frames.map(([f]) => { const im = new Image(); im.src = PDIR + f; return im.decode().catch(() => {}); }));
+let run = 0;
+if (typeof document !== "undefined") document.addEventListener("click", async (e) => {
+  const th = e.target.closest?.("[data-pp-i]");
+  if (th) { run++; show(th.closest(".pplay"), +th.dataset.ppI); return; }
+  const b = e.target.closest?.("[data-pp-play]"); if (!b) return;
+  const box = b.closest(".pplay"), P = PLAYERS[box.dataset.pp], fill = box.querySelector(".tb-fill"), me = ++run;
+  if (reduced()) { show(box, ((+box.dataset.i || 0) + 1) % P.frames.length); return; }
+  b.disabled = true; await preload(P); if (me !== run) { b.disabled = false; return; }
+  if (fill) { fill.style.transition = "none"; fill.style.width = "0%"; }
+  let i = 0; show(box, 0);
+  const step = () => {
+    if (me !== run || !box.isConnected) { b.disabled = false; return; }
+    if (++i >= P.frames.length) { b.disabled = false; return; }
+    if (fill && P.fill[i]) { fill.style.transition = `width ${P.fill[i][1]}ms linear`; fill.style.width = `${P.fill[i][0]}%`; }
+    show(box, i); setTimeout(step, P.beats[i] ?? 900);
   };
-  requestAnimationFrame(tick);
+  setTimeout(step, P.beats[0]);
 });
-const playBlock = () => PLAY ? `<div class="swingplay"><div class="sp" role="img" aria-label="The swing, position by position" style="aspect-ratio:${PLAY[1]} / ${PLAY[2]};background-image:url(${PLAY[0]});background-size:${PLAY[3] * 100}% 100%"></div>
-  <p class="sp-label">1 Setup</p><button class="linkbtn" data-swing-play><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg><span>${reduced() ? "Next position" : "Play the swing"}</span></button></div>` : "";
-export const sequenceArt = () => SEQ.length ? playBlock() + `<div class="seq" role="list" aria-label="The 17 positions of the swing">${SEQ.map(([f, w, h], i) =>
-  `<figure role="listitem"><img src="${f}" width="${w}" height="${h}" alt="${esc(SEQ_LABELS[i])}" loading="lazy" decoding="async"><figcaption><b>${i + 1}</b>${esc(SEQ_LABELS[i])}</figcaption></figure>`).join("")}</div>` : "";
+
+export const sequenceArt = () => SWING.length ? player("swing", "", `<div class="pp-strip" role="list" aria-label="The 17 positions of the swing">${SWING.map(([f, w, h], i) =>
+  `<button class="pp-th" role="listitem" data-pp-i="${i}" aria-current="${i === 0}"><img src="${PDIR}${f}" width="${w}" height="${h}" alt="" loading="lazy" decoding="async"><span><b>${i + 1}</b> ${esc(SEQ_LABELS[i])}</span></button>`).join("")}</div>`) : "";
+const tempoArt = () => ({
+  bad: false, cap: ["Slow back, quick down", ""],
+  figure(kind = "good") { const f = TEMPO[3]; return kind === "good" && f ? `<figure class="pframe"><div class="pimg"><img src="${PDIR}${f[0]}" width="${f[1]}" height="${f[2]}" alt="Top of the backswing" loading="lazy" decoding="async"></div></figure>` : ""; },
+  block() {
+    return player("tempo", `<div class="tbar" aria-label="Backswing three beats, downswing one beat"><i class="tb-fill"></i><span style="flex:3">Back <b>3</b></span><span style="flex:1">Down <b>1</b></span></div>`);
+  },
+});
+
+export function artFor(id) {
+  if (id === "tempo" && TEMPO.length) return tempoArt();
+  return photoArt(id);
+}
+export const heroArt = () => HERO ? `<img src="${PDIR}${HERO[0]}" width="${HERO[1]}" height="${HERO[2]}" alt="" decoding="async" fetchpriority="high">` : "";

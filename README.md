@@ -15,6 +15,6 @@ A free iPhone web app that watches your swing through the camera and tells you, 
 1. `rules.js`: the swing manual, thresholds, spoken cues, your bag.
 2. `engine.js`: golfer lock, ball detection, swing detection, metrics, coaching, plans, rounds, reports.
 3. `voice.js`: understands your words (English and Spanish, severity, distances).
-4. `illus.js`: the illustrations in the Library.
+4. `art.js`, `art-data.js`, `art/p2/`: the Library photos (one golfer, generated from a shot list and checked by hand) with guides drawn on top. `tools/photos/` rebuilds them.
 5. `app.js`, `views.js`, `store.js`, `index.html`, `sw.js`: camera, screens, saved data, offline cache.
 6. `test/sim.test.mjs`: simulated swings and unit checks (`node test/sim.test.mjs`).

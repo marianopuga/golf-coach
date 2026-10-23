@@ -96,33 +96,42 @@ svg.ic { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-wid
 .panel.hero .seg { background: rgb(255 255 255 / .1) } .panel.hero .seg button { color: rgb(242 246 242 / .8) } .panel.hero .seg button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary) }
 
 /* Hero */
-.hero-art { margin: -20px -20px 6px; padding: 18px 12px 0; background: radial-gradient(120% 70% at 50% 100%, rgb(207 228 73 / .16), transparent 70%); border-bottom: 1px solid rgb(255 255 255 / .06) }
-.hero-art img { width: 100%; height: auto; display: block; max-height: 260px; object-fit: contain }
-.seq { display: flex; gap: 2px; overflow-x: auto; scroll-snap-type: x proximity; margin: 0 -20px; padding: 6px 20px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch }
-.seq::-webkit-scrollbar { display: none }
+.hero-art { margin: -20px -20px 0; aspect-ratio: 8 / 5; max-height: 300px; overflow: hidden }
+.hero-art img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: 50% 30%; -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent); mask-image: linear-gradient(to bottom, #000 62%, transparent) }
 .pdemo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 10px }
-@media (min-width: 760px) { .pdemo[data-n="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)) } .pdemo[data-n="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)) } }
+.pdemo.single { grid-template-columns: minmax(0, 260px) }
+.pdemo[data-n="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px }
+@media (min-width: 760px) { .pdemo[data-n="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)) } }
 .pframe { margin: 0; display: grid; gap: 7px; align-content: start }
 .pimg { position: relative; border-radius: var(--r-md); overflow: hidden; background: var(--deep) }
 .pimg img { display: block; width: 100%; height: auto }
 .pimg svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none }
 .pg-line { stroke: rgb(255 255 255 / .92); fill: none; filter: drop-shadow(0 0 3px rgb(255 255 255 / .6)) }
-.pg-dot { fill: #fff; filter: drop-shadow(0 0 4px rgb(255 255 255 / .8)) }
+.pg-line.b { stroke: rgb(255 158 148 / .96); filter: drop-shadow(0 0 3px rgb(255 110 96 / .65)) }
+.pg-line.n { stroke: rgb(255 255 255 / .55); filter: none }
+.pg-dot { fill: #fff; filter: drop-shadow(0 0 4px rgb(255 255 255 / .8)) } .pg-dot.b { fill: #FF9E94 } .pg-dot.n { fill: rgb(255 255 255 / .7); filter: none }
 .pg-track { stroke: rgb(255 255 255 / .5); stroke-linecap: round }
 .pg-knob { fill: var(--primary); stroke: rgb(20 24 22 / .55); stroke-width: 1.5; filter: drop-shadow(0 0 6px rgb(207 228 73 / .85)) }
 .pg-t { fill: #fff; font-family: var(--font); font-weight: 700; paint-order: stroke; stroke: rgb(20 24 22 / .6); stroke-width: 2.5 }
+.pbadge { position: absolute; top: 7px; left: 7px; padding: 3px 8px; border-radius: 999px; font: 700 11px/1.2 var(--font); letter-spacing: .02em; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px) }
+.pbadge.ok { background: rgb(207 228 73 / .92); color: #1E2320 } .pbadge.no { background: rgb(255 158 148 / .92); color: #2A1714 }
 .pframe figcaption { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3 } .pframe figcaption b { color: var(--primary); margin-right: 3px; font-variant-numeric: tabular-nums }
 .pframe figcaption span { display: block; font-weight: 400; font-size: 13px; color: var(--text-2) }
+.pdemo[data-n="3"] figcaption { font-size: 13px } .pdemo[data-n="3"] figcaption span { font-size: 12px }
 .verdict .vpic .pframe .pimg { border-radius: 10px } .verdict .vpic .pimg img { width: 74px; border-radius: 0; background: none }
-.swingplay { display: grid; justify-items: center; gap: 4px } .swingplay .sp { width: 100%; max-width: 330px; background-repeat: no-repeat; background-position: 0 0 }
-.swingplay .sp-label { margin: 0; font: 600 14px var(--font); color: var(--text-2); font-variant-numeric: tabular-nums }
-.swingplay [data-swing-play] { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--primary); font-weight: 600 } .swingplay [data-swing-play]:disabled { opacity: .45 }
-.pic3d { position: relative; display: block; width: 100%; margin: 0 auto }
-.cmp .pic3d img, .verdict .vpic .pic3d img, .pic3d img { display: block; width: 100%; height: auto; aspect-ratio: auto; object-fit: contain; border-radius: 0; background: none }
-.cmp .pic3d > svg, .verdict .vpic .pic3d > svg, .pic3d > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none }
-.seq figure { flex: none; margin: 0; scroll-snap-align: center; display: grid; justify-items: center; gap: 6px }
-.seq img { height: 230px; width: auto; display: block }
-.seq figcaption { font-size: 12px; color: var(--text-2); white-space: nowrap } .seq figcaption b { color: var(--primary); font-variant-numeric: tabular-nums; margin-right: 4px }
+.pplay { display: grid; gap: 6px; justify-items: center } .pp-stage { width: 100%; max-width: 360px }
+.pp-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; max-width: 360px }
+.pp-label { margin: 0; font: 600 14px var(--font); color: var(--text) } .pp-label b { color: var(--primary); margin-right: 4px; font-variant-numeric: tabular-nums }
+.pplay [data-pp-play] { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--primary); font-weight: 600 } .pplay [data-pp-play]:disabled { opacity: .45 }
+.pp-strip { display: flex; align-items: flex-start; gap: 6px; overflow-x: auto; width: calc(100% + 40px); margin: 2px -20px 0; padding: 4px 20px 6px; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch }
+.pp-strip::-webkit-scrollbar { display: none }
+.pp-th { flex: none; width: 76px; display: grid; gap: 4px; align-content: start; padding: 0; background: none; border: 0; color: var(--text-2); scroll-snap-align: center; cursor: pointer; font: 500 11px/1.25 var(--font); text-align: left }
+.pp-th img { width: 76px; height: auto; border-radius: 8px; outline: 2px solid transparent; outline-offset: -2px; opacity: .72; transition: opacity .15s }
+.pp-th[aria-current="true"] img { outline-color: var(--primary); opacity: 1 } .pp-th[aria-current="true"] { color: var(--text) }
+.pp-th b { color: var(--primary); font-variant-numeric: tabular-nums }
+.tbar { position: relative; display: flex; width: 100%; max-width: 360px; height: 30px; border-radius: 999px; overflow: hidden; background: rgb(255 255 255 / .07); font: 600 12px var(--font); color: var(--text-2) }
+.tbar span { position: relative; display: grid; place-items: center; border-right: 1px solid rgb(255 255 255 / .14) } .tbar span:last-child { border: 0 } .tbar b { color: var(--text) }
+.tb-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: rgb(207 228 73 / .28) }
 .strip { display: none }
 .stepper { display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px; align-items: center; gap: 8px }
 .stepper button { height: 52px; border-radius: var(--r-md); border: 1px solid rgb(242 246 242 / .3); background: transparent; font-size: 26px; line-height: 1; color: inherit }
@@ -342,6 +351,6 @@ dialog#confirm .acts2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
   </div>
 </section>
 
-<script type="module" src="app.js?v=11"></script>
+<script type="module" src="app.js?v=12"></script>
 </body>
 </html>

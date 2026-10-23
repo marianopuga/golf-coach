@@ -1,52 +1,64 @@
 # Golf Coach: inventario visual
 
-Estado al 23 oct 2026. Fuente: rules.js (39 consejos), views.js (biblioteca, Today), app.js (foto del veredicto en vivo), art.js, art-data.js, illus.js.
-Estrategia nueva: fotos generadas con ChatGPT (mismo golfista, misma cancha al amanecer) + guías translúcidas dibujadas por la app sobre cada foto.
-Estados: cumple, corregir, sustituir, pendiente. Las imágenes se nombran con el ID de la lista de tomas (A01 a O01).
+Estado al 24 oct 2026. Fuente: rules.js (39 consejos), views.js (biblioteca, Today), app.js (foto del veredicto en vivo), art.js, art-data.js.
+Estrategia: fotos generadas con ChatGPT (mismo golfista, misma cancha al amanecer) + guías translúcidas dibujadas por la app.
+Los recursos 3D y los dibujos vectoriales se retiraron: un consejo sin foto aprobada se muestra solo con texto, para no mezclar estilos.
+Estados: cumple, parcial (falta la foto del error), pendiente (solo texto). Las imágenes se nombran con el ID de la lista de tomas.
 
-| Consejo | Qué debe aprender | Recurso actual | Problema | Representación recomendada | Imágenes | Estado |
+| Consejo | Qué debe aprender | Recurso actual | Problema | Representación | Imágenes | Estado |
 |---|---|---|---|---|---|---|
-| Full swing (secuencia) | Las 17 posiciones del swing de hierro | 17 renders 3D sobre oscuro + reproducción | Calidad lejos de la referencia | Secuencia de fotos de frente con reproducción | A01 a A17 | sustituir |
-| Portada (Today) | Inspirar | 3 renders 3D | Pedido: campo de golf | Foto del campo, sin golfista | O01 | pendiente |
-| stance | Pies al ancho de hombros con hierros, más anchos con driver | Par 3D oscuro | Calidad | Dos variantes correctas, líneas desde los hombros | A01, D01 | sustituir |
-| chipstance | Pies juntos y postura algo abierta en el chip | Par 3D oscuro | Calidad | Correcto e incorrecto | H01, H02 | sustituir |
-| ballpos | La pelota avanza según el palo | Par 3D oscuro | Calidad | Tres variantes (wedge, 7, driver), línea al centro | E01, A01, D01 | sustituir |
-| hinge | Inclinarse desde la cadera con la espalda recta | Par 3D oscuro | Calidad | Correcto e incorrecto desde atrás, línea de la espalda | B01, B02 | sustituir |
-| knees | Rodillas flexionadas, ni rectas ni sentado | Par 3D oscuro | Calidad | Tres variantes desde atrás | B01, B03, B04 | sustituir |
-| reach | Brazos colgando bajo los hombros | Par 3D oscuro | Calidad | Tres variantes desde atrás, plomada desde el hombro | B01, B05, B06 | sustituir |
-| weightset | Pecho hacia el objetivo, más peso a la izquierda | Par 3D oscuro | Calidad | Correcto e incorrecto, barra de peso | A01, C01 | sustituir |
-| tilt | Hombro izquierdo más alto | Par 3D oscuro | Calidad | Correcto e incorrecto, línea de hombros | A01, C02 | sustituir |
-| handsahead | Manos un poco adelante de la pelota | Par 3D oscuro | Calidad | Correcto e incorrecto, línea del palo | A01, C03 | sustituir |
-| forearms | Brazo derecho no por encima del izquierdo | Par 3D oscuro | Calidad | Correcto e incorrecto desde atrás | B01, B07 | sustituir |
-| heels | Peso en la parte delantera de los pies | Par 3D oscuro | Calidad | Correcto e incorrecto desde atrás, plomada | B01, B08 | sustituir |
-| eyesover | Putt: ojos sobre la pelota | Dibujo vectorial | Estilo distinto | Correcto e incorrecto desde atrás | I05, I06 | sustituir |
-| arms | El cuerpo gira, los brazos siguen | Par 3D oscuro | Calidad | Correcto e incorrecto en el tope | A06, C04 | sustituir |
-| tempo | Subida más lenta que la bajada | Dibujo vectorial | Estilo distinto | Línea de tiempo con fotos de la secuencia | A01, A02, A04, A06, A08, A10 | sustituir |
-| sway | Girar la cadera sin deslizarse | Par 3D oscuro | Calidad | Correcto e incorrecto en el tope, línea en el pie derecho | A06, C05 | sustituir |
-| posture | Mantener la altura hasta el impacto | Par 3D oscuro | Calidad | Correcto e incorrecto en el impacto | A10, C06 | sustituir |
-| feet | Pies firmes | Par 3D oscuro | Calidad | Correcto e incorrecto en el final | A16, C07 | sustituir |
-| transfer | Peso a la derecha al subir, a la izquierda al terminar | Fotos (prototipo) | A06 sin giro de hombros | Secuencia de 4 fotos, línea del pie izquierdo y barra de peso | A01, A06, A10, A16 | corregir (rehacer A06) |
-| stayleft | Peso a la izquierda en el impacto | Par 3D oscuro | Calidad | Correcto e incorrecto, barra de peso | A10, C08 | sustituir |
-| upper | Driver: pecho detrás de la pelvis | Par 3D oscuro | Calidad | Correcto e incorrecto con los dos puntos de la regla | D02, D03 | sustituir |
-| flip | Brazo y palo en línea en el impacto | Par 3D oscuro | Calidad | Correcto e incorrecto, línea brazo y palo | A10, C09 | sustituir |
-| vshape | La V de hombros y manos se mantiene | Par 3D oscuro | Calidad | Secuencia de 3 más el error | H01, H03, H04, H07 | sustituir |
-| pendulum | Atrás tan largo como adelante | Dibujo vectorial | Estilo distinto | Correcto e incorrecto con medidas | H03 a H06 | sustituir |
-| headstill | Putt: cabeza quieta | Dibujo vectorial | Estilo distinto | Correcto e incorrecto | I03, I04 | sustituir |
-| grip-left | Mano izquierda en el grip | Ninguno | Sin imagen | Dos primeros planos en orden | J01, J02 | pendiente |
-| grip-right | Mano derecha en el grip | Ninguno | Sin imagen | Dos primeros planos en orden | J03, J04 | pendiente |
-| grip-style | Agarre Vardon | Ninguno | Sin imagen | Primer plano con el meñique marcado | J04 | pendiente |
-| grip-check | La cara queda cuadrada con los brazos estirados | Ninguno | Sin imagen | Correcto e incorrecto | K01, K02 | pendiente |
-| grip-palm | Grip en los dedos, no en la palma | Ninguno | Sin imagen | Correcto e incorrecto | L01, L02 | pendiente |
-| aim | Pies y hombros paralelos a la línea | Render 3D | Calidad | Correcto e incorrecto con varillas y bandera | G01, G02 | sustituir |
-| setup-steps | Armar la postura en cinco pasos | Render 3D | Calidad | Secuencia de 4 fotos desde atrás | F01, F02, F03, B01 | sustituir |
-| driver-up | Driver: pegar subiendo | Render 3D | Calidad | Una foto con la trayectoria dibujada | D02 | sustituir |
-| speed | Máxima velocidad después de la pelota | Ninguno | Sin imagen | Una foto con brazos extendidos | A11 | pendiente |
-| strike | Pegar en el centro de la cara | Ninguno | Sin imagen | Tres primeros planos de la cara | M01 a M03 | pendiente |
-| chip-steps | Chip en tres pasos | Render 3D | Calidad | Secuencia de 3 fotos | H01, H03, H04 | sustituir |
-| putt-setup | Postura de putt | Dibujo vectorial | Estilo distinto | De frente y desde atrás | I01, I05 | sustituir |
-| putt-grip | Agarre de putt | Ninguno | Sin imagen | Primer plano | J05 | pendiente |
-| putt-stroke | Golpe de putt con los hombros | Dibujo vectorial | Estilo distinto | Secuencia de 3 fotos | I01, I02, I03 | sustituir |
-| bunker | Salida de bunker | Render 3D | Calidad | Postura abierta y golpe en la arena | N01, N02 | sustituir |
+| Full swing (secuencia) | Las 17 posiciones | Reproductor con tempo real 3:1 y tira de 17 fotos | Setup con E01 (wedge): A01 tiene otro encuadre | Fotos de frente con reproducción | E01, A02 a A17 | cumple |
+| Portada (Today) | Inspirar | Foto A17 (final) con fundido | Provisional | Foto del campo sin golfista | O01 | parcial |
+| stance | Ancho de pies según palo | A01 con líneas desde los hombros | Falta el driver | Hierro y driver | A01, D01 | parcial (rehacer D01) |
+| chipstance | Pies juntos en el chip | Correcto e incorrecto | | Líneas desde los hombros | H01, H02 | cumple |
+| ballpos | Pelota según palo | Wedge y 7 con línea al centro y aro | Falta el driver | Variantes | E01, A01 (D01) | cumple |
+| hinge | Inclinarse desde la cadera | Correcto e incorrecto, línea de la espalda | | Desde atrás | B01, B02 | cumple |
+| knees | Rodillas flexionadas | Tres variantes, línea cadera rodilla tobillo | | Desde atrás | B01, B03, B04 | cumple |
+| reach | Brazos colgando | Correcto y demasiado cerca, plomada | Falta demasiado lejos | Desde atrás | B01, B06 (B05) | parcial (rehacer B05) |
+| weightset | Peso a la izquierda | Correcto e incorrecto, barra de peso | | De frente | A01, C01 | cumple |
+| tilt | Hombro izquierdo más alto | Correcto e incorrecto, línea de hombros y referencia | | Recorte del torso | A01, C02 | cumple |
+| handsahead | Manos adelante | A01 con línea del palo y vertical | Falta el error | Correcto e incorrecto | A01 (C03) | parcial (rehacer C03) |
+| forearms | Brazo derecho bajo el izquierdo | Correcto e incorrecto, líneas de antebrazos | | Recorte de brazos | B01, B07 | cumple |
+| heels | Peso en la parte delantera | Correcto e incorrecto, barra talón punta | | Desde atrás | B01, B08 | cumple |
+| eyesover | Ojos sobre la pelota | I05 con plomada desde los ojos | Falta el error | Correcto e incorrecto | I05 (I06) | parcial (rehacer I06) |
+| arms | El cuerpo gira, los brazos siguen | Correcto e incorrecto en el tope | | Sin guías | A06, C04 | cumple |
+| tempo | Subida 3, bajada 1 | Reproductor de 6 posiciones con barra 3:1 | | Línea de tiempo | E01, A02, A04, A06, A08, A10 | cumple |
+| sway | Girar sin deslizarse | Correcto e incorrecto, línea en el pie derecho | | De frente | A06, C05 | cumple |
+| posture | Mantener la altura | Setup e impacto con la línea de la cabeza | Falta el error | Agregar el error | A01, A10 (C06) | parcial |
+| feet | Pies firmes | Final con línea sobre el pie izquierdo | Falta el error | Correcto e incorrecto | A16 (C07) | parcial |
+| transfer | Peso derecha y luego izquierda | Secuencia de 4 con barra de peso | | | A01, A06, A10, A16 | cumple |
+| stayleft | Peso a la izquierda en el impacto | Correcto e incorrecto, barra de peso | | | A10, C08 | cumple |
+| upper | Driver: pecho detrás de la pelvis | Texto | | Correcto e incorrecto | D02, D03 | pendiente (rehacer D03) |
+| flip | Brazo y palo en línea | A10 con línea hombro mano cabeza del palo | Falta el error | Correcto e incorrecto | A10 (C09) | parcial (rehacer C09) |
+| vshape | La V se mantiene | Texto | | Secuencia más error | H01, H03, H04, H07 | pendiente |
+| pendulum | Atrás igual que adelante | Texto | | Correcto e incorrecto | H03 a H06 | pendiente |
+| headstill | Putt: cabeza quieta | Correcto e incorrecto, línea en la cabeza | | De frente | I03, I04 | cumple |
+| grip-left | Mano izquierda | Texto | | Dos primeros planos | J01, J02 | pendiente |
+| grip-right | Mano derecha | Primer plano | Falta el segundo paso | Dos primeros planos | J03 (J04) | parcial |
+| grip-style | Vardon | Texto | | Primer plano | J04 | pendiente |
+| grip-check | Cara cuadrada con el brazo estirado | Texto | | Correcto e incorrecto | K01, K02 | pendiente |
+| grip-palm | Dedos, no palma | Texto | | Correcto e incorrecto | L01, L02 | pendiente |
+| aim | Pies y hombros paralelos | Texto | | Correcto e incorrecto | G01, G02 | pendiente |
+| setup-steps | Postura en pasos | Texto | | Secuencia de 4 | F01, F02, F03, B01 | pendiente (rehacer F02, F03) |
+| driver-up | Pegar subiendo | Texto | | Foto con trayectoria | D02 | pendiente |
+| speed | Velocidad después de la pelota | A11 | | Una foto | A11 | cumple |
+| strike | Centro de la cara | Texto | | Tres primeros planos | M01 a M03 | pendiente |
+| chip-steps | Chip en tres pasos | Texto | | Secuencia de 3 | H01, H03, H04 | pendiente |
+| putt-setup | Postura de putt | De frente y desde atrás | | Variantes | I01, I05 | cumple |
+| putt-grip | Agarre de putt | Texto | | Primer plano | J05 | pendiente |
+| putt-stroke | Golpe con los hombros | Secuencia de 3 con el triángulo | | | I01, I02, I03 | cumple |
+| bunker | Salida de bunker | Texto | | Postura y golpe | N01, N02 | pendiente |
 
-Resumen: 1 en prototipo (corregir), 30 por sustituir, 8 pendientes sin imagen, más la secuencia y la portada.
+Resumen: 18 cumple, 9 parciales (incluida la portada), 14 pendientes de imagen. 25 consejos ya muestran fotos, más la secuencia y la portada.
+
+## Control de detalle (24 oct)
+
+Revisión pelota contra cabeza del palo, posición de la pelota según palo, guante, manos y pies en las 50 fotos aprobadas.
+- C03: la pelota quedó del lado equivocado de la cabeza del palo. Rehacer.
+- D01 y D03: con driver la pelota está casi al centro; debe ir justo dentro del talón izquierdo. Rehacer.
+- C09: la pelota se movió hasta el pie izquierdo; debe estar en el mismo lugar que en A10. Rehacer.
+- I06: el guante quedó en la mano derecha. Rehacer.
+- Fotos desde atrás: ChatGPT puso la pelota al lado de la punta del palo. Desde atrás de las manos la pelota está delante de la cara y casi tapada por la cabeza del palo. Se corrigió por retoque en B01 a B04, B06 a B08 y F01 (tools/photos/ballfix.py). En B05, F02 y F03 la pelota tapaba la punta del palo y no se puede corregir bien: rehacer.
+- A01 salió más grande que el resto de la serie de frente: en los consejos se escala al mismo tamaño; en la secuencia completa el setup es E01.
+
 No requieren foto: diagrama de dónde poner la cámara (dibujo), cuadros del informe de sesión (salen del video del usuario).
