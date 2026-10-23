@@ -410,8 +410,17 @@ export function openReport(sid, from = "history") {
     ${unknown.length ? `<section class="panel"><h2>Words not understood</h2><p class="muted small">Claude uses these to teach the app your way of talking.</p><p>${unknown.map((v) => `"${esc(v.text)}"`).join(", ")}</p></section>` : ""}
     <section class="panel"><h2>The full report</h2><p class="muted small">Text version for Claude, if you prefer to paste it.</p>
       <button class="btn line" id="rCopy">Copy report</button>${s.calib ? "" : `<button class="btn line" id="rExport2">Export the file</button>`}
-      <details class="why"><summary>Show the report text</summary><pre class="rep">${esc(reportText(DB.sessions, s.id, DB.coach))}</pre></details></section>`;
+      <details class="why"><summary>Show the report text</summary><pre class="rep">${esc(reportText(DB.sessions, s.id, DB.coach))}</pre></details></section>
+    <button class="linkbtn" id="rDel" style="color:var(--error);justify-self:start">Delete this session</button>`;
   $("#rBack").onclick = () => go(reportFrom);
+  // Delete one session (a test, say). Undo for a few seconds; its swing pictures are removed after that.
+  $("#rDel").onclick = async () => {
+    if (!(await confirmDialog("Delete this session?", "It leaves your history and stats. You can undo for a few seconds.", "Delete session"))) return;
+    const k = DB.sessions.findIndex((x) => x.id === s.id); if (k < 0) return;
+    const [gone] = DB.sessions.splice(k, 1); save(); go("history"); let undone = false;
+    toast("Session deleted", () => { undone = true; DB.sessions.splice(k, 0, gone); save(); go("history"); });
+    setTimeout(() => { if (!undone) for (const w of gone.swings || []) frames.del(w.id); }, 7000);
+  };
   $("#rCopy").onclick = () => copyText(reportText(DB.sessions, s.id, DB.coach), $("#rCopy"), "Copy report");
   $("#rExport") && ($("#rExport").onclick = () => exportSession(s.id, $("#rExport")));
   $("#rExport2") && ($("#rExport2").onclick = () => exportSession(s.id, $("#rExport2")));
