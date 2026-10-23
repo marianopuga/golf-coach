@@ -1,7 +1,8 @@
 // Pure logic: pose features, golfer lock, ball detection, swing detection, metrics, setup checks,
 // coaching, plans by venue, stats, rounds and reports. No DOM, so everything is tested in Node.
-import { RULES, RESULT_TIPS, BAD_RESULTS, GROUPS, BAG, CATS, RANGE_ORDER, SHORT_ORDER, VENUES, BALL_POS, clubById } from "./rules.js?v=8";
-import { badWeight, resultLabel } from "./voice.js?v=8";
+import { RULES, RESULT_TIPS, BAD_RESULTS, GROUPS, BAG, CATS, RANGE_ORDER, SHORT_ORDER, VENUES, BALL_POS, clubById } from "./rules.js?v=9";
+import { badWeight, resultLabel } from "./voice.js?v=9";
+import { L, T } from "./lines.js?v=9";
 
 const I = { nose: 0, lSh: 11, rSh: 12, lEl: 13, rEl: 14, lWr: 15, rWr: 16, lIdx: 19, rIdx: 20, lHip: 23, rHip: 24,
   lKn: 25, rKn: 26, lAn: 27, rAn: 28, lHe: 29, rHe: 30, lTo: 31, rTo: 32 };
@@ -321,6 +322,7 @@ function pickFocus(state, group, failingIds, exclude) {
   return cands[0] || null;
 }
 export function coach(state, checks, m, group, view, mode, opts = {}) {
+  const seed = opts.seed ?? Object.values(state.hist).reduce((a, h) => a + h.length, 0);
   const name = opts.name || "Mariano", reason = opts.reason !== false;
   for (const k of Object.keys(state.skipped)) state.skipped[k]--;
   for (const c of checks) { (state.hist[c.id] ??= []).push(c.pass); if (state.hist[c.id].length > 12) state.hist[c.id].shift(); if (c.pass) state.lastPass[c.id] = opts.swingId || true; }
@@ -334,24 +336,24 @@ export function coach(state, checks, m, group, view, mode, opts = {}) {
     F.hist.push(fc.pass); if (F.hist.length > 10) F.hist.shift();
     const l5 = F.hist.slice(-5), good = l5.filter(Boolean).length;
     items.push({ id: F.id, pass: fc.pass, focus: true });
-    lines.push(fc.pass ? `Good. ${say(fr.ok, m, group)} ${good} of ${l5.length}.` : say(fr.cue, m, group) + (reason ? " " + fr.why : ""));
+    lines.push(fc.pass ? `${T.good(seed)} ${say(fr.ok, m, group)} ${T.ofN(good, l5.length)}` : say(fr.cue, m, group) + (reason ? " " + fr.why : ""));
     if (l5.length >= 5 && good >= 4) {
       state.mastered.push(F.id);
       const next = pickFocus(state, group, failingHigh.map((r) => r.id), F.id);
       event = { type: "mastered", id: F.id, next: next?.id || null };
-      lines.push(`${name}, you fixed it: ${fr.title.toLowerCase()}.` + (next ? ` Next focus: ${next.title.toLowerCase()}.` : ""));
+      lines.push(T.fixedIt(name, fr.title) + (next ? " " + T.nextFocus(next.title) : ""));
       state.focus = next ? { id: next.id, hist: [] } : null;
     }
   } else {
     const other = failingHigh[0];
     if (other) { items.push({ id: other.id, pass: false }); lines.push(say(other.cue, m, group) + (reason ? " " + other.why : "")); }
-    else lines.push("Good swing.");
+    else lines.push(T.praise(seed));
   }
   if (mode === 3) {
     for (const r of failingHigh) {
       if (items.length >= 3) break;
       if (items.some((i) => i.id === r.id)) continue;
-      items.push({ id: r.id, pass: false }); lines.push(`Also: ${say(r.cue, m, group)}`);
+      items.push({ id: r.id, pass: false }); lines.push(`${L.also} ${say(r.cue, m, group)}`);
     }
   }
   const lowFails = failing.filter((r) => r.conf === "low").map((r) => r.id);

@@ -1,11 +1,15 @@
-// Live session: camera, pose model, pre-shot check, swing detection, ball detection, voice in and out.
+// Live session: camera, pose model, pre-shot check, swing detection, ball detection, the coach's voice and listening.
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-import { CAMERA, BAG, clubById } from "./rules.js?v=8";
+import { CAMERA, BAG, clubById } from "./rules.js?v=9";
 import { features, frameHint, pickGolfer, SwingDetector, analyze, runChecks, setupCheck, setupMetrics, averageFeatures, coach, ruleById,
-  dispute, skipFocus, buildPlan, calibrationPlan, keyTimes, groupOf, ballRoi, detectBall, ballHit, resOf } from "./engine.js?v=8";
-import { parseUtterance, resultLabel } from "./voice.js?v=8";
-import { DB, S, save, frames } from "./store.js?v=8";
-import * as views from "./views.js?v=8";
+  dispute, skipFocus, buildPlan, calibrationPlan, keyTimes, groupOf, ballRoi, detectBall, ballHit, resOf } from "./engine.js?v=9";
+import { parseUtterance } from "./voice.js?v=9";
+import { L, T, blockCall } from "./lines.js?v=9";
+import * as Speech from "./speech.js?v=9";
+import * as Listen from "./listen.js?v=9";
+import { artFor } from "./art.js?v=9";
+import { DB, S, save, frames } from "./store.js?v=9";
+import * as views from "./views.js?v=9";
 
 const $ = (s) => document.querySelector(s);
 const camWord = (v) => (v === "dtl" ? "camera behind" : "camera in front");
@@ -13,61 +17,43 @@ const clubOptions = () => BAG.filter((c) => S.bag.includes(c.id)).map((c) => `<o
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 // ---------------- Voice out ----------------
-let voice = null, speaking = false, speakTimer = 0, lastSpeech = "", lastDetail = "";
-export function voices() { return ("speechSynthesis" in window ? speechSynthesis.getVoices() : []).filter((v) => /^en|^es/.test(v.lang)); }
-function pickVoice() {
-  const vs = voices();
-  voice = (S.voiceName && vs.find((v) => v.name === S.voiceName)) ||
-    vs.find((v) => v.lang === "en-US" && /Aaron|Alex|Fred|Nathan|Evan|Tom|Reed|Rocko|Ralph/.test(v.name)) || vs.find((v) => v.lang === "en-US") || vs.find((v) => v.lang.startsWith("en")) || null;
-}
-if ("speechSynthesis" in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+let lastSpeech = "", lastDetail = "", readyCount = 0, sorryCount = 0;
+function applyVoiceSettings() { Speech.configure({ enabled: S.voice, voiceId: S.voiceId || "michael", rate: S.voiceSpeed || 1, fallbackVoice: S.voiceName || "" }); }
+applyVoiceSettings();
 export function say(text, { force = false, queue = false, remember = false } = {}) {
   if (!text) return;
   if (remember) lastSpeech = text;
-  if ((!S.voice && !force) || !("speechSynthesis" in window)) return;
-  if (!queue) speechSynthesis.cancel();
-  pickVoice();
-  const u = new SpeechSynthesisUtterance(text);
-  if (voice) { u.voice = voice; u.lang = voice.lang; } else u.lang = "en-US";
-  u.rate = S.voiceRate || 0.95; u.pitch = S.voicePitch || 0.85;
-  speaking = true;
-  const done = () => { if (speechSynthesis.speaking || speechSynthesis.pending) return; clearTimeout(speakTimer); speakTimer = setTimeout(() => (speaking = false), 450); };
-  u.onend = done; u.onerror = done;
-  clearTimeout(speakTimer); speakTimer = setTimeout(() => (speaking = false), 2000 + text.length * 90);
-  speechSynthesis.speak(u);
+  if (!S.voice && !force) return;
+  if (force && !S.voice) { Speech.configure({ enabled: true }); Speech.say(text, { queue }).then(() => Speech.configure({ enabled: S.voice })); return; }
+  Speech.say(text, { queue });
 }
+export function voices() { return ("speechSynthesis" in window ? speechSynthesis.getVoices() : []).filter((v) => /^en/.test(v.lang)); }
+export { applyVoiceSettings };
 
 // ---------------- Voice in ----------------
-const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-let rec = null, micState = Rec ? "off" : "unsupported";
-function updateMic() {
+let captionTimer = 0;
+function caption(text, kind = "") {
+  const el = $("#caption"); if (!el) return;
+  el.textContent = text; el.className = "caption " + kind; el.hidden = !text;
+  clearTimeout(captionTimer); if (text) captionTimer = setTimeout(() => (el.hidden = true), kind === "heard" ? 2600 : 1800);
+}
+function updateMic(state = Listen.getState()) {
   const p = $("#micPill");
-  p.textContent = { on: "Listening", off: S.mic ? "Mic paused" : "Mic off", blocked: "Mic blocked, tap", unsupported: "No voice words" }[micState];
-  p.className = "pill " + (micState === "on" ? "ok" : micState === "blocked" ? "off" : "");
+  const label = { on: "Listening", starting: "Starting mic", off: S.mic ? "Mic paused" : "Mic off", blocked: "Mic blocked", homescreen: "Voice needs Safari", unsupported: "No voice input" }[state] || "Mic off";
+  p.textContent = label; p.className = "pill " + (state === "on" ? "ok" : state === "blocked" || state === "homescreen" ? "off" : "");
 }
-function startListening() {
-  if (!Rec) { micState = "unsupported"; updateMic(); return; }
-  if (!S.mic || !running || rec || micState === "blocked") return;
-  try {
-    const r = new Rec(); rec = r;
-    r.lang = S.voiceLang || "en-US"; r.continuous = true; r.interimResults = false; r.maxAlternatives = 5;
-    r.onresult = (e) => {
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const res = e.results[i]; if (!res.isFinal) continue;
-        const alts = []; for (let j = 0; j < res.length; j++) alts.push(res[j].transcript.trim());
-        onVoice(alts);
-      }
-    };
-    r.onerror = (e) => { if (e.error === "not-allowed" || e.error === "service-not-allowed") { micState = "blocked"; updateMic(); } };
-    r.onend = () => { if (rec !== r) return; rec = null; if (micState === "blocked") return; micState = "off"; updateMic(); if (running && S.mic) setTimeout(startListening, 300); };
-    r.start(); micState = "on"; updateMic();
-  } catch (e) { rec = null; micState = "blocked"; updateMic(); }
-}
-function stopListening() { if (rec) { const r = rec; rec = null; try { r.abort(); } catch (e) {} } if (micState === "on") { micState = "off"; updateMic(); } }
+Listen.init({ result: onVoice, interim: (t) => caption(t, "interim"), state: updateMic });
+function startListening() { if (!S.mic || !running) return; Listen.setLang(S.voiceLang || "en-US"); Listen.start(); }
+function stopListening() { Listen.stop(); }
 $("#micPill").onclick = () => {
-  if (micState === "on") { S.mic = false; stopListening(); } else { S.mic = true; if (micState === "blocked") micState = "off"; startListening(); }
+  if (Listen.reason === "homescreen") { showVoiceNote(true); return; }
+  if (Listen.getState() === "on" || Listen.getState() === "starting") { S.mic = false; stopListening(); Speech.audioMode("playback"); }
+  else { S.mic = true; Speech.audioMode("play-and-record"); startListening(); }
   save(); updateMic();
 };
+function showVoiceNote(show) { const n = $("#voiceNote"); if (n) n.hidden = !show; }
+$("#voiceNoteClose") && ($("#voiceNoteClose").onclick = () => showVoiceNote(false));
+$("#voiceNoteOpen") && ($("#voiceNoteOpen").onclick = () => { location.href = Listen.safariLink(); });
 
 // ---------------- Pose model ----------------
 let landmarker = null;
@@ -95,7 +81,12 @@ const group = () => groupOf(S.clubId, sessionMode === "plan" ? currentBlock()?.c
 
 function setStatus(text, cls = "") { if (status === text) return; status = text; const el = $("#status"); el.textContent = text; el.className = "pill " + cls; }
 function guide(text) { $("#guide").textContent = text; $("#guide").hidden = !text; }
-function verdict(kind, word, what, cue) { $("#verdict").className = "verdict " + kind; $("#vWord").textContent = word; $("#vWhat").textContent = what; $("#vCue").textContent = cue || ""; }
+// The verdict card: a big word, what it is about, the cue, and the picture of the right position.
+function verdict(kind, word, what, cue, ruleId = null) {
+  $("#verdict").className = "verdict " + kind; $("#vWord").textContent = word; $("#vWhat").textContent = what; $("#vCue").textContent = cue || "";
+  const a = ruleId ? artFor(ruleId) : null, pic = $("#vPic");
+  if (a && pic) { pic.innerHTML = a.figure("good", true); pic.hidden = false; } else if (pic) { pic.hidden = true; pic.innerHTML = ""; }
+}
 
 async function startCamera() {
   stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
@@ -104,16 +95,20 @@ async function startCamera() {
 
 export async function start(kind) {
   const calib = kind === "calib";
-  sessionMode = kind === "free" ? "free" : "plan"; running = true; paused = false;
-  say(calib ? "Starting calibration." : kind === "free" ? "Starting free practice." : "Starting your session.", { force: true }); // first speech must come from a tap
-  startListening(); // iPhone only lets the microphone start from a tap
-  $("#live").hidden = false; document.body.classList.add("live-on");
+  sessionMode = kind === "free" ? "free" : "plan"; running = true; paused = false; readyCount = 0; sorryCount = 0;
+  Speech.unlock(); applyVoiceSettings(); // sound must be unlocked inside the tap
+  Speech.audioMode(S.mic ? "play-and-record" : "playback");
+  say(L.start[calib ? "calib" : kind === "free" ? "free" : "plan"], { force: true });
+  startListening();
+  $("#live").hidden = false; document.body.classList.add("live-on"); updateMic();
+  showVoiceNote(S.mic && Listen.reason === "homescreen" && !S.voiceNoteSeen); if (Listen.reason === "homescreen") { S.voiceNoteSeen = true; save(); }
   $("#clubLive").innerHTML = clubOptions(); $("#clubLive").value = S.clubId; $("#viewLive").value = S.view;
   try { await startCamera(); }
-  catch (e) { running = false; stopListening(); setStatus("Camera blocked", "off"); verdict("", "Camera", "Camera access needed", "Allow camera access for this app in Settings, Safari, Camera. Then try again."); return; }
+  catch (e) { running = false; stopListening(); setStatus("Camera blocked", "off"); verdict("", "Camera", "Camera access needed", "Allow the camera for this site: in Safari tap the aA button, Website Settings, Camera, Allow. Then start again."); return; }
   await modelReady;
   if (!landmarker) { running = false; stopListening(); verdict("", "Error", "The pose model did not load", "Check your internet and reopen the app."); return; }
   try { wakeLock = await navigator.wakeLock?.request("screen"); } catch (e) {}
+  Speech.prefetch();
   const opts = { venue: S.venue, total: S.balls, minutes: S.minutes, bag: S.bag, sessions: DB.sessions, rounds: DB.rounds };
   session = { id: uid(), start: Date.now(), venue: S.venue, swings: [], disputes: {}, muted: [], voiceLog: [] };
   if (calib) { session.calib = { mic: null }; session.plan = calibrationPlan(opts); }
@@ -124,18 +119,18 @@ export async function start(kind) {
   $("#thumbs").hidden = true; $("#res").hidden = true; $("#count").textContent = "0 swings"; $("#vTempo").textContent = "";
   $("#nextBtn").hidden = sessionMode !== "plan"; $("#viewLive").disabled = sessionMode === "plan"; $("#clubLive").disabled = sessionMode === "plan";
   $("#pauseBtn").textContent = "Pause";
-  verdict("", "Address", "Get into your setup", "Stand still over the ball. I check your setup and say Ready.");
-  if (calib && S.mic && Rec && micState !== "blocked") {
+  verdict("", "Address", "Get into your setup", "Stand still over the ball. I check your setup, then say Ready.");
+  if (calib && S.mic && Listen.available) {
     verdict("", "Voice", "Voice test", 'Say: "straight"');
-    say("First a voice test. Say the word: straight.", { queue: true });
+    say(L.voiceTest, { queue: true });
     setTimeout(() => {
       if (!session?.calib || session.calib.mic) return;
       session.calib.mic = "no"; save();
-      say("I did not hear you. Use the buttons for the ball flight. For voice, turn on Dictation in Settings, General, Keyboard.", { queue: true });
-      verdict("", "Address", "Get into your setup", "Stand still over the ball. I check your setup and say Ready."); applyBlock(true, true);
+      say(L.voiceFail, { queue: true });
+      verdict("", "Address", "Get into your setup", "Stand still over the ball. I check your setup, then say Ready."); applyBlock(true, true);
     }, 16000);
     renderBlockbar();
-  } else if (sessionMode === "plan") { if (calib) session.calib.mic = "off"; applyBlock(true, calib); }
+  } else if (sessionMode === "plan") { if (calib) session.calib.mic = Listen.available ? "off" : Listen.reason; applyBlock(true, calib); }
   else { det.club = group(); guide(CAMERA[S.view]); renderBlockbar(); }
   requestAnimationFrame(loop);
 }
@@ -146,24 +141,19 @@ function applyBlock(first, queue = !first) {
   S.clubId = b.cat === "random" ? b.sequence[0] : b.clubId; S.view = b.view; det.club = group(); save();
   $("#clubLive").value = S.clubId; $("#viewLive").value = b.view;
   guide(`${b.name}, ${b.balls} ${b.cat === "putt" ? "putts" : "balls"}. ${CAMERA[b.view]}`);
-  const n = session.plan.blocks.length, cam = b.view === "dtl" ? "Camera behind you." : "Camera in front of you.";
-  const left = minutesLeft(), time = left != null && !first ? ` ${Math.max(0, left)} minutes left.` : "";
-  const name = first ? S.profile.name + ", " : "";
-  const what = b.cat === "random" ? `Random clubs, ${b.balls} balls. First: ${clubById(S.clubId).name.toLowerCase()}.` : `Take the ${b.name.toLowerCase()}, ${b.balls} ${b.cat === "putt" ? "putts" : "balls"}.`;
-  const extra = b.phase === "calib" ? " Swing normally, I won't correct you." : b.phase === "warmup" ? " Half swings, easy." : b.phase === "retest" ? " Retest time." : b.short && !first ? " Short game now." : "";
-  say(`${name}${b.phase === "calib" ? "calibration" : "block"} ${session.blockIdx + 1} of ${n}. ${what} ${cam}${extra}${time}`, { queue });
+  say(blockCall(b, session.blockIdx, session.plan.blocks.length, { first, name: S.profile.name, clubId: S.clubId, minutes: minutesLeft() }), { queue });
   renderBlockbar();
 }
 function advanceBlock(manual) {
   if (sessionMode !== "plan" || !session) return;
   if (session.blockIdx < session.plan.blocks.length - 1) {
     session.blockIdx++; session.blockDone = 0; save();
-    if (!manual) say("Block done.", { queue: true });
+    if (!manual) say(L.blockDone, { queue: true });
     applyBlock(false);
   } else {
     session.blockIdx = session.plan.blocks.length; renderBlockbar();
-    if (session.calib) { S.calibDoneAt = Date.now(); say("Calibration done. Tap End, then export the calibration file and send it to Claude.", { queue: true }); }
-    else say("Plan done. Great work. Tap End to see your report.", { queue: true });
+    if (session.calib) { S.calibDoneAt = Date.now(); say(L.calibDone, { queue: true }); }
+    else say(L.planDone, { queue: true });
     save();
   }
 }
@@ -179,34 +169,37 @@ function renderBlockbar() {
 }
 
 function stop() {
-  running = false; paused = false; stopListening(); if ("speechSynthesis" in window) speechSynthesis.cancel();
+  running = false; paused = false; stopListening(); Speech.stop(); Speech.audioMode("playback");
   stream?.getTracks().forEach((t) => t.stop()); stream = null;
   try { wakeLock?.release(); } catch (e) {} wakeLock = null;
   const s = session; session = null;
+  if (s) { s.ttsMissing = Speech.missingSentences(); }
   if (s && !s.swings.length) DB.sessions = DB.sessions.filter((x) => x !== s);
-  save(); $("#live").hidden = true; document.body.classList.remove("live-on");
+  save(); $("#live").hidden = true; document.body.classList.remove("live-on"); showVoiceNote(false);
   if (s?.swings.length) views.openReport(s.id, "today"); else views.go("today");
 }
 function setPaused(p) {
   if (!running) return;
   paused = p; det.reset(); pre = null;
   $("#pauseBtn").textContent = p ? "Resume" : "Pause";
-  if (p) { verdict("", "Paused", "Session paused", 'Say "resume" or tap Resume.'); setStatus("Paused", "busy"); say("Paused."); }
-  else { verdict("", "Address", "Get into your setup", "Stand still over the ball. I check your setup and say Ready."); say("Back on."); }
+  Speech.earcon(p ? "pause" : "resume");
+  if (p) { verdict("", "Paused", "Session paused", 'Say "resume" or tap Resume.'); setStatus("Paused", "busy"); say(L.paused); }
+  else { verdict("", "Address", "Get into your setup", "Stand still over the ball. I check your setup, then say Ready."); say(L.backOn); }
 }
 $("#endBtn").onclick = () => {
   const now = Date.now();
   if (now - endArmed < 3000) { stop(); return; }
-  endArmed = now; $("#endBtn").textContent = "Tap again"; setTimeout(() => ($("#endBtn").textContent = "End"), 3000);
+  endArmed = now; $("#endBtn").textContent = "Tap again to end"; setTimeout(() => ($("#endBtn").textContent = "End"), 3000);
 };
 $("#pauseBtn").onclick = () => setPaused(!paused);
 $("#nextBtn").onclick = () => advanceBlock(true);
-$("#lockPill").onclick = () => { lock = null; say("Looking for you again. Stand in the middle."); };
+$("#lockPill").onclick = () => { lock = null; say(L.lookAgain); };
 document.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState !== "visible" || !running) return;
+  if (!running) return;
+  if (document.visibilityState !== "visible") { stopListening(); return; } // iPhone kills listening in the background
   try { wakeLock = await navigator.wakeLock?.request("screen"); } catch (e) {}
   if (!stream || stream.getTracks().every((t) => t.readyState === "ended")) { try { await startCamera(); } catch (e) {} }
-  if (!rec) startListening();
+  Speech.unlock(); startListening();
 });
 
 // ---------------- Frame loop ----------------
@@ -229,9 +222,9 @@ function loop() {
     fpsCount++;
     if (now - fpsT0 > 1000) {
       fps = (fpsCount * 1000) / (now - fpsT0); fpsCount = 0; fpsT0 = now;
-      if (fps < 12) { slowSince ||= now; if (!slowWarned && now - slowSince > 4000) { slowWarned = true; say("The camera is running slow, so I may miss things. Close other apps or let the phone cool down."); } } else slowSince = 0;
+      if (fps < 12) { slowSince ||= now; if (!slowWarned && now - slowSince > 4000) { slowWarned = true; say(L.slow); } } else slowSince = 0;
       const left = minutesLeft();
-      if (left != null) for (const mk of [15, 5, 0]) if (left <= mk && !timeWarned[mk]) { timeWarned[mk] = 1; say(mk ? `${mk} minutes left.` : "Your time is up.", { queue: true }); }
+      if (left != null) for (const mk of [15, 5, 0]) if (left <= mk && !timeWarned[mk]) { timeWarned[mk] = 1; say(mk ? T.minutes(mk) : L.timeUp, { queue: true }); }
     }
   }
   requestAnimationFrame(loop);
@@ -252,7 +245,7 @@ function handle(now, f) {
     } else { notOkSince = 0; if (now - lastHintAt > 5000 && !$("#guide").hidden) guide(""); }
   }
   if (det.state === "address") preShot(now);
-  if (ev?.type === "swing") onSwing(ev);
+  if (ev?.type === "swing") { Speech.earcon("swing"); onSwing(ev); }
 }
 
 // ---------------- Ball detection on the current frame ----------------
@@ -282,10 +275,12 @@ function preShot(now) {
   if (session.calib || !S.preshot) return; // calibration: logged, never spoken
   if (!sc.ready) {
     pre.readySaid = false;
-    verdict("bad", "Setup", ruleById(sc.next.id).title, sc.fix);
+    verdict("bad", "Setup", ruleById(sc.next.id).title, sc.fix, sc.next.id);
     if (sc.next.id !== pre.lastId || now - pre.lastSay > 5000) { say(sc.fix); pre.lastId = sc.next.id; pre.lastSay = now; pre.said.push(sc.next.id); }
   } else if (!pre.readySaid) {
-    pre.readySaid = true; verdict("good", "Ready", "Setup looks right", "Hit when you want."); say("Ready.");
+    pre.readySaid = true; readyCount++;
+    verdict("good", "Ready", "Setup looks right", "Hit when you want.");
+    Speech.earcon("ready"); if (readyCount <= 3) say(L.ready); // after a few, the chime alone means ready
   }
 }
 
@@ -318,17 +313,17 @@ function onSwing(sw) {
     save(); return;
   }
   for (const c of sc.checks) if (c.pass) DB.coach.lastPass[c.id] = recW.id; // your own photo in the Library
+  const realCount = session.swings.filter((w) => !w.practice).length;
   if (session.calib || grp === "warmup") {
-    const n = blk ? `${session.blockDone + 1} of ${blk.balls}.` : "Got it.";
-    const first = session.swings.filter((w) => !w.practice).length === 1;
-    verdict("", session.calib ? "Captured" : "Warm up", `${clubById(clubId).name}, ${camWord(view)}`, session.calib ? "No corrections during calibration. Say how it flew." : "Easy half swings.");
-    say(n + (first ? " Now say how it flew, for example: straight, or big slice." : ""), { remember: true });
+    const n = blk ? T.ofN(session.blockDone + 1, blk.balls) : L.gotIt;
+    verdict("", session.calib ? "Captured" : "Warm up", `${clubById(clubId).name}, ${camWord(view)}`, session.calib ? "No corrections during calibration. Say how it flew." : L.warmup);
+    say(n + (realCount === 1 ? " " + L.firstFlight : ""), { remember: true });
   } else {
-    const r = coach(DB.coach, checks, m, grp, view, S.mode, { name: S.profile.name, reason: S.reason, swingId: recW.id });
+    const r = coach(DB.coach, checks, m, grp, view, S.mode, { name: S.profile.name, reason: S.reason, swingId: recW.id, seed: realCount });
     recW.items = r.items; recW.focus = r.focusId; recW.said = r.speech; recW.lowFails = r.lowFails;
     lastDetail = r.detail;
-    const first = r.items[0], nr = recW.setup.notReady && S.preshot ? " You hit before you were ready." : "";
-    if (first) verdict(first.pass ? "good" : "bad", first.pass ? "Good" : "Fix", ruleById(first.id).title, r.speech + nr);
+    const first = r.items[0], nr = recW.setup.notReady && S.preshot ? " " + L.hitEarly : "";
+    if (first) verdict(first.pass ? "good" : "bad", first.pass ? "Good" : "Fix", ruleById(first.id).title, r.speech + nr, first.pass ? null : first.id);
     else verdict("good", "Good", "Nothing to fix from this side", r.speech + nr);
     say(r.speech, { remember: true });
   }
@@ -343,7 +338,7 @@ function countSwing(w) {
     session.blockDone++;
     if (blk.cat === "random" && session.blockDone < blk.balls) {
       S.clubId = blk.sequence[session.blockDone]; det.club = group(); $("#clubLive").value = S.clubId;
-      say(`Next: ${clubById(S.clubId).name.toLowerCase()}.`, { queue: true });
+      say(T.nextClub(S.clubId), { queue: true });
     }
     renderBlockbar();
     if (session.blockDone >= blk.balls) advanceBlock(false);
@@ -375,50 +370,62 @@ function markPractice() {
   const wasCounted = !w.practice; w.practice = true;
   if (!w.calib) for (const c of w.checks || []) { const h = DB.coach.hist[c.id]; if (h?.length) h.pop(); if (DB.coach.focus?.id === c.id && DB.coach.focus.hist.length) DB.coach.focus.hist.pop(); }
   if (sessionMode === "plan" && wasCounted) {
-    if (w.blockIdx !== session.blockIdx) { session.blockIdx = w.blockIdx; session.blockDone = Math.max(0, currentBlock().balls - 1); S.clubId = w.clubId; det.club = group(); say(`OK, practice. One more ball with the ${currentBlock().name.toLowerCase()}.`); }
-    else { session.blockDone = Math.max(0, session.blockDone - 1); say("OK, practice, not counted."); }
+    if (w.blockIdx !== session.blockIdx) { session.blockIdx = w.blockIdx; session.blockDone = Math.max(0, currentBlock().balls - 1); S.clubId = w.clubId; det.club = group(); say(`${L.practiceMore} ${T.oneMoreWith(S.clubId)}`); }
+    else { session.blockDone = Math.max(0, session.blockDone - 1); say(L.practice); }
     renderBlockbar();
-  } else say("OK, practice, not counted.");
+  } else say(L.practice);
   $("#count").textContent = `${session.swings.filter((x) => !x.practice).length} swings`;
   save();
 }
 function markWrong() {
   const id = lastSwing?.items?.[0]?.id;
-  if (!id || lastSwing.disputed) { say("Nothing to undo."); return; }
+  if (!id || lastSwing.disputed) { say(L.nothingUndo); return; }
   lastSwing.disputed = id; dispute(DB.coach, id);
   session.disputes[id] = (session.disputes[id] || 0) + 1;
-  if (session.disputes[id] >= 2 && !session.muted.includes(id)) { session.muted.push(id); say(`OK. I'll stop checking ${ruleById(id).title.toLowerCase()} today.`); }
-  else say("OK, that one doesn't count.");
+  if (session.disputes[id] >= 2 && !session.muted.includes(id)) { session.muted.push(id); say(T.stopChecking(ruleById(id).title)); }
+  else say(L.noCount);
   save();
 }
-function doSkip() { const n = skipFocus(DB.coach, group()); say(n ? `New focus: ${n.title.toLowerCase()}.` : "No other focus right now."); save(); }
+function doSkip() { const n = skipFocus(DB.coach, group()); say(n ? T.newFocus(n.title) : L.noFocus); save(); }
 function doStatus() {
-  const left = minutesLeft(), t = left != null ? ` ${Math.max(0, left)} minutes left.` : "";
-  if (sessionMode === "plan" && currentBlock()) { const b = currentBlock(), nb = session.plan.blocks[session.blockIdx + 1]; say(`${b.balls - session.blockDone} left with the ${b.name.toLowerCase()}.${nb ? " Then " + nb.name.toLowerCase() + "." : ""}${t}`); }
-  else say(`${session.swings.filter((w) => !w.practice).length} swings so far.${t}`);
+  const left = minutesLeft(), t = left != null ? " " + T.minutes(Math.max(0, left)) : "";
+  if (sessionMode === "plan" && currentBlock()) { const b = currentBlock(), nb = session.plan.blocks[session.blockIdx + 1]; say(`${T.leftWith(b.balls - session.blockDone)}${nb ? " " + T.thenClub(nb.clubId) : ""}${t}`); }
+  else say(`${T.swingsSoFar(session.swings.filter((w) => !w.practice).length)}${t}`);
 }
+function doFocus() { const F = DB.coach.focus, r = F && ruleById(F.id); say(r ? `${T.yourFocus(r.title)} ${typeof r.cue === "string" ? r.cue : ""}` : L.noFocusYet); }
+const explain = () => say(lastDetail || (DB.coach.focus ? ruleById(DB.coach.focus.id).rule : L.noFocusYet));
 function onVoice(alts) {
-  if (!running || !session) return;
+  if (!running || !session || !alts.length) return;
   const text = alts[0] || "";
-  if (speaking) { session.voiceLog.push({ t: Date.now(), text, parsed: false, duringSpeech: true }); return; }
-  if (session.calib && session.calib.mic == null) { // calibration voice test
-    session.calib.mic = "ok"; session.calib.heard = text; save();
-    say("Voice works."); verdict("", "Address", "Get into your setup", "Stand still over the ball. I check your setup and say Ready."); applyBlock(true, true); return;
-  }
   let p = null, used = text;
   for (const a of alts) { p = parseUtterance(a); if (p) { used = a; break; } }
-  session.voiceLog.push({ t: Date.now(), text, alts: alts.slice(1, 4), parsed: !!p, swingId: lastSwing?.id || null });
+  const busy = Speech.isSpeaking();
+  session.voiceLog.push({ t: Date.now(), text, alts: alts.slice(1, 4), parsed: !!p, duringSpeech: busy || undefined, swingId: lastSwing?.id || null });
   if (session.voiceLog.length > 400) session.voiceLog.shift();
-  if (!p) return;
+  // While the coach talks only commands get through (you can interrupt: "stop", "pause", "repeat")
+  if (busy && p?.type !== "command") return;
+  if (session.calib && session.calib.mic == null) { // calibration voice test
+    session.calib.mic = "ok"; session.calib.heard = text; save(); caption(`“${text}”`, "heard"); Speech.earcon("ok");
+    say(L.voiceOk); verdict("", "Address", "Get into your setup", "Stand still over the ball. I check your setup, then say Ready."); applyBlock(true, true); return;
+  }
+  if (!p) {
+    caption(`“${text}”`, "missed");
+    if (lastSwing && Date.now() - lastSwing.t < 12000 && !lastSwing.res?.result) { Speech.earcon("oops"); if (sorryCount++ < 2) say(L.sorry); }
+    return;
+  }
+  caption(`“${used}”`, "heard");
   if (p.type === "command") {
+    if (busy || p.name === "hush") Speech.stop();
     switch (p.name) {
+      case "hush": break;
       case "pause": setPaused(true); break;
       case "resume": if (paused) setPaused(false); break;
       case "practice": if (lastSwing && Date.now() - lastSwing.t < 40000) markPractice(); break;
       case "wrong": markWrong(); break;
       case "skip": doSkip(); break;
-      case "repeat": say(lastSpeech || "Nothing yet."); break;
-      case "explain": say(lastDetail || (DB.coach.focus ? ruleById(DB.coach.focus.id).rule : "No focus yet.")); break;
+      case "repeat": say(lastSpeech || L.nothingYet); break;
+      case "explain": explain(); break;
+      case "focus": doFocus(); break;
       case "next": advanceBlock(true); break;
       case "status": doStatus(); break;
     }
@@ -426,12 +433,12 @@ function onVoice(alts) {
   }
   if (!lastSwing || Date.now() - lastSwing.t > 40000) return;
   lastSwing.voice.push({ t: Date.now(), text: used });
-  if (applyResult(p, used)) say(resultLabel(lastSwing.res) + ".");
+  if (applyResult(p, used)) { Speech.earcon("ok"); if (p.result) say(T.echo(lastSwing.res)); }
 }
 $("#res").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setResultButton(b.dataset.r); });
 $("#wrongBtn").onclick = markWrong; $("#skipBtn").onclick = doSkip;
-$("#explainBtn").onclick = () => say(lastDetail || (DB.coach.focus ? ruleById(DB.coach.focus.id).rule : "No focus yet."), { force: true });
-$("#clubLive").onchange = (e) => { S.clubId = e.target.value; det.club = group(); save(); renderBlockbar(); say(clubById(S.clubId).name); };
+$("#explainBtn").onclick = () => { Speech.unlock(); explain(); };
+$("#clubLive").onchange = (e) => { S.clubId = e.target.value; det.club = group(); save(); renderBlockbar(); say(T.clubSaid(S.clubId)); };
 $("#viewLive").onchange = (e) => { S.view = e.target.value; save(); guide(CAMERA[S.view]); renderBlockbar(); say(CAMERA[S.view]); };
 
 // ---------------- Frames for the replay and the export ----------------
@@ -517,5 +524,5 @@ function draw(poses, idx, f) {
   if (b && det.state === "address") { const [x, y] = toScreen(b.x / vw, b.y / vh); ctx.strokeStyle = "#62c48d"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, Math.max(7, b.d * sc), 0, Math.PI * 2); ctx.stroke(); }
 }
 
-views.init({ start, say, voices });
+views.init({ start, say, voices, speech: Speech, listen: Listen, applyVoiceSettings });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});

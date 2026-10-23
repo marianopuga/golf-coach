@@ -1,5 +1,5 @@
 // Offline support: app files network first (so updates arrive), libraries and model cache first.
-const CACHE = "golfcoach-v8";
+const CACHE = "golfcoach-v9";
 self.addEventListener("install", (e) => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil((async () => {
   for (const k of await caches.keys()) if (k !== CACHE) await caches.delete(k);
@@ -9,7 +9,8 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET") return;
   const sameOrigin = url.origin === self.location.origin;
-  const lib = /cdn\.jsdelivr\.net|storage\.googleapis\.com|fonts\.(googleapis|gstatic)\.com/.test(url.host);
+  const lib = /cdn\.jsdelivr\.net|storage\.googleapis\.com|fonts\.(googleapis|gstatic)\.com/.test(url.host)
+    || (sameOrigin && /\/(voice|art)\/.+\.(mp3|webp|png)$/.test(url.pathname)); // recorded voice clips and pictures never change
   if (!sameOrigin && !lib) return;
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);

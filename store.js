@@ -1,7 +1,7 @@
 // Saved data. Settings, coaching, sessions and rounds in localStorage; swing pictures in IndexedDB.
 // Everything stays on the phone.
-import { BAG } from "./rules.js?v=8";
-import { emptyCoachState } from "./engine.js?v=8";
+import { BAG } from "./rules.js?v=9";
+import { emptyCoachState } from "./engine.js?v=9";
 
 const KEY = "golfcoach.v2";
 function load() {
@@ -14,6 +14,7 @@ function load() {
 }
 export const DB = load();
 export const S = DB.settings;
+S.voiceId ??= "michael"; S.voiceSpeed ??= 1;
 S.clubId ??= "7i"; S.view ??= "face"; S.voice ??= true; S.mic ??= true; S.ask ??= true;
 S.mode = S.modeSet ? S.mode : 3; S.modeSet = true; // you asked: the important thing first, then the details
 S.bag ??= BAG.map((c) => c.id); if (!S.bag.includes("PT")) S.bag.push("PT");

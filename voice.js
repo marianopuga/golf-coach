@@ -7,7 +7,9 @@ const has = (t, re) => re.test(" " + t + " ");
 const W = (words) => new RegExp(" (" + words.join("|") + ") ");
 
 const CMD = [
-  ["pause", W(["pause", "pausa", "hold on", "wait", "espera"])],
+  ["hush", W(["stop talking", "stop", "be quiet", "quiet", "silence", "shh", "shush", "enough", "callate", "silencio", "para de hablar"])],
+  ["focus", W(["what is my focus", "whats my focus", "my focus", "what should i work on", "what am i working on", "what do i work on", "en que me enfoco", "cual es mi foco"])],
+  ["pause", W(["pause", "paws", "pours", "pausa", "hold on", "wait", "espera", "hang on"])],
   ["resume", W(["resume", "continue", "continua", "sigue", "seguimos", "go on", "lets go", "vamos de nuevo", "unpause"])],
   ["practice", W(["practice", "practise", "practica", "no ball", "sin pelota", "ignore that", "ignora"])],
   ["wrong", W(["wrong", "incorrect", "mal dicho", "eso no", "no es cierto", "error", "not right"])],
@@ -15,7 +17,7 @@ const CMD = [
   ["explain", W(["explain", "explica", "explicame", "why", "por que", "tell me more"])],
   ["repeat", W(["repeat", "repite", "say again", "otra vez", "que dijiste", "what did you say"])],
   ["next", W(["next block", "next", "siguiente", "move on"])],
-  ["status", W(["status", "how many", "balls left", "cuantas quedan", "cuanto queda", "time left"])],
+  ["status", W(["status", "how many", "balls left", "cuantas quedan", "cuanto queda", "time left", "how am i doing", "como voy", "whats next", "what now", "que sigue", "where am i"])],
 ];
 
 // Contact first, then shape, then plain direction.
@@ -80,10 +82,33 @@ function wordsToNumber(tokens) {
   return best;
 }
 
+// ---------------- Fixing misheard words ----------------
+// The recognizer sometimes returns a near miss ("strait", "slices", "light" for right). Unknown words of five letters or
+// more are snapped to the closest golf word when they are one letter away (two for long words).
+const LEX = new Set(), VOCAB = [];
+for (const re of [...CMD.map((c) => c[1]), ...CONTACT.map((c) => c[1]), ...SHAPE.map((c) => c[1]), RIGHT, LEFT, STRAIGHT, SHORT, BIG, SMALL, ...STRIKE.map((c) => c[1])])
+  for (const phrase of re.source.slice(2, -2).split("|")) for (const w of phrase.split(" ")) { LEX.add(w); if (w.length >= 5 && !VOCAB.includes(w)) VOCAB.push(w); }
+for (const w of [...Object.keys(EN), ...Object.keys(ES), "the", "and", "that", "was", "this", "ball", "shot", "went", "with", "little", "really", "about", "metres", "meters", "yards", "hundred"]) LEX.add(w);
+function lev(a, b) {
+  if (Math.abs(a.length - b.length) > 2) return 9;
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+export function correct(t) {
+  return t.split(" ").map((w) => {
+    if (w.length < 5 || LEX.has(w) || /\d/.test(w)) return w;
+    const max = w.length >= 8 ? 2 : 1; let best = null, bd = 9;
+    for (const v of VOCAB) { const dd = lev(w, v); if (dd < bd) { bd = dd; best = v; } }
+    return bd <= max ? best : w;
+  }).join(" ");
+}
+
 // ---------------- Parse ----------------
 // Returns { type: "command", name } or { type: "result", result, sev, dir, short, strike, distance, words } or null.
 export function parseUtterance(text) {
-  const t = strip(text);
+  const t = correct(strip(text));
   if (!t) return null;
   const tokens = t.split(" ");
   for (const [name, re] of CMD) if (has(t, re)) return { type: "command", name };

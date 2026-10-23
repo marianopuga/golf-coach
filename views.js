@@ -1,9 +1,10 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, clubById } from "./rules.js?v=8";
-import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH } from "./engine.js?v=8";
-import { badWeight, resultLabel } from "./voice.js?v=8";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=8";
-import { art, strip } from "./illus.js?v=8";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, clubById } from "./rules.js?v=9";
+import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH } from "./engine.js?v=9";
+import { badWeight, resultLabel } from "./voice.js?v=9";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=9";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS } from "./art.js?v=9";
+import { T } from "./lines.js?v=9";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -21,6 +22,23 @@ const venue = () => VENUES[S.venue] || VENUES.pw;
 const vName = (id) => (id === "sf" ? "Swing Factory" : id === "pw" ? "Pittwater" : "Range");
 const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const shortClub = (id) => ({ PW: "PW", SW: "SW" }[id] || clubById(id).name);
+const ICON = {
+  chart: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"/><path d="M5 15l4.5-4.5 3.5 3L19 7"/></svg>',
+  cal: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+  flag: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V3.5l11 4-11 4"/><path d="M3 21h15"/></svg>',
+};
+const empty = (icon, title, text) => `<div class="empty">${ICON[icon]}<h3>${title}</h3><p class="muted small">${text}</p></div>`;
+const initials = () => (S.profile.name || "M").split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+// Confirmation for destructive actions, and a short message with Undo
+function confirmDialog(title, text, yes = "Delete") {
+  const d = $("#confirm"); $("#confirmTitle").textContent = title; $("#confirmText").textContent = text; $("#confirmYes").textContent = yes;
+  return new Promise((res) => { const done = (v) => { if (d.open) d.close(); res(v); }; $("#confirmYes").onclick = () => done(true); $("#confirmNo").onclick = () => done(false); d.oncancel = () => res(false); d.showModal(); });
+}
+let toastTimer = 0;
+function toast(text, undo) {
+  const t = $("#toast"), u = $("#toastUndo"); $("#toastText").textContent = text; u.hidden = !undo;
+  u.onclick = () => { t.hidden = true; undo(); }; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), 6000);
+}
 const planOpts = () => ({ venue: S.venue, total: S.balls, minutes: S.minutes, bag: S.bag, sessions: DB.sessions, rounds: DB.rounds });
 
 export function init(a) {
@@ -64,16 +82,17 @@ function renderToday() {
     : { v: S.balls, unit: "balls in your bucket", chips: [50, 100, 150], key: "balls", step: 10 };
   const name = S.profile.name.split(" ")[0];
   el.innerHTML = `
-    <header class="lt"><p class="greet">${fmtDate(Date.now(), { weekday: "long", day: "numeric", month: "long" })}</p><h1>Hello ${esc(name)}</h1></header>
+    <header class="lt hdr"><div><p class="greet">${fmtDate(Date.now(), { weekday: "long", day: "numeric", month: "long" })}</p><h1>Hello ${esc(name)}</h1></div><button class="avatar sm" id="toProfile" aria-label="Your profile">${esc(initials())}</button></header>
+    ${S.roundDraft ? `<section class="panel"><div class="sect"><h2>Round in progress</h2><span class="meta">${esc(S.roundDraft.course || "Course")}</span></div><p class="muted small">${S.roundDraft.holes.filter((h) => h.score).length} of ${S.roundDraft.holes.length} holes logged.</p><button class="btn" id="contRound">Continue logging</button></section>` : ""}
     <section class="panel hero">
       <h2>${cal ? "Calibration first" : "Ready to practise"}</h2>
       <p class="muted">${cal ? "Your first full session is a calibration: no corrections, every club from both camera sides. It teaches the app how your swing and your words look." : esc(V.about)}</p>
-      <div class="pills" id="venue">${["pw", "sf"].map((id) => `<button data-v="${id}" aria-pressed="${id === S.venue}">${id === "pw" ? "Pittwater" : "Swing Factory"}</button>`).join("")}</div>
+      <div class="seg" id="venue" role="group" aria-label="Range">${["pw", "sf"].map((id) => `<button data-v="${id}" aria-pressed="${id === S.venue}">${id === "pw" ? "Pittwater" : "Swing Factory"}</button>`).join("")}</div>
       <div class="stepper"><button id="minus" aria-label="Less">&minus;</button><output>${stepper.v}<small>${stepper.unit}</small></output><button id="plus" aria-label="More">+</button></div>
       <div class="pills" id="chips" style="justify-content:center">${stepper.chips.map((n) => `<button aria-pressed="${n === stepper.v}">${n}</button>`).join("")}</div>
       <button class="btn" id="go">${cal ? "Start calibration" : "Start session"}</button>
       <button class="linkbtn" id="alt">${cal ? "Normal session instead" : "Free practice instead"}</button>
-      <div class="strip">${strip().map((s) => `<figure>${s.svg}</figure>`).join("")}</div>
+      ${heroArt() ? `<div class="hero-art">${heroArt()}</div>` : ""}
     </section>
     <section class="panel" id="freeBox" hidden>
       <h3>Free practice</h3>
@@ -122,6 +141,8 @@ function renderToday() {
   $("#freeView").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; S.view = b.dataset.v; save(); $("#freeView").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); };
   $("#goFree").onclick = () => app.start("free");
   $("#logRound").onclick = () => openRound(null);
+  $("#toProfile").onclick = () => go("profile");
+  $("#contRound") && ($("#contRound").onclick = () => openRound(null));
 }
 
 // ---------------- History ----------------
@@ -179,7 +200,7 @@ function spark(vals) {
 }
 function renderProgress() {
   const el = $("#tab-progress"), all = realSessions(), rs = roundStats(DB.rounds), sd = stockDistances(DB.sessions);
-  if (!all.length && !rs) { el.innerHTML = `<header class="lt"><p class="greet">Your trend over time</p><h1>Progress</h1></header><section class="panel"><h2>Nothing yet</h2><p class="muted">After your first sessions you see bad shots per session, your tempo, your distances per club and how each fault is going. Rounds you log show here too.</p></section>`; return; }
+  if (!all.length && !rs) { el.innerHTML = `<header class="lt"><p class="greet">Your trend over time</p><h1>Progress</h1></header><section class="panel">${empty("chart", "Nothing to show yet", "After your first sessions you see bad shots per session, your tempo, your distances per club and how each fault is going. Rounds you log show here too.")}<button class="btn quiet" id="emptyGo">Plan today's session</button></section>`; $("#emptyGo").onclick = () => go("today"); return; }
   const pts = all.filter((s) => !s.calib && badRate(s) != null).slice(-12).map((s) => ({ label: fmtDate(s.start, { day: "numeric", month: "short" }), v: badRate(s) }));
   const tempo = all.map((s) => { const t = (s.swings || []).filter((w) => !w.practice && w.m?.tempoRatio && clubById(w.clubId).group !== "putt").map((w) => w.m.tempoRatio).sort((a, b) => a - b); return t.length >= 3 ? { label: fmtDate(s.start, { day: "numeric", month: "short" }), v: t[Math.floor(t.length / 2)] } : null; }).filter(Boolean).slice(-12);
   const cs = catStats(DB.sessions, 3), cats = Object.entries(cs).sort((a, b) => (b[1].score ?? -1) - (a[1].score ?? -1));
@@ -195,8 +216,8 @@ function renderProgress() {
     ${sdRows.length ? `<section class="panel"><h2>Your distances</h2><p class="muted small">From the distances you said at Swing Factory. Bad shots are left out once there are enough good ones.</p>
       <div class="card-scroll"><table class="score"><tr><th>Club</th><th class="c">Usual</th><th class="c">Range</th><th class="c">Shots</th></tr>${sdRows.map((c) => `<tr><td><b>${shortClub(c.id)}</b></td><td class="n nw">${sd[c.id].median} m</td><td class="c nw">${sd[c.id].min} to ${sd[c.id].max}</td><td class="c">${sd[c.id].n}</td></tr>`).join("")}</table></div></section>` : ""}
     ${rs ? `<section class="panel"><h2>On the course</h2>
-      <div class="stats"><div class="stat"><b>${rs.avg18 ?? "–"}</b><span>average for 18</span></div><div class="stat"><b>${f(rs.fairways)}</b><span>fairways</span></div><div class="stat"><b>${rs.puttsPerHole ? rs.puttsPerHole.toFixed(1) : "–"}</b><span>putts per hole</span></div></div>
-      <p class="small">Tee shot misses: <b>${f(rs.missLeft)} left</b>, <b>${f(rs.missRight)} right</b>. Out of bounds or water: ${rs.obLeft} left, ${rs.obRight} right. Greens reached: ${f(rs.greens)}. Three putts: ${rs.threePutts}. Penalty strokes: ${rs.penalties}.</p>
+      <div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="stat"><b>${rs.avg18 ?? "–"}</b><span>Scoring average, 18 holes</span></div><div class="stat"><b>${rs.puttsPerHole ? (rs.puttsPerHole * 18).toFixed(0) : "–"}</b><span>Putts per round</span></div><div class="stat"><b>${f(rs.fairways)}</b><span>Fairways hit</span></div><div class="stat"><b>${f(rs.greens)}</b><span>Greens in regulation</span></div></div>
+      <p class="small">Tee shot misses: <b>${f(rs.missLeft)} left</b>, <b>${f(rs.missRight)} right</b>. Out of bounds or water: ${rs.obLeft} left, ${rs.obRight} right. Three putts: ${rs.threePutts}. Penalty strokes: ${rs.penalties}.</p>
       <p class="muted small">Your goal: under 100 by the end of the year.${rs.avg18 ? ` You are ${rs.avg18 < 100 ? "already there on average" : `${rs.avg18 - 99} strokes away on average`}.` : ""}</p></section>` : ""}
     ${cats.length ? `<section class="panel"><h2>Clubs lately</h2><p class="muted small">Your last three sessions. The plan gives more balls to the club at the top.</p>
       <div class="card-scroll"><table class="score"><tr><th>Group</th><th class="c">Swings</th><th class="c">Bad</th><th class="c">Faults</th></tr>${cats.map(([c, o], i) => `<tr><td><b>${CATS[c]?.name || c}</b>${i === 0 && o.score != null ? '<span class="tag">weakest</span>' : ""}</td><td class="n">${o.n}</td><td class="n">${o.logged ? Math.round(100 * Math.min(1, o.badRate)) + "%" : "–"}</td><td class="n">${o.checks ? pct(o.fails, o.checks) + "%" : "–"}</td></tr>`).join("")}</table></div></section>` : ""}
@@ -228,12 +249,9 @@ function campDiagram() {
   </svg>`;
 }
 function tipHtml(r) {
-  const v = VIDEOS[r.src], a = art(r.id);
+  const v = VIDEOS[r.src], a = artFor(r.id);
   const tags = r.auto ? `<span class="tag">${r.kind === "setup" ? "before the shot" : "after the shot"}, ${r.view === "dtl" ? "camera behind" : r.view === "face" ? "camera in front" : "any camera"}</span>${r.conf === "low" ? '<span class="tag weak">weak measurement</span>' : ""}` : "";
-  const pics = a ? `<div class="cmp ${a.bad ? "" : "one"}" data-tip="${r.id}">
-      <figure>${a.bad ? '<span class="badge ok">Right</span>' : ""}${a.good}${a.goodCap ? `<figcaption>${esc(a.goodCap)}</figcaption>` : ""}</figure>
-      ${a.bad ? `<figure><span class="badge no">Wrong</span>${a.bad}<figcaption>${esc(a.badCap)}</figcaption></figure>` : ""}
-    </div>` : "";
+  const pics = a ? `<div class="cmp ${a.bad ? "" : "one"}" data-tip="${r.id}">${a.figure("good")}${a.bad ? a.figure("bad") : ""}</div>` : "";
   return `<div class="tip"><h3>${esc(r.title)}${tags}</h3>${pics}<p>${esc(r.rule)}</p><small>${v.url ? `<a href="${v.url}" target="_blank" rel="noopener">${v.who}: ${esc(v.title)}</a>` : esc(v.title)}</small><div class="you" data-you="${r.id}"></div></div>`;
 }
 async function loadYou(root) {
@@ -257,6 +275,8 @@ function renderLibrary() {
       <li>Say how the ball flew in your own words, and at Swing Factory the distance. Practice swings next to the ball are ignored on their own.</li>
       <li>Say "pause" when a friend hits and "resume" when you are back.</li>
       <li>At the end, tap End twice and open your report.</li></ol></div></details>
+    <details class="chap"><summary><h2>The full swing</h2><span class="muted small">17 positions</span></summary><div class="body">${sequenceArt()}
+      <ol class="seq-labels">${SEQ_LABELS.map((l) => `<li>${esc(l)}</li>`).join("")}</ol></div></details>
     <details class="chap"><summary><h2>Where to put the camera</h2></summary><div class="body">${campDiagram()}
       <p><b>In front</b>: facing your chest, across the ball. It checks stance, ball position, weight, turn, sway, balance and finish.</p>
       <p><b>Behind</b>: on the line from your hands to the target. It checks your posture from the hips, knees, distance to the ball and your arms.</p>
@@ -278,7 +298,9 @@ function renderProfile() {
   const vs = app?.voices ? app.voices() : [];
   el.innerHTML = `
     <header class="lt"><p class="greet">Your details and settings</p><h1>Profile</h1></header>
+    <p class="group-title">Player</p>
     <section class="panel"><div class="me"><div class="avatar">${esc(initials)}</div><div><h2>${esc(P.name)}</h2><p class="muted">${esc(P.hand)} handed, ${esc(P.height)} cm, ${esc(P.level.toLowerCase())}, Vardon grip</p></div></div></section>
+    <p class="group-title">Practice and coaching</p>
     <section class="panel"><h2>Calibration</h2>
       <p class="muted">${lastCal ? `Last calibration on ${fmtDate(lastCal.start)}: ${lastCal.swings.filter((w) => !w.practice).length} swings, voice ${lastCal.calib.mic === "ok" ? "worked" : lastCal.calib.mic === "no" ? "not heard" : "off"}.` : "No calibration yet. Do one full session first."}</p>
       ${lastCal ? `<button class="btn olive" id="pExport">Export calibration file for Claude</button>` : ""}
@@ -302,35 +324,43 @@ function renderProfile() {
       <span class="lbl">What the setup check looks at</span>
       <div class="pills" id="pChecks">${Object.entries(PRECHECK_NAMES).map(([id, n]) => `<button data-id="${id}" aria-pressed="${S.prechecks.includes(id)}">${n}</button>`).join("")}</div>
       <p class="muted small">Forearms and hands ahead are weak measurements: they are logged, not spoken, until calibration proves them. Alignment needs a club on the ground, so it is not checked yet.</p></section>
+    <p class="group-title">Voice and listening</p>
     <section class="panel"><h2>Voice</h2>
-      <p class="muted small">The app can only use the voices installed on your iPhone. Celebrity voices are not possible, but a lower pitch gives a deeper, calmer voice. More voices: Settings, Accessibility, Spoken Content, Voices.</p>
+      <p class="muted small">A natural recorded voice says everything the coach knows. It is an open source neural voice, recorded once and stored with the app, so it costs nothing and works without signal once downloaded.</p>
+      <span class="lbl">Coach voice</span>
+      <div class="pills" id="pVoiceId">${Object.entries(app?.speech?.VOICES || {}).map(([id, n]) => `<button data-v="${id}" aria-pressed="${(S.voiceId || "michael") === id}">${n}</button>`).join("")}</div>
       <div style="display:grid;gap:12px">
         <label class="field" for="pVoiceOn">Speak the feedback <input type="checkbox" id="pVoiceOn" ${S.voice ? "checked" : ""}></label>
-        <label class="field" for="pVoice">Voice <select id="pVoice"><option value="">Automatic (American)</option>${vs.map((v) => `<option value="${esc(v.name)}" ${v.name === S.voiceName ? "selected" : ""}>${esc(v.name)} (${esc(v.lang)})</option>`).join("")}</select></label>
-        <label class="field" for="pPitch">Pitch, lower is deeper <input type="range" id="pPitch" min="0.5" max="1.5" step="0.05" value="${S.voicePitch}"></label>
-        <label class="field" for="pRate">Speed <input type="range" id="pRate" min="0.7" max="1.3" step="0.05" value="${S.voiceRate}"></label>
+        <label class="field" for="pSpeed">Speed <input type="range" id="pSpeed" min="0.85" max="1.15" step="0.05" value="${S.voiceSpeed || 1}"></label>
         <label class="field" for="pMic">Listen to my words <input type="checkbox" id="pMic" ${S.mic ? "checked" : ""}></label>
         <label class="field" for="pLang">I speak mostly in <select id="pLang">${[["en-US", "English"], ["es-US", "Spanish (US)"], ["es-CL", "Spanish (Chile)"], ["es-ES", "Spanish (Spain)"]].map(([v, n]) => `<option value="${v}" ${v === S.voiceLang ? "selected" : ""}>${n}</option>`).join("")}</select></label>
       </div>
-      <p class="muted small">You mix languages. English listening understands your golf words best; Spanish directions like "derecha" work too. The calibration report lists every word it did not understand.</p>
-      <button class="btn quiet" id="pTest">Test the voice</button></section>
+      ${app?.listen?.reason === "homescreen" ? `<div class="note warn"><b>Listening needs Safari.</b> iPhone does not let apps opened from the Home Screen use speech recognition. For voice commands open the app in Safari, or add it again with "Open as Web App" turned off.<a class="btn sm olive" href="${app.listen.safariLink()}">Open in Safari</a></div>` : ""}
+      <button class="btn quiet" id="pTest">Test the voice</button>
+      <button class="btn line" id="pDl">Download the voice for offline use</button>
+      <details class="why"><summary>Backup voice</summary><p>Used only for a sentence that was never recorded, like a new name.</p>
+        <label class="field" for="pVoice">Backup voice <select id="pVoice"><option value="">Best available</option>${vs.map((v) => `<option value="${esc(v.name)}" ${v.name === S.voiceName ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select></label></details>
+      <p class="muted small">You mix languages. English listening understands your golf words best; Spanish directions like "derecha" work too. The report lists every word it did not understand.</p></section>
+    <p class="group-title">Data and privacy</p>
     <section class="panel"><h2>Your data</h2><p class="muted small">Everything is saved only on this phone. Export a backup to Files from time to time.</p>
-      <button class="btn line" id="pBackup">Export a backup</button><button class="btn line" id="pReset">Restart the focus</button><button class="btn line" id="pClear">Delete all history</button></section>
-    <p class="muted small">Scratch Golfer Dreams, version 8. Rules from 9 videos in your Golf bible playlist.</p>`;
+      <button class="btn line" id="pBackup">Export a backup</button><button class="btn line" id="pReset">Restart the focus</button><button class="btn line" id="pClear" style="color:var(--error)">Delete all history</button></section>
+    <p class="muted small">Scratch Golfer Dreams, version 9. Rules from 9 videos in your Golf bible playlist. Voice: Kokoro, Apache 2.0.</p>`;
   const bind = (id, fn) => ($("#" + id).onchange = (e) => { fn(e.target); save(); });
   bind("pName", (t) => (P.name = t.value.trim() || "Mariano")); bind("pHeight", (t) => (P.height = Number(t.value) || 185)); bind("pLevel", (t) => (P.level = t.value));
   bind("pReason", (t) => (S.reason = t.checked)); bind("pPre", (t) => (S.preshot = t.checked)); bind("pAuto", (t) => (S.autoPractice = t.checked)); bind("pGhost", (t) => (S.ghost = t.checked)); bind("pAsk", (t) => (S.ask = t.checked));
-  bind("pVoiceOn", (t) => (S.voice = t.checked)); bind("pVoice", (t) => (S.voiceName = t.value)); bind("pPitch", (t) => (S.voicePitch = Number(t.value))); bind("pRate", (t) => (S.voiceRate = Number(t.value)));
+  bind("pVoiceOn", (t) => { S.voice = t.checked; app.applyVoiceSettings(); }); bind("pVoice", (t) => { S.voiceName = t.value; app.applyVoiceSettings(); }); bind("pSpeed", (t) => { S.voiceSpeed = Number(t.value); app.applyVoiceSettings(); });
   bind("pMic", (t) => (S.mic = t.checked)); bind("pLang", (t) => (S.voiceLang = t.value));
   $("#bag").onchange = () => { S.bag = [...el.querySelectorAll("#bag input:checked")].map((x) => x.dataset.id); save(); };
   $("#pMode").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; S.mode = Number(b.dataset.m); save(); renderProfile(); };
   $("#pChecks").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; const id = b.dataset.id; S.prechecks = S.prechecks.includes(id) ? S.prechecks.filter((x) => x !== id) : [...S.prechecks, id]; save(); b.setAttribute("aria-pressed", String(S.prechecks.includes(id))); };
-  $("#pTest").onclick = () => app.say(`Hi ${P.name}. Turn your chest away, arms follow. Your body makes the speed.`, { force: true });
+  $("#pTest").onclick = () => { app.speech.unlock(); app.say(T.testVoice(P.name), { force: true }); };
+  $("#pVoiceId").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; S.voiceId = b.dataset.v; save(); app.applyVoiceSettings(); $("#pVoiceId").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); app.speech.unlock(); app.say(T.testVoice(P.name), { force: true }); };
+  $("#pDl").onclick = async () => { const btn = $("#pDl"); btn.disabled = true; const ok = await app.speech.downloadAll((d, n) => (btn.textContent = `Downloading the voice, ${Math.round((100 * d) / n)}%`)); btn.textContent = ok ? "Voice saved for offline use" : "Could not download, try with signal"; btn.disabled = false; };
   $("#pCalib").onclick = () => app.start("calib");
   $("#pExport") && ($("#pExport").onclick = () => exportSession(lastCal.id, $("#pExport")));
   $("#pBackup").onclick = async () => { const r = await giveFile(`scratch-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(DB)); $("#pBackup").textContent = r === "cancelled" ? "Export a backup" : "Backup ready"; };
   $("#pReset").onclick = () => { resetCoach(); $("#pReset").textContent = "Focus restarted"; };
-  $("#pClear").onclick = () => { if (Date.now() - clearArmed < 4000) { clearHistory(); renderProfile(); return; } clearArmed = Date.now(); $("#pClear").textContent = "Tap again to delete everything"; $("#pClear").classList.add("danger"); };
+  $("#pClear").onclick = async () => { if (await confirmDialog("Delete all history?", "Every session, round and swing picture on this phone is removed. This cannot be undone. Export a backup first if you want to keep it.", "Delete everything")) { clearHistory(); renderProfile(); toast("History deleted"); } };
 }
 
 // ---------------- Report ----------------
@@ -394,6 +424,7 @@ const blankHole = (i) => ({ n: i + 1, par: 4, score: null, putts: null, teeClub:
 export function openRound(id) {
   const existing = id && DB.rounds.find((r) => r.id === id);
   editing = !!existing;
+  if (!existing && S.roundDraft) { draft = JSON.parse(JSON.stringify(S.roundDraft)); draft.cur ??= 0; showOnly("round"); renderRound(); return; }
   draft = existing ? JSON.parse(JSON.stringify(existing)) : { id: Date.now().toString(36), date: Date.now(), course: DB.rounds.at(-1)?.course || "", holes: Array.from({ length: 18 }, (_, i) => blankHole(i)), note: "" };
   // Same course as last time: copy its pars so you only fill in what happened
   const prev = !existing && DB.rounds.filter((r) => r.course && r.course === draft.course).at(-1);
@@ -401,32 +432,47 @@ export function openRound(id) {
   draft.cur = 0; showOnly("round"); renderRound();
 }
 function chips(name, options, value) { return `<div class="pills" data-k="${name}">${Object.entries(options).map(([k, v]) => `<button data-v="${k}" aria-pressed="${value === k}">${v}</button>`).join("")}</div>`; }
+const scoreClass = (sc, par) => { if (!sc) return ""; const d = sc - par; return d <= -2 ? "eagle" : d === -1 ? "birdie" : d === 1 ? "bogey" : d >= 2 ? "double" : ""; };
+function scorecard(H) {
+  const sum = (a, k) => a.reduce((t, h) => t + (h[k] || 0), 0), cols = [];
+  const front = H.slice(0, 9), back = H.slice(9);
+  const tot = (n, a) => ({ n, par: sum(a, "par"), score: sum(a, "score") || null, putts: sum(a, "putts") || null, tot: true });
+  front.forEach((h) => cols.push(h)); cols.push(tot("Out", front));
+  if (back.length) { back.forEach((h) => cols.push(h)); cols.push(tot("In", back)); cols.push(tot("Total", H)); }
+  return `<div class="card-scroll"><table class="score"><tr><th>Hole</th>${cols.map((c) => `<th class="c">${c.n}</th>`).join("")}</tr>
+    <tr><td class="lbl">Par</td>${cols.map((c) => `<td class="c${c.tot ? " n" : ""}">${c.par}</td>`).join("")}</tr>
+    <tr><td class="lbl">Score</td>${cols.map((c) => c.tot ? `<td class="n">${c.score ?? "–"}</td>` : `<td class="c"><span class="sc ${scoreClass(c.score, c.par)}">${c.score ?? "·"}</span></td>`).join("")}</tr>
+    <tr><td class="lbl">Putts</td>${cols.map((c) => `<td class="c${c.tot ? " n" : ""}">${c.putts ?? "·"}</td>`).join("")}</tr></table></div>
+    <div class="legend"><span><i></i>Birdie</span><span><i class="square" style="border-color:var(--text-2)"></i>Bogey</span><span><i class="square"></i>Double bogey or worse</span></div>`;
+}
 function renderRound() {
+  if (!editing) { S.roundDraft = draft; save(); }
   const el = $("#screen-round"), clubs = BAG.filter((c) => S.bag.includes(c.id) && c.group !== "putt"), H = draft.holes, i = draft.cur, h = H[i], last = i === H.length - 1;
   const tot = H.reduce((a, x) => a + (x.score || 0), 0), par = H.filter((x) => x.score).reduce((a, x) => a + x.par, 0), putts = H.reduce((a, x) => a + (x.putts || 0), 0), done = H.filter((x) => x.score).length;
   el.innerHTML = `
     <button class="linkbtn" id="rdBack">&lsaquo; Back</button>
     <header class="lt"><p class="greet">About 5 minutes, after the round</p><h1>${editing ? "Edit round" : "Log a round"}</h1></header>
     <section class="panel"><div style="display:grid;gap:12px">
-      <input class="in-text" id="rdCourse" placeholder="Course name" value="${esc(draft.course)}">
-      <input class="in-text" id="rdDate" type="date" value="${new Date(draft.date).toISOString().slice(0, 10)}">
-      <div class="pills" id="rdHoles"><button data-n="9" aria-pressed="${H.length === 9}">9 holes</button><button data-n="18" aria-pressed="${H.length === 18}">18 holes</button></div></div></section>
+      <label class="in" for="rdCourse">Course<input class="in-text" id="rdCourse" placeholder="For example Long Reef" value="${esc(draft.course)}" autocomplete="off"></label>
+      <label class="in" for="rdDate">Date<input class="in-text" id="rdDate" type="date" value="${new Date(draft.date).toISOString().slice(0, 10)}"></label>
+      <div class="seg" id="rdHoles" role="group" aria-label="Holes"><button data-n="9" aria-pressed="${H.length === 9}">9 holes</button><button data-n="18" aria-pressed="${H.length === 18}">18 holes</button></div></div></section>
     <section class="panel">
       <h2>Scorecard</h2><p class="muted small">${done ? `${tot} strokes, ${tot - par === 0 ? "level par" : (tot - par > 0 ? "+" : "") + (tot - par)} after ${plural(done, "hole")}. Tap a hole to change it.` : "Tap a hole to jump to it."}</p>
+      ${done ? scorecard(H) : ""}
       <div class="hstrip" id="rdStrip">${H.map((x, k) => `<button data-i="${k}" ${k === i ? 'aria-current="true"' : ""} aria-label="Hole ${x.n}">${x.n}<b>${x.score ?? "·"}</b></button>`).join("")}</div>
     </section>
     <section class="panel hole" id="rdHole">
       <div class="hd"><b>Hole ${h.n}</b>${chips("par", { 3: "Par 3", 4: "Par 4", 5: "Par 5" }, String(h.par))}</div>
-      <div class="hd"><span class="lbl">Strokes</span><span class="mini-step"><button data-step="score" data-d="-1" aria-label="One less">&minus;</button><output>${h.score ?? "·"}</output><button data-step="score" data-d="1" aria-label="One more">+</button></span></div>
+      <div class="big-step"><button data-step="score" data-d="-1" aria-label="One stroke less">&minus;</button><output aria-live="polite">${h.score ?? "–"}<small>${h.score ? `strokes, ${h.score - h.par === 0 ? "par" : (h.score - h.par > 0 ? "+" : "") + (h.score - h.par)}` : "tap + to start at par"}</small></output><button data-step="score" data-d="1" aria-label="One stroke more">+</button></div>
       <div class="hd"><span class="lbl">Putts</span>${chips("putts", { 0: "0", 1: "1", 2: "2", 3: "3", 4: "4+" }, h.putts == null ? null : String(h.putts))}</div>
       ${h.par >= 4 ? `<span class="lbl">Tee shot</span><select class="in-text" data-k="teeClub">${clubs.map((c) => `<option value="${c.id}" ${c.id === h.teeClub ? "selected" : ""}>${c.name}</option>`).join("")}</select>${chips("tee", TEE, h.tee)}` : ""}
       <span class="lbl">${h.par === 3 ? "Tee shot to the green" : "Shot into the green"}</span>${chips("approach", APPROACH, h.approach)}
       <div class="hd"><span class="lbl">Penalty strokes</span><span class="mini-step"><button data-step="pen" data-d="-1" aria-label="One less">&minus;</button><output>${h.pen || 0}</output><button data-step="pen" data-d="1" aria-label="One more">+</button></span></div>
       <div class="hnav">${i > 0 ? `<button class="btn quiet" id="rdPrev">&lsaquo; Hole ${i}</button>` : "<span></span>"}${last ? "" : `<button class="btn olive" id="rdNext">Hole ${i + 2} &rsaquo;</button>`}</div>
     </section>
-    <section class="panel"><p class="muted small">${putts ? `${putts} putts so far. ` : ""}The first tap on Strokes puts in par, then adjust.</p>
+    <section class="panel"><p class="muted small">${putts ? `${putts} putts so far. ` : ""}Everything you enter is kept while you log, even if you leave this screen.</p>
       <textarea class="in-text" id="rdNote" rows="3" placeholder="Anything else? You can dictate it with the keyboard microphone.">${esc(draft.note || "")}</textarea>
-      <button class="btn olive" id="rdSave">${editing ? "Save changes" : "Save round"}</button>${editing ? `<button class="btn line" id="rdDel">Delete this round</button>` : ""}</section>`;
+      <button class="btn" id="rdSave">${editing ? "Save changes" : "Save round"}</button>${editing ? `<button class="btn line" id="rdDel">Delete this round</button>` : done ? `<button class="linkbtn" id="rdDiscard" style="color:var(--error)">Discard this round</button>` : ""}</section>`;
   const keepY = (fn) => { const y = window.scrollY; fn(); window.scrollTo(0, y); };
   $("#rdBack").onclick = () => go(editing ? "history" : "today");
   $("#rdCourse").oninput = (e) => (draft.course = e.target.value);
@@ -447,6 +493,11 @@ function renderRound() {
     keepY(renderRound);
   };
   $("#rdHole").onchange = (e) => { if (e.target.dataset.k === "teeClub") h.teeClub = e.target.value; };
-  $("#rdSave").onclick = () => { const { cur, ...r } = draft, k = DB.rounds.findIndex((x) => x.id === r.id); if (k >= 0) DB.rounds[k] = r; else DB.rounds.push(r); DB.rounds.sort((a, b) => a.date - b.date); save(); go("progress"); };
-  $("#rdDel") && ($("#rdDel").onclick = () => { DB.rounds = DB.rounds.filter((r) => r.id !== draft.id); save(); go("history"); });
+  $("#rdSave").onclick = () => { const { cur, ...r } = draft, k = DB.rounds.findIndex((x) => x.id === r.id); if (k >= 0) DB.rounds[k] = r; else DB.rounds.push(r); DB.rounds.sort((a, b) => a.date - b.date); delete S.roundDraft; save(); go("progress"); toast("Round saved"); };
+  $("#rdDel") && ($("#rdDel").onclick = async () => {
+    if (!(await confirmDialog("Delete this round?", "Its scores leave your stats. You can undo for a few seconds.", "Delete round"))) return;
+    const gone = DB.rounds.find((r) => r.id === draft.id); DB.rounds = DB.rounds.filter((r) => r.id !== draft.id); save(); go("history");
+    toast("Round deleted", () => { DB.rounds.push(gone); DB.rounds.sort((a, b) => a.date - b.date); save(); go("history"); });
+  });
+  $("#rdDiscard") && ($("#rdDiscard").onclick = async () => { if (!(await confirmDialog("Discard this round?", "The holes you logged are removed.", "Discard"))) return; delete S.roundDraft; save(); go("today"); });
 }
