@@ -1,10 +1,10 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, clubById } from "./rules.js?v=10";
-import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH } from "./engine.js?v=10";
-import { badWeight, resultLabel } from "./voice.js?v=10";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=10";
-import { artFor, heroArt, sequenceArt, SEQ_LABELS } from "./art.js?v=10";
-import { T } from "./lines.js?v=10";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, clubById } from "./rules.js?v=11";
+import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH } from "./engine.js?v=11";
+import { badWeight, resultLabel } from "./voice.js?v=11";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=11";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS } from "./art.js?v=11";
+import { T } from "./lines.js?v=11";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

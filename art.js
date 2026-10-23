@@ -1,7 +1,7 @@
 // Pictures of the swing: the rendered 3D golfer (art/*.webp, sizes and guides in art-data.js).
 // Guides are drawn crisp on top in SVG. Pictures without a render (putting) fall back to the vector drawings.
-import { art } from "./illus.js?v=10";
-import { SEQ, HERO, FAULTS, FDIR, PLAY, PHOTO, PDIR } from "./art-data.js?v=10";
+import { art } from "./illus.js?v=11";
+import { SEQ, HERO, FAULTS, FDIR, PLAY, PHOTO, PDIR } from "./art-data.js?v=11";
 
 export const SEQ_LABELS = ["Setup", "Takeaway", "Club parallel", "Lead arm parallel", "Three quarter", "Top", "Transition", "Downswing", "Delivery",
   "Impact", "Release", "Follow through", "Club up", "High", "Wrap", "Finish", "Hold"];
