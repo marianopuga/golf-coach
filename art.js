@@ -1,7 +1,7 @@
 // Pictures of the swing: the rendered 3D golfer (art/*.webp, sizes and guides in art-data.js).
 // Guides are drawn crisp on top in SVG. Pictures without a render (putting) fall back to the vector drawings.
 import { art } from "./illus.js?v=10";
-import { SEQ, HERO, FAULTS, FDIR } from "./art-data.js?v=10";
+import { SEQ, HERO, FAULTS, FDIR, PLAY } from "./art-data.js?v=10";
 
 export const SEQ_LABELS = ["Setup", "Takeaway", "Club parallel", "Lead arm parallel", "Three quarter", "Top", "Transition", "Downswing", "Delivery",
   "Impact", "Release", "Follow through", "Club up", "High", "Wrap", "Finish", "Hold"];
@@ -39,5 +39,24 @@ export function artFor(id) {
   };
 }
 export const heroArt = () => HERO ? `<img src="${HERO[0]}" width="${HERO[1]}" height="${HERO[2]}" alt="" decoding="async" fetchpriority="high">` : "";
-export const sequenceArt = () => SEQ.length ? `<div class="seq" role="list" aria-label="The 17 positions of the swing">${SEQ.map(([f, w, h], i) =>
+// Swing playback at a real 3:1 tempo (slow back, quick down), from one sprite with a fixed frame
+const BEAT = [600, 150, 150, 150, 150, 220, 80, 60, 50, 80, 70, 90, 100, 110, 130, 320, 1000];
+const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+let playing = 0;
+if (typeof document !== "undefined") document.addEventListener("click", (e) => {
+  const b = e.target.closest?.("[data-swing-play]"); if (!b) return;
+  const box = b.closest(".swingplay"), sp = box.querySelector(".sp"), lab = box.querySelector(".sp-label"), n = PLAY[3], run = ++playing;
+  const show = (i) => { sp.style.backgroundPosition = `${(i / (n - 1)) * 100}% 0`; lab.textContent = `${i + 1} ${SEQ_LABELS[i]}`; };
+  if (reduced()) { const i = ((+sp.dataset.i || 0) + 1) % n; sp.dataset.i = i; show(i); return; }
+  b.disabled = true; let i = 0, t0 = performance.now(), due = BEAT[0]; show(0);
+  const tick = (t) => {
+    if (run !== playing || !sp.isConnected) return;
+    if (t - t0 >= due) { i++; if (i >= n) { b.disabled = false; return; } show(i); t0 = t; due = BEAT[i]; }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+});
+const playBlock = () => PLAY ? `<div class="swingplay"><div class="sp" role="img" aria-label="The swing, position by position" style="aspect-ratio:${PLAY[1]} / ${PLAY[2]};background-image:url(${PLAY[0]});background-size:${PLAY[3] * 100}% 100%"></div>
+  <p class="sp-label">1 Setup</p><button class="linkbtn" data-swing-play><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg><span>${reduced() ? "Next position" : "Play the swing"}</span></button></div>` : "";
+export const sequenceArt = () => SEQ.length ? playBlock() + `<div class="seq" role="list" aria-label="The 17 positions of the swing">${SEQ.map(([f, w, h], i) =>
   `<figure role="listitem"><img src="${f}" width="${w}" height="${h}" alt="${esc(SEQ_LABELS[i])}" loading="lazy" decoding="async"><figcaption><b>${i + 1}</b>${esc(SEQ_LABELS[i])}</figcaption></figure>`).join("")}</div>` : "";
