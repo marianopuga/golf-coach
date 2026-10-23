@@ -1,10 +1,10 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, clubById } from "./rules.js?v=9";
-import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH } from "./engine.js?v=9";
-import { badWeight, resultLabel } from "./voice.js?v=9";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=9";
-import { artFor, heroArt, sequenceArt, SEQ_LABELS } from "./art.js?v=9";
-import { T } from "./lines.js?v=9";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, clubById } from "./rules.js?v=10";
+import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH } from "./engine.js?v=10";
+import { badWeight, resultLabel } from "./voice.js?v=10";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=10";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS } from "./art.js?v=10";
+import { T } from "./lines.js?v=10";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -85,6 +85,7 @@ function renderToday() {
     <header class="lt hdr"><div><p class="greet">${fmtDate(Date.now(), { weekday: "long", day: "numeric", month: "long" })}</p><h1>Hello ${esc(name)}</h1></div><button class="avatar sm" id="toProfile" aria-label="Your profile">${esc(initials())}</button></header>
     ${S.roundDraft ? `<section class="panel"><div class="sect"><h2>Round in progress</h2><span class="meta">${esc(S.roundDraft.course || "Course")}</span></div><p class="muted small">${S.roundDraft.holes.filter((h) => h.score).length} of ${S.roundDraft.holes.length} holes logged.</p><button class="btn" id="contRound">Continue logging</button></section>` : ""}
     <section class="panel hero">
+      ${heroArt() ? `<div class="hero-art" aria-hidden="true">${heroArt()}</div>` : ""}
       <h2>${cal ? "Calibration first" : "Ready to practise"}</h2>
       <p class="muted">${cal ? "Your first full session is a calibration: no corrections, every club from both camera sides. It teaches the app how your swing and your words look." : esc(V.about)}</p>
       <div class="seg" id="venue" role="group" aria-label="Range">${["pw", "sf"].map((id) => `<button data-v="${id}" aria-pressed="${id === S.venue}">${id === "pw" ? "Pittwater" : "Swing Factory"}</button>`).join("")}</div>
@@ -92,7 +93,6 @@ function renderToday() {
       <div class="pills" id="chips" style="justify-content:center">${stepper.chips.map((n) => `<button aria-pressed="${n === stepper.v}">${n}</button>`).join("")}</div>
       <button class="btn" id="go">${cal ? "Start calibration" : "Start session"}</button>
       <button class="linkbtn" id="alt">${cal ? "Normal session instead" : "Free practice instead"}</button>
-      ${heroArt() ? `<div class="hero-art">${heroArt()}</div>` : ""}
     </section>
     <section class="panel" id="freeBox" hidden>
       <h3>Free practice</h3>
@@ -275,8 +275,8 @@ function renderLibrary() {
       <li>Say how the ball flew in your own words, and at Swing Factory the distance. Practice swings next to the ball are ignored on their own.</li>
       <li>Say "pause" when a friend hits and "resume" when you are back.</li>
       <li>At the end, tap End twice and open your report.</li></ol></div></details>
-    <details class="chap"><summary><h2>The full swing</h2><span class="muted small">17 positions</span></summary><div class="body">${sequenceArt()}
-      <ol class="seq-labels">${SEQ_LABELS.map((l) => `<li>${esc(l)}</li>`).join("")}</ol></div></details>
+    <details class="chap"><summary><h2>The full swing</h2><span class="muted small">17 positions</span></summary><div class="body">${sequenceArt() || `<ol class="seq-labels">${SEQ_LABELS.map((l) => `<li>${esc(l)}</li>`).join("")}</ol>`}
+      <p class="muted small">Swipe through the swing. Face on, a 7 iron.</p></div></details>
     <details class="chap"><summary><h2>Where to put the camera</h2></summary><div class="body">${campDiagram()}
       <p><b>In front</b>: facing your chest, across the ball. It checks stance, ball position, weight, turn, sway, balance and finish.</p>
       <p><b>Behind</b>: on the line from your hands to the target. It checks your posture from the hips, knees, distance to the ball and your arms.</p>

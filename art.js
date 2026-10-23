@@ -1,6 +1,6 @@
-// Pictures of the right and wrong positions. Uses the vector drawings until the 3D golfer renders are final
-// (then art-data.js and art/*.webp replace them; the functions below keep the same shape).
-import { art } from "./illus.js?v=9";
+// Pictures of the swing: rendered 3D golfer (art/*.webp, sizes in art-data.js). Fault pairs still use the vector drawings.
+import { art } from "./illus.js?v=10";
+import { SEQ, HERO } from "./art-data.js?v=10";
 
 export const SEQ_LABELS = ["Setup", "Takeaway", "Club parallel", "Lead arm parallel", "Three quarter", "Top", "Transition", "Downswing", "Delivery",
   "Impact", "Release", "Follow through", "Club up", "High", "Wrap", "Finish", "Hold"];
@@ -17,5 +17,6 @@ export function artFor(id) {
     },
   };
 }
-export const heroArt = () => "";
-export const sequenceArt = () => "";
+export const heroArt = () => HERO ? `<img src="${HERO[0]}" width="${HERO[1]}" height="${HERO[2]}" alt="" decoding="async" fetchpriority="high">` : "";
+export const sequenceArt = () => SEQ.length ? `<div class="seq" role="list" aria-label="The 17 positions of the swing">${SEQ.map(([f, w, h], i) =>
+  `<figure role="listitem"><img src="${f}" width="${w}" height="${h}" alt="${esc(SEQ_LABELS[i])}" loading="lazy" decoding="async"><figcaption><b>${i + 1}</b>${esc(SEQ_LABELS[i])}</figcaption></figure>`).join("")}</div>` : "";

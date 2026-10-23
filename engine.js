@@ -1,8 +1,8 @@
 // Pure logic: pose features, golfer lock, ball detection, swing detection, metrics, setup checks,
 // coaching, plans by venue, stats, rounds and reports. No DOM, so everything is tested in Node.
-import { RULES, RESULT_TIPS, BAD_RESULTS, GROUPS, BAG, CATS, RANGE_ORDER, SHORT_ORDER, VENUES, BALL_POS, clubById } from "./rules.js?v=9";
-import { badWeight, resultLabel } from "./voice.js?v=9";
-import { L, T } from "./lines.js?v=9";
+import { RULES, RESULT_TIPS, BAD_RESULTS, GROUPS, BAG, CATS, RANGE_ORDER, SHORT_ORDER, VENUES, BALL_POS, clubById } from "./rules.js?v=10";
+import { badWeight, resultLabel } from "./voice.js?v=10";
+import { L, T } from "./lines.js?v=10";
 
 const I = { nose: 0, lSh: 11, rSh: 12, lEl: 13, rEl: 14, lWr: 15, rWr: 16, lIdx: 19, rIdx: 20, lHip: 23, rHip: 24,
   lKn: 25, rKn: 26, lAn: 27, rAn: 28, lHe: 29, rHe: 30, lTo: 31, rTo: 32 };

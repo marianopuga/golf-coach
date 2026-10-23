@@ -96,7 +96,13 @@ svg.ic { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-wid
 .panel.hero .seg { background: rgb(255 255 255 / .1) } .panel.hero .seg button { color: rgb(242 246 242 / .8) } .panel.hero .seg button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary) }
 
 /* Hero */
-.hero-art { margin: 0 -20px -20px; } .hero-art img { width: 100%; height: auto; display: block }
+.hero-art { margin: -20px -20px 6px; padding: 18px 12px 0; background: radial-gradient(120% 70% at 50% 100%, rgb(207 228 73 / .16), transparent 70%); border-bottom: 1px solid rgb(255 255 255 / .06) }
+.hero-art img { width: 100%; height: auto; display: block; max-height: 260px; object-fit: contain }
+.seq { display: flex; gap: 2px; overflow-x: auto; scroll-snap-type: x proximity; margin: 0 -20px; padding: 6px 20px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch }
+.seq::-webkit-scrollbar { display: none }
+.seq figure { flex: none; margin: 0; scroll-snap-align: center; display: grid; justify-items: center; gap: 6px }
+.seq img { height: 230px; width: auto; display: block }
+.seq figcaption { font-size: 12px; color: var(--text-2); white-space: nowrap } .seq figcaption b { color: var(--primary); font-variant-numeric: tabular-nums; margin-right: 4px }
 .strip { display: none }
 .stepper { display: grid; grid-template-columns: 52px minmax(0, 1fr) 52px; align-items: center; gap: 8px }
 .stepper button { height: 52px; border-radius: var(--r-md); border: 1px solid rgb(242 246 242 / .3); background: transparent; font-size: 26px; line-height: 1; color: inherit }
@@ -177,7 +183,6 @@ details.chap .body { display: grid; gap: 18px; padding-bottom: 20px }
 ol.steps { margin: 0; padding-left: 1.2rem; display: grid; gap: 8px; font-size: 15px }
 dl.words { display: grid; grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr); gap: 10px 14px; margin: 0; font-size: 14px } dl.words dt { font-weight: 600 } dl.words dd { margin: 0; color: var(--text-2) }
 .diagram { width: 100%; max-width: 420px; justify-self: center } .diagram text { font: 600 12px var(--font); fill: var(--text-2) }
-.seq { width: 100%; height: auto; border-radius: var(--r-md); background: #fff }
 ol.seq-labels { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 12px; margin: 0; padding-left: 1.2rem; font-size: 13px; color: var(--text-2) }
 
 /* Forms */
@@ -236,7 +241,7 @@ dialog#confirm .acts2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
 .verdict.good .word { color: #6CC891 } .verdict.bad .word { color: #F08A84 }
 .verdict .what { font-size: 17px; font-weight: 600; line-height: 1.2 }
 .verdict .cue { color: #C3CEC7; font-size: 15px; line-height: 1.4 } .verdict .tempo { color: #E2A853; font-size: 13px; font-weight: 600 }
-.verdict .vpic { grid-column: 3; grid-row: 1 / span 3; width: 74px } .verdict .vpic figure { margin: 0 } .verdict .vpic img { width: 74px; height: auto; border-radius: 10px; background: #fff } .verdict .vpic svg { width: 74px; height: auto }
+.verdict .vpic { grid-column: 3; grid-row: 1 / span 3; width: 74px } .verdict .vpic figure { margin: 0 } .verdict .vpic img { width: 74px; height: auto; border-radius: 10px; background: var(--soft) } .verdict .vpic svg { width: 74px; height: auto }
 .thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px }
 .thumbs figure { margin: 0; display: grid; gap: 3px } .thumbs canvas { width: 100%; border-radius: 10px; background: #000; aspect-ratio: 3 / 4 }
 .thumbs figcaption { font-size: 11px; font-weight: 600; color: #8E9A93; text-align: center }
@@ -317,6 +322,6 @@ dialog#confirm .acts2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
   </div>
 </section>
 
-<script type="module" src="app.js?v=9"></script>
+<script type="module" src="app.js?v=10"></script>
 </body>
 </html>
