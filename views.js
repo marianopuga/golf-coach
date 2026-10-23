@@ -251,7 +251,7 @@ function campDiagram() {
 function tipHtml(r) {
   const v = VIDEOS[r.src], a = artFor(r.id);
   const tags = r.auto ? `<span class="tag">${r.kind === "setup" ? "before the shot" : "after the shot"}, ${r.view === "dtl" ? "camera behind" : r.view === "face" ? "camera in front" : "any camera"}</span>${r.conf === "low" ? '<span class="tag weak">weak measurement</span>' : ""}` : "";
-  const pics = a ? `<div class="cmp ${a.bad ? "" : "one"}" data-tip="${r.id}">${a.figure("good")}${a.bad ? a.figure("bad") : ""}</div>` : "";
+  const pics = !a ? "" : a.block ? a.block() : `<div class="cmp ${a.bad ? "" : "one"}" data-tip="${r.id}">${a.figure("good")}${a.bad ? a.figure("bad") : ""}</div>`;
   return `<div class="tip"><h3>${esc(r.title)}${tags}</h3>${pics}<p>${esc(r.rule)}</p><small>${v.url ? `<a href="${v.url}" target="_blank" rel="noopener">${v.who}: ${esc(v.title)}</a>` : esc(v.title)}</small><div class="you" data-you="${r.id}"></div></div>`;
 }
 async function loadYou(root) {

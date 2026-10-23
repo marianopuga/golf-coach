@@ -100,6 +100,20 @@ svg.ic { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-wid
 .hero-art img { width: 100%; height: auto; display: block; max-height: 260px; object-fit: contain }
 .seq { display: flex; gap: 2px; overflow-x: auto; scroll-snap-type: x proximity; margin: 0 -20px; padding: 6px 20px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch }
 .seq::-webkit-scrollbar { display: none }
+.pdemo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 10px }
+@media (min-width: 760px) { .pdemo[data-n="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)) } .pdemo[data-n="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)) } }
+.pframe { margin: 0; display: grid; gap: 7px; align-content: start }
+.pimg { position: relative; border-radius: var(--r-md); overflow: hidden; background: var(--deep) }
+.pimg img { display: block; width: 100%; height: auto }
+.pimg svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none }
+.pg-line { stroke: rgb(255 255 255 / .92); fill: none; filter: drop-shadow(0 0 3px rgb(255 255 255 / .6)) }
+.pg-dot { fill: #fff; filter: drop-shadow(0 0 4px rgb(255 255 255 / .8)) }
+.pg-track { stroke: rgb(255 255 255 / .5); stroke-linecap: round }
+.pg-knob { fill: var(--primary); stroke: rgb(20 24 22 / .55); stroke-width: 1.5; filter: drop-shadow(0 0 6px rgb(207 228 73 / .85)) }
+.pg-t { fill: #fff; font-family: var(--font); font-weight: 700; paint-order: stroke; stroke: rgb(20 24 22 / .6); stroke-width: 2.5 }
+.pframe figcaption { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3 } .pframe figcaption b { color: var(--primary); margin-right: 3px; font-variant-numeric: tabular-nums }
+.pframe figcaption span { display: block; font-weight: 400; font-size: 13px; color: var(--text-2) }
+.verdict .vpic .pframe .pimg { border-radius: 10px } .verdict .vpic .pimg img { width: 74px; border-radius: 0; background: none }
 .swingplay { display: grid; justify-items: center; gap: 4px } .swingplay .sp { width: 100%; max-width: 330px; background-repeat: no-repeat; background-position: 0 0 }
 .swingplay .sp-label { margin: 0; font: 600 14px var(--font); color: var(--text-2); font-variant-numeric: tabular-nums }
 .swingplay [data-swing-play] { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--primary); font-weight: 600 } .swingplay [data-swing-play]:disabled { opacity: .45 }

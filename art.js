@@ -1,7 +1,7 @@
 // Pictures of the swing: the rendered 3D golfer (art/*.webp, sizes and guides in art-data.js).
 // Guides are drawn crisp on top in SVG. Pictures without a render (putting) fall back to the vector drawings.
 import { art } from "./illus.js?v=10";
-import { SEQ, HERO, FAULTS, FDIR, PLAY } from "./art-data.js?v=10";
+import { SEQ, HERO, FAULTS, FDIR, PLAY, PHOTO, PDIR } from "./art-data.js?v=10";
 
 export const SEQ_LABELS = ["Setup", "Takeaway", "Club parallel", "Lead arm parallel", "Three quarter", "Top", "Transition", "Downswing", "Delivery",
   "Impact", "Release", "Follow through", "Club up", "High", "Wrap", "Finish", "Hold"];
@@ -25,7 +25,32 @@ function guides(list, w, h) {
 }
 const pic = (id, kind, f, label) => `<div class="pic3d" style="max-width:${Math.round(230 * f.w / f.h)}px"><img src="${FDIR}${id}-${kind}.webp" width="${f.w}" height="${f.h}" alt="${esc(label)}" loading="lazy" decoding="async"><svg viewBox="0 0 ${f.w} ${f.h}" aria-hidden="true">${guides(f[kind] || [], f.w, f.h)}</svg></div>`;
 
+// Photo demonstrations: the photo, then translucent guides drawn on top (dashed line from a body point, weight bar between the feet)
+function photoGuides(list, w) {
+  const s = w / 300;
+  return list.map((g) => {
+    if (g[0] === "vline") return `<line x1="${g[1][0]}" y1="${g[1][1]}" x2="${g[2][0]}" y2="${g[2][1]}" class="pg-line" stroke-width="${(2.6 * s).toFixed(1)}" stroke-dasharray="${(8 * s).toFixed(1)} ${(6 * s).toFixed(1)}"/><circle cx="${g[1][0]}" cy="${g[1][1]}" r="${(4.5 * s).toFixed(1)}" class="pg-dot"/>`;
+    if (g[0] === "weight") {
+      const [a, b, pct] = [g[1], g[2], g[3]], x = a[0] + (b[0] - a[0]) * pct / 100, y = a[1], fs = (15 * s).toFixed(1);
+      return `<line x1="${a[0]}" y1="${y}" x2="${b[0]}" y2="${y}" class="pg-track" stroke-width="${(5 * s).toFixed(1)}"/>`
+        + `<text x="${a[0] - 11 * s}" y="${y + 5.2 * s}" class="pg-t" font-size="${fs}" text-anchor="end">R</text><text x="${b[0] + 11 * s}" y="${y + 5.2 * s}" class="pg-t" font-size="${fs}">L</text>`
+        + `<circle cx="${x}" cy="${y}" r="${(9 * s).toFixed(1)}" class="pg-knob"/>`;
+    }
+    return "";
+  }).join("");
+}
+const photoFrame = (f, i, caption) => `<figure class="pframe"><div class="pimg"><img src="${PDIR}${f.f}" width="${f.w}" height="${f.h}" alt="${esc(f.label + ": " + f.sub)}" loading="lazy" decoding="async"><svg viewBox="0 0 ${f.w} ${f.h}" aria-hidden="true">${photoGuides(f.g, f.w)}</svg></div>${caption ? `<figcaption><b>${i + 1}</b> ${esc(f.label)}<span>${esc(f.sub)}</span></figcaption>` : ""}</figure>`;
+function photoArt(id) {
+  const p = PHOTO[id]; if (!p) return null; const live = p.frames[p.live ?? 0];
+  return {
+    bad: false, cap: [live.sub, ""],
+    figure(kind = "good", compact = false) { return kind === "good" ? photoFrame(live, p.live ?? 0, !compact) : ""; },
+    block() { return `<div class="pdemo" data-n="${p.frames.length}" role="list">${p.frames.map((f, i) => photoFrame(f, i, true)).join("")}</div>`; },
+  };
+}
+
 export function artFor(id) {
+  const ph = photoArt(id); if (ph) return ph;
   const a = art(id), f = FAULTS[id]; if (!a && !f) return null;
   const goodCap = a?.goodCap || "", badCap = a?.badCap || "", hasBad = f ? !!f.b : !!a?.bad;
   return {
