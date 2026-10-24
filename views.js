@@ -1,11 +1,11 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, SWING_LEN, LEN_ORDER, goalLabel, clubById } from "./rules.js?v=21";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, SWING_LEN, LEN_ORDER, goalLabel, clubById } from "./rules.js?v=22";
 import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH,
-  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=21";
-import { badWeight, resultLabel } from "./voice.js?v=21";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=21";
-import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml, lengthsArt } from "./art.js?v=21";
-import { T } from "./lines.js?v=21";
+  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=22";
+import { badWeight, resultLabel } from "./voice.js?v=22";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=22";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml, lengthsArt } from "./art.js?v=22";
+import { T } from "./lines.js?v=22";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

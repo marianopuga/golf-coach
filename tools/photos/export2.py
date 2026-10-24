@@ -191,8 +191,7 @@ TIPS = {
  "putt-setup": ("variants", 0, [F("I01", "From the front", "Ball toward the left foot", g=centre_g("I01", 26)), F("I05", "From behind", "Eyes over the ball", g=eyes_g("I05"), box=DTL, tag="d")]),
  "putt-stroke": ("sequence", 0, [F(i, l, s, g=[["path", [P(i, "RS"), P(i, "hands"), P(i, "LS"), P(i, "RS")], "w"], tag(P(i, "hands"), "Triangle", "w", dy=40)]) for i, l, s in
                                  (("I01", "Address", "Shoulders and arms make a triangle"), ("I02", "Back", "The shoulders rock, hands quiet"), ("I03", "Through", "As long as the back, head still"))]),
- "grip-left": ("sequence", 0, [F("J01", "Under the heel pad", "Across the fingers, from the index finger to under the heel pad", box=CU["J01"], tag="c"),
-                               F("J02", "Wrap the fingers", "Thumb on top, two or three knuckles showing", box=CU["J02"], tag="c")]),
+ "grip-left": ("single", 0, [F("J02", "Wrap the fingers", "Thumb on top, two or three knuckles showing", box=CU["J02"], tag="c")]),   # J01 out: six fingers
  "grip-right": ("sequence", 1, [F("J03", "Right hand on", "In the fingers, wrist straight", box=CU["J03"], tag="c"),
                                 F("J04", "Grip complete", "Left thumb inside the right palm", box=CU["J04"], tag="c")]),
  "grip-style": ("single", 0, [F("J04v", "Little finger on top", "Right little finger over the gap between the left index and middle fingers", box=CU["J04v"], tag="c",
