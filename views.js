@@ -1,11 +1,11 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, SWING_LEN, goalLabel, clubById } from "./rules.js?v=18";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, SWING_LEN, goalLabel, clubById } from "./rules.js?v=19";
 import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH,
-  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=18";
-import { badWeight, resultLabel } from "./voice.js?v=18";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=18";
-import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml } from "./art.js?v=18";
-import { T } from "./lines.js?v=18";
+  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=19";
+import { badWeight, resultLabel } from "./voice.js?v=19";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=19";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml } from "./art.js?v=19";
+import { T } from "./lines.js?v=19";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -372,7 +372,7 @@ function renderProfile() {
     <section class="panel"><h2>Your data</h2><p class="muted small">Everything is saved only on this phone. Export a backup to Files from time to time.</p>
       ${tuneSummary(DB.coach).length ? `<p class="small">Adapted to you after your corrections: ${tuneSummary(DB.coach).map((t) => esc(t.title.toLowerCase())).join(", ")}.</p><button class="btn line" id="pTune">Undo the adjustments</button>` : ""}
       <button class="btn line" id="pBackup">Export a backup</button><button class="btn line" id="pReset">Restart the focus</button><button class="btn line" id="pClear" style="color:var(--error)">Delete all history</button></section>
-    <p class="muted small">Scratch Golfer Dreams, version 13. Voice: Kokoro, Apache 2.0.</p>`;
+    <p class="muted small">Scratch Golfer Dreams, version 14. Voice: Kokoro, Apache 2.0.</p>`;
   const bind = (id, fn) => ($("#" + id).onchange = (e) => { fn(e.target); save(); });
   bind("pName", (t) => (P.name = t.value.trim() || "Mariano")); bind("pHeight", (t) => (P.height = Number(t.value) || 185)); bind("pLevel", (t) => (P.level = t.value));
   bind("pReason", (t) => (S.reason = t.checked)); bind("pPre", (t) => (S.preshot = t.checked)); bind("pAuto", (t) => (S.autoPractice = t.checked)); bind("pGhost", (t) => (S.ghost = t.checked)); bind("pAsk", (t) => (S.ask = t.checked));

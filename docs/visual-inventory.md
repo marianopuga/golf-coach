@@ -20,7 +20,7 @@ Estados: cumple, parcial (falta la foto del error), pendiente (solo texto).
 | handsahead | Manos adelante | Línea del palo y vertical | A01, C03 | cumple |
 | forearms | Brazo derecho bajo el izquierdo | Líneas de antebrazos | B01, B07 | cumple |
 | heels | Peso en la parte delantera | Barra talón punta | B01, B08 | cumple |
-| eyesover | Ojos sobre la pelota | Plomada desde los ojos | I05, I06 | cumple |
+| eyesover | Ojos sobre la pelota | Plomada desde los ojos: correcta y demasiado inclinado | I05, I07 | cumple |
 | arms | El cuerpo gira, los brazos siguen | Sin guías | A06, C04 | cumple |
 | tempo | Subida 3, bajada 1 | Reproductor de 6 posiciones con barra 3:1 | A01, A02, A04, A06, A08, A10 | cumple |
 | sway | Girar sin deslizarse | Línea en el pie derecho | A06, C05 | cumple |
@@ -38,7 +38,7 @@ Estados: cumple, parcial (falta la foto del error), pendiente (solo texto).
 | grip-style | Vardon | Primer plano con el meñique derecho marcado | J04v | cumple |
 | grip-check | Cara cuadrada con los brazos estirados | Correcto e incorrecto, línea de la cara y vertical | K01, K02 | cumple |
 | grip-palm | Dedos, no palma | Correcto e incorrecto | L01, L02 | cumple |
-| aim | Pies y hombros paralelos | Correcto e incorrecto | G01, G02 | cumple (G02 muestra los pies abiertos, no cerrados) |
+| aim | Pies y hombros paralelos | Correcto y apuntando a la derecha, con la línea de los pies | G01, G02 | cumple (G02 muestra los pies a la derecha; los hombros se ven casi iguales) |
 | setup-steps | Postura en pasos | Secuencia de 4 | F01, F02, F03, B01 | cumple |
 | driver-up | Pegar subiendo | Flecha de la trayectoria | D02 | cumple |
 | speed | Velocidad después de la pelota | Driver después del impacto, brazos extendidos, tee sin pelota | D04 | cumple |
@@ -49,7 +49,13 @@ Estados: cumple, parcial (falta la foto del error), pendiente (solo texto).
 | putt-stroke | Golpe con los hombros | Secuencia con el triángulo | I01, I02, I03 | cumple |
 | bunker | Salida de bunker | Postura y golpe | N01, N02 | cumple |
 
-Resumen: 41 cumple. Faltan las fotos del error en aim (G02) y en eyes over the ball (I07); putt-grip sigue en texto (J05).
+Resumen: 41 cumple. Putt-grip sigue en texto: ChatGPT falló cuatro veces con J05.
+
+## Reintento del 25 oct
+
+- G02 aprobada: la misma escena que G01, con el pie derecho atrás y los pies apuntando a la derecha de la bandera. Línea de los pies en coral.
+- I07 aprobada: la línea desde los ojos cae unos 4 diámetros de pelota más allá de la pelota. El examen de fotos la marca como error con los dos modelos.
+- J05 rechazada otra vez: la mano izquierda no toma el grip.
 
 ## Lote del 25 oct
 

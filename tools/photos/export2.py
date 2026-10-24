@@ -15,7 +15,7 @@ NAMES = {"nose": 0, "LS": 11, "RS": 12, "LE": 13, "RE": 14, "LW": 15, "RW": 16, 
 MAN = {"A01": {"club": (494, 1169), "hands": (548, 748), "ball": (536, 1170)}, "C03": {"club": (511, 1175), "hands": (410, 745), "ball": (546, 1175)},
        "A10": {"club": (514, 1172), "hands": (582, 752), "ball": (544, 1172)}, "C09": {"club": (516, 1158), "hands": (406, 719), "ball": (560, 1169)},
        "D01": {"ball": (693, 1182)}, "D02": {"club": (605, 1175), "hands": (646, 737), "ball": (649, 1169)}, "D03": {"club": (664, 1166), "ball": (716, 1159)}, "K01": {"hosel": (780, 420), "toe": (788, 343)}, "K02": {"hosel": (795, 425), "toe": (868, 348)},
-       "H07": {"club": (835, 372), "hands": (599, 685)}, "I05": {"ball": (532, 1161)}, "I06": {"ball": (590, 1166)}, "I01": {"ball": (548, 1176)},
+       "H07": {"club": (835, 372), "hands": (599, 685)}, "I05": {"ball": (532, 1161)}, "I07": {"eye": (632, 620), "ball": (532, 1162)}, "I06": {"ball": (590, 1166)}, "I01": {"ball": (548, 1176)},
        "E01": {"ball": (535, 1172)}}
 # scale into the shared frame of their series (mid ankles to mid ankles): A01x into the A set, the chip shots into the H set
 NORM = {"A01x": (0.8, (498, 1127), (512, 1047)), "H03": (1.136, (498, 1045), (500, 1068)), "H07": (1.058, (392, 1078), (500, 1066))}
@@ -120,7 +120,8 @@ def spine_g(i, t="w"): return [spine(i, TB(t)), tag(mid(P(i, "hmid"), P(i, "smid
 def leg_g(i, t="w"): return [leg(i, tone=TB(t)), tag(P(i, "RK"), "Knee", TB(t), "l", 18)]
 def eyes_g(i, t="w"):
     e, b = P(i, "eye"), P(i, "ball")
-    return [down(i, "eye", TB(t), to=b[1] - 26), ring(i, r=26, tone=TB(t)), tag((e[0], (e[1] + b[1]) / 2), "Eye line", TB(t), "l", 14)]
+    side = ("r", -14) if e[0] > 560 else ("l", 14)   # keep the label inside the frame
+    return [down(i, "eye", TB(t), to=b[1] - 26), ring(i, r=26, tone=TB(t)), tag((e[0], (e[1] + b[1]) / 2), "Eye line", TB(t), *side)]
 def foot_line(i, side, top, t="w", dx=6, text=None):
     return [up_from_foot(i, side, top, TB(t), dx=dx), tag((P(i, side)[0] + dx, top - 22), text or ("Left foot" if side == "LA" else "Right foot"), TB(t))]
 def turn_line(i, t="w"):
@@ -153,8 +154,11 @@ TIPS = {
                                  F("F03", "Lean from the hips", "Back straight", g=spine_g("F03"), box=DTL, tag="d"),
                                  F("B01", "Unlock the knees", "Weight on the balls of the feet", g=leg_g("B01"), box=DTL, tag="d"),
                                  F("A01x", "Take the grip", "Left shoulder higher, spine behind the ball", g=shoulders("A01x") + [tag((P("A01x", "RS")[0] - (P("A01x", "LS")[0] - P("A01x", "RS")[0]) * .3, P("A01x", "RS")[1]), "Level", "w", "l", 4, -26)], tag="fx")]),
- "aim": ("single", 0, [F("G01", "Square to the target", "Feet and shoulders parallel to the target line", g=[tag((392, 1300), "Feet line"), tag((818, 1300), "Target line")], box=AIMD, tag="aim")]),
- "eyesover": ("single", 0, [F("I05", "Eyes over the ball", "Lean from the hips, not too far over", g=eyes_g("I05"), box=DTL, tag="d")]),
+ "aim": ("pair", 0, [F("G01", "Square to the target", "Feet and shoulders parallel to the target line", "g", [tag((392, 1300), "Feet line"), tag((905, 1300), "Target line", "w", "r")], AIMD, "aim"),
+                     F("G02", "Aimed right", "Right foot pulled back, the feet point right of the flag", "b",
+                       [["line", (230, 1209), (900, 959), "b", 1], tag((900, 959), "Feet line", "b", "r", 0, -26), tag((905, 1268), "Target line", "w", "r")], AIMD, "aim")]),
+ "eyesover": ("pair", 0, [F("I05", "Eyes over the ball", "Lean from the hips", "g", eyes_g("I05"), DTL, "d"),
+                          F("I07", "Too far over", "Eyes past the ball, back almost flat", "b", eyes_g("I07", "b"), DTL, "d")]),
  "arms": ("pair", 0, [F(A06, "Body turned", "Shoulders turn, the arms follow", "g", turn_line(A06)), F("C04", "Arms only", "Chest still facing the ball", "b", turn_line("C04", "b"))]),
  "sway": ("sequence", 1, [F(i, l, s, g=foot_line(i, "RA", P(i, "RS")[1] - 30, dx=-26)) for i, l, s in
                           ((A01, "Setup", "A line up from your right foot"), (A06, "Top", "Hips turned, still inside the line"))]),

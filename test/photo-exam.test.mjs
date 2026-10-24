@@ -73,6 +73,7 @@ const CASES = [
   ["heels", false, "B08 on the heels", () => setup("B08", "dtl", "heels"), "the photo looks almost like B01; weight on the heels is only guessed"],
   ["eyesover", true, "I05 eyes over the ball", () => setup("I05", "dtl", "eyesover", { club: "PT", group: "putt" })],
   ["eyesover", false, "I06 too upright", () => setup("I06", "dtl", "eyesover", { club: "PT", group: "putt" })],
+  ["eyesover", false, "I07 bent too far over", () => setup("I07", "dtl", "eyesover", { club: "PT", group: "putt" })],
   ["arms", true, "A01 to A06 body turn", () => swing("arms", "face", { addr: "A01", top: "A06", imp: "A10", fin: "A16" })],
   ["arms", false, "A01 to C04 arms only", () => swing("arms", "face", { addr: "A01", top: "C04", imp: "A10", fin: "A16" })],
   ["sway", true, "A01 to A06 hips turn", () => swing("sway", "face", { addr: "A01", top: "A06", imp: "A10", fin: "A16" })],
