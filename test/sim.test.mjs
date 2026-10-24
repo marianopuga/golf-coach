@@ -2,7 +2,8 @@
 import { features, SwingDetector, analyze, runChecks, setupCheck, setupMetrics, averageFeatures, coach, emptyCoachState, reportText, frameHint,
   pickGolfer, buildPlan, calibrationPlan, dispute, skipFocus, ballRoi, detectBall, ballHit, stockDistances, roundStats, weeklySummary, calibSummary, coachNotes } from "../engine.js";
 import { parseUtterance } from "../voice.js";
-import { GOALS, goalLabel } from "../rules.js";
+import { GOALS, SWING_LEN, goalLabel } from "../rules.js";
+import { PHOTO } from "../art-data.js";
 import { T, blockCall, catalog, sentences, keyOf } from "../lines.js";
 
 const W = 640, H = 480;
@@ -162,6 +163,8 @@ const said = blockCall(plan.blocks[1], 1, plan.blocks.length, { first: false, cl
 expect("the coach says the goal", said.includes("Three quarter swings at 70 percent."));
 const cat = catalog();
 expect("every goal sentence is recorded", Object.values(GOALS).every((g) => sentences(T.goal(g)).every((x) => cat.has(keyOf(x)))));
+
+expect("every swing length has its photo", Object.keys(SWING_LEN).every((k) => PHOTO.lengths?.frames.some((f) => f.k === k)));
 
 // --- Voice, distances, rounds, weekly
 expect("voice: your words", parseUtterance("big slice")?.sev === 3 && parseUtterance("muy a la izquierda")?.result === "hook" && parseUtterance("one forty")?.distance === 140);

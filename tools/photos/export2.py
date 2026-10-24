@@ -205,6 +205,9 @@ TIPS = {
  "strike": ("pair", 0, [F(i, l, s, t, [["ring", c, r, TB(t)], tag((320, 885), "Toe", "w"), tag((1180, 870), "Heel", "w")], CU["M"], "c") for i, l, s, t, c, r in
                         (("M04", "Centre", "Longest and straightest", "g", (727, 580), 116), ("M05", "Toe", "Shorter, tends to hook", "b", (455, 525), 108),
                          ("M06", "Heel", "Shorter, tends to slice", "b", (1141, 530), 92))]),
+ # Swing lengths for the plan goals (not a Library tip): the top of each swing, a ring on the hands
+ "lengths": ("sequence", 0, [dict(F(i, k, "", box=b, tag=t, g=[ring(i, "hands", r, "w")]), k=k) for k, i, b, t, r in
+                             (("half", "A03", SEQC, "s", 46), ("tq", "A05", SEQC, "s", 46), ("full", "A06", SEQC, "s", 46), ("chip", "H03", CHIP, "chip", 40), ("putt", "I02", FACE, "f", 40))]),
  "bunker": ("sequence", 1, [F("N01", "Open setup", "Aim left, face open, ball forward", box=DTL, tag="d"), F("N02", "Splash the sand", "Enter 5 to 8 cm behind the ball", box=FACE, tag="f")]),
 }
 # The full swing ends at A15 until A16 and A17 are redone (their hands are reversed on the grip)
@@ -226,8 +229,8 @@ os.makedirs(OUT, exist_ok=True); photo = {}; prev = []
 for tid, (typ, live, panels) in TIPS.items():
     frames = []
     for p in panels:
-        name, w, h, mp, im = crop(p["img"], p["box"], 600, p["tag"]); gs = [tr(mp, g) for g in p["g"]]
-        frames.append({"f": name, "w": w, "h": h, "label": p["label"], "sub": p["sub"], "tone": p["tone"], "g": gs})
+        name, w, h, mp, im = crop(p["img"], p["box"], 540 if p["tag"] == "s" else 600, p["tag"]); gs = [tr(mp, g) for g in p["g"]]   # "s" files are the swing sequence's
+        frames.append({"f": name, "w": w, "h": h, "label": p["label"], "sub": p["sub"], "tone": p["tone"], "g": gs, **({"k": p["k"]} if p.get("k") else {})})
         if PREV:
             pv = im.copy(); d = ImageDraw.Draw(pv); C = {"w": (255, 255, 255), "b": (255, 130, 120), "n": (200, 200, 200), "g": (207, 228, 73)}
             for g in gs:

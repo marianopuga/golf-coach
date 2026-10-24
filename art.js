@@ -1,6 +1,6 @@
 // Pictures of the swing: photos of one golfer (art/p3, generated from our shot list, checked by hand) with translucent guides on top.
 // Sizes, captions and guide positions in pixels come from art-data.js. Tips without an approved photo show text only.
-import { PHOTO, PDIR, SWING, TEMPO, HERO } from "./art-data.js?v=19";
+import { PHOTO, PDIR, SWING, TEMPO, HERO } from "./art-data.js?v=20";
 
 // The names of the full swing positions come with the photos (the sequence can be shorter while a photo is being redone)
 export const SEQ_LABELS = SWING.length ? SWING.map((x) => x[3]) : ["Setup", "Takeaway", "Club parallel", "Lead arm parallel", "Three quarter", "Top", "Transition", "Downswing", "Delivery",
@@ -131,6 +131,13 @@ export function artFor(id) {
   if (id === "tempo" && TEMPO.length) return tempoArt();
   return photoArt(id);
 }
+// Swing lengths for the plan goals: the top of each swing, with a ring on the hands.
+const lenFrame = (k) => PHOTO.lengths?.frames.find((f) => f.k === k);
+export function lengthsArt(items) {   // items: [{ k, label, sub }], in the order to show
+  const fr = items.map((it) => { const f = lenFrame(it.k); return f && { ...f, label: it.label, sub: it.sub }; }).filter(Boolean);
+  return fr.length ? `<div class="pdemo lens" data-n="${fr.length}" role="list">${fr.map((f, i) => photoFrame(f, i, false)).join("")}</div>` : "";
+}
+export const lengthThumb = (k) => { const f = lenFrame(k); return f ? photoFrame({ ...f, label: k, sub: "" }, 0, false, false) : ""; };
 export const heroArt = () => HERO ? `<img src="${PDIR}${HERO[0]}" width="${HERO[1]}" height="${HERO[2]}" alt="" decoding="async" fetchpriority="high">` : "";
 
 // ---------------- Your own swing, with the Library's guides ----------------

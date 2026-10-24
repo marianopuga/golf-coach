@@ -1,11 +1,11 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, SWING_LEN, goalLabel, clubById } from "./rules.js?v=19";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, SWING_LEN, LEN_ORDER, goalLabel, clubById } from "./rules.js?v=20";
 import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH,
-  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=19";
-import { badWeight, resultLabel } from "./voice.js?v=19";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=19";
-import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml } from "./art.js?v=19";
-import { T } from "./lines.js?v=19";
+  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=20";
+import { badWeight, resultLabel } from "./voice.js?v=20";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=20";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml, lengthsArt } from "./art.js?v=20";
+import { T } from "./lines.js?v=20";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -76,6 +76,7 @@ function planTable(plan) {
 function renderToday() {
   const el = $("#tab-today"), V = venue(), cal = !calibDone();
   const plan = cal ? calibrationPlan(planOpts()) : buildPlan(planOpts());
+  const lens = LEN_ORDER.filter((k) => plan.blocks.some((b) => b.goal?.swing === k));
   const F = DB.coach.focus, fr = F && ruleById(F.id), l5 = F ? F.hist.slice(-5) : [];
   const wk = weeklySummary(DB.sessions), wc = wk.cur, wp = wk.prev;
   const trend = wc.bad != null && wp.bad != null ? (wc.bad < wp.bad ? `down from ${Math.round(wp.bad * 100)}%` : wc.bad > wp.bad ? `up from ${Math.round(wp.bad * 100)}%` : "same as last week") : "";
@@ -122,10 +123,10 @@ function renderToday() {
       <div class="sect"><h2>${cal ? "Calibration plan" : "Your plan"}</h2><span class="muted small nw">${plan.blocks.length} blocks</span></div>
       ${cal ? `<p class="muted small">Full swings at about 80%, the swing you would use on the course, and no corrections. After each ball say how it flew${V.tracer ? " and the distance on the screen" : ""}. The camera moves once per club.</p>` : ""}
       ${planTable(plan)}
+      ${lens.length ? `<h3 class="lens-h">How long to swing</h3>${lengthsArt(lens.map((k) => ({ k, label: SWING_LEN[k].name, sub: SWING_LEN[k].how })))}` : ""}
       ${plan.adapted || cal ? "" : `<p class="muted small">Standard split for now. After a few sessions, the club you hit worst gets more balls, goes first and comes back at the end as a retest.</p>`}
       <details class="why"><summary>What the goals mean</summary>
         <p><b>Effort</b> is how hard you swing compared with your hardest. At 80% you can still hold your finish, balanced, for 3 seconds. That is the swing you take to the course: it hits the middle of the face more often and loses less distance than it feels.</p>
-        <ul class="glist">${["full", "tq", "half", "chip", "putt"].map((k) => `<li><b>${SWING_LEN[k].name}</b> ${esc(SWING_LEN[k].how)}</li>`).join("")}</ul>
         <p>Your weakest club starts with three quarter swings at 70%, slower so you can feel the fix, and comes back at 80% at the end to see if it holds.</p>
       </details>
       <details class="why"><summary>Why this order</summary>
@@ -372,7 +373,7 @@ function renderProfile() {
     <section class="panel"><h2>Your data</h2><p class="muted small">Everything is saved only on this phone. Export a backup to Files from time to time.</p>
       ${tuneSummary(DB.coach).length ? `<p class="small">Adapted to you after your corrections: ${tuneSummary(DB.coach).map((t) => esc(t.title.toLowerCase())).join(", ")}.</p><button class="btn line" id="pTune">Undo the adjustments</button>` : ""}
       <button class="btn line" id="pBackup">Export a backup</button><button class="btn line" id="pReset">Restart the focus</button><button class="btn line" id="pClear" style="color:var(--error)">Delete all history</button></section>
-    <p class="muted small">Scratch Golfer Dreams, version 14. Voice: Kokoro, Apache 2.0.</p>`;
+    <p class="muted small">Scratch Golfer Dreams, version 15. Voice: Kokoro, Apache 2.0.</p>`;
   const bind = (id, fn) => ($("#" + id).onchange = (e) => { fn(e.target); save(); });
   bind("pName", (t) => (P.name = t.value.trim() || "Mariano")); bind("pHeight", (t) => (P.height = Number(t.value) || 185)); bind("pLevel", (t) => (P.level = t.value));
   bind("pReason", (t) => (S.reason = t.checked)); bind("pPre", (t) => (S.preshot = t.checked)); bind("pAuto", (t) => (S.autoPractice = t.checked)); bind("pGhost", (t) => (S.ghost = t.checked)); bind("pAsk", (t) => (S.ask = t.checked));

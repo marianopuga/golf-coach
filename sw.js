@@ -1,5 +1,5 @@
 // Offline support: app files network first (so updates arrive), libraries and model cache first.
-const CACHE = "golfcoach-v19";
+const CACHE = "golfcoach-v20";
 self.addEventListener("install", (e) => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil((async () => {
   for (const k of await caches.keys()) if (k !== CACHE) await caches.delete(k);
