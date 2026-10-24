@@ -1,15 +1,15 @@
 // Live session: camera, pose model, pre-shot check, swing detection, ball detection, the coach's voice and listening.
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-import { CAMERA, BAG, clubById } from "./rules.js?v=14";
+import { CAMERA, BAG, clubById } from "./rules.js?v=15";
 import { features, frameHint, pickGolfer, SwingDetector, analyze, runChecks, setupCheck, setupMetrics, averageFeatures, coach, ruleById,
-  dispute, skipFocus, buildPlan, calibrationPlan, keyTimes, groupOf, ballRoi, detectBall, ballHit, resOf } from "./engine.js?v=14";
-import { parseUtterance } from "./voice.js?v=14";
-import { L, T, blockCall } from "./lines.js?v=14";
-import * as Speech from "./speech.js?v=14";
-import * as Listen from "./listen.js?v=14";
-import { artFor } from "./art.js?v=14";
-import { DB, S, save, frames } from "./store.js?v=14";
-import * as views from "./views.js?v=14";
+  dispute, skipFocus, buildPlan, calibrationPlan, keyTimes, groupOf, ballRoi, detectBall, ballHit, resOf } from "./engine.js?v=15";
+import { parseUtterance } from "./voice.js?v=15";
+import { L, T, blockCall } from "./lines.js?v=15";
+import * as Speech from "./speech.js?v=15";
+import * as Listen from "./listen.js?v=15";
+import { artFor } from "./art.js?v=15";
+import { DB, S, save, frames } from "./store.js?v=15";
+import * as views from "./views.js?v=15";
 
 const $ = (s) => document.querySelector(s);
 const camWord = (v) => (v === "dtl" ? "camera behind" : "camera in front");

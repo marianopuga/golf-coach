@@ -51,6 +51,18 @@ Estados: cumple, parcial (falta la foto del error), pendiente (solo texto).
 
 Resumen: 40 cumple, 1 pendiente (grip-style).
 
+## Revisión del 24 oct (tarde), después de tus capturas
+
+Sacadas de la app hasta que lleguen rehechas:
+- B07: la mano derecha agarra el antebrazo. "Right arm not above the left" queda con la foto correcta sola.
+- C04 y C05: los movimientos no se ven humanos. Arms y sway muestran la postura inicial y el tope correcto, con su línea.
+- H07: las manos están invertidas en el grip. La V del chip queda en tres fotos correctas.
+- J01: es una mano derecha con guante y el grip cruza el centro de la palma. El agarre izquierdo queda con J02.
+- J05: muestra un agarre normal, no de putt. Putt grip queda en texto.
+- A16 y A17: las manos están invertidas en el grip (el guante queda del lado de la cabeza del palo). La secuencia termina en A15 (15 posiciones) y el final en transfer y feet es A15.
+
+Cambios de presentación: cada línea lleva una etiqueta que dice qué es ("Head at setup", "Left foot", "Centre"); la línea de altura está sobre la cabeza en la postura inicial, con una flecha en el error; en el celular, tres o más fotos van en dos columnas, y cualquier foto se abre a pantalla completa al tocarla; A11 ya no corta la cabeza del palo.
+
 ## Rehechas del 24 oct
 
 D03 (pelota en el talón izquierdo), G02, K01 y K02 aprobadas. J04 sigue sin mostrar el meñique del Vardon.

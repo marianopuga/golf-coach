@@ -1,17 +1,18 @@
-// Pictures of the swing: photos of one golfer (art/p2, generated from our shot list, checked by hand) with translucent guides on top.
+// Pictures of the swing: photos of one golfer (art/p3, generated from our shot list, checked by hand) with translucent guides on top.
 // Sizes, captions and guide positions in pixels come from art-data.js. Tips without an approved photo show text only.
-import { PHOTO, PDIR, SWING, TEMPO, HERO } from "./art-data.js?v=14";
+import { PHOTO, PDIR, SWING, TEMPO, HERO } from "./art-data.js?v=15";
 
-export const SEQ_LABELS = ["Setup", "Takeaway", "Club parallel", "Lead arm parallel", "Three quarter", "Top", "Transition", "Downswing", "Delivery",
-  "Impact", "Release", "Follow through", "Club up", "High", "Wrap", "Finish", "Hold"];
+// The names of the full swing positions come with the photos (the sequence can be shorter while a photo is being redone)
+export const SEQ_LABELS = SWING.length ? SWING.map((x) => x[3]) : ["Setup", "Takeaway", "Club parallel", "Lead arm parallel", "Three quarter", "Top", "Transition", "Downswing", "Delivery",
+  "Impact", "Release", "Follow through", "Club up", "High", "Finish"];
 const TEMPO_LABELS = ["Setup", "Takeaway", "Lead arm parallel", "Top", "Downswing", "Impact"];
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const n1 = (v) => Math.round(v * 10) / 10;
 
 // Guides: dashed line (optional dot at its start), path through joints, ring, weight bar. Tone w white, b coral (the fault), n faint reference.
 function photoGuides(list, w) {
-  const s = w / 300, sw = n1(2.6 * s), dash = `${n1(8 * s)} ${n1(6 * s)}`;
-  const dot = (p, t) => `<circle cx="${p[0]}" cy="${p[1]}" r="${n1(4.5 * s)}" class="pg-dot ${t}"/>`;
+  const s = w / 300, sw = n1(3.4 * s), dash = `${n1(9 * s)} ${n1(6 * s)}`;   // thick enough to read on a phone, where a photo is about 170 px wide
+  const dot = (p, t) => `<circle cx="${p[0]}" cy="${p[1]}" r="${n1(5.5 * s)}" class="pg-dot ${t}"/>`;
   const stroke = (t) => `class="pg-line ${t}" stroke-width="${t === "n" ? n1(sw * 0.7) : sw}" stroke-dasharray="${dash}"`;
   return list.map((g) => {
     if (g[0] === "line") return `<line x1="${g[1][0]}" y1="${g[1][1]}" x2="${g[2][0]}" y2="${g[2][1]}" ${stroke(g[3])} stroke-linecap="round"/>${g[4] ? dot(g[1], g[3]) : ""}`;
@@ -33,8 +34,11 @@ function photoGuides(list, w) {
     return "";
   }).join("");
 }
+// Labels that say what a line is ("Head at setup"). HTML on top of the photo, so they keep a readable size on any screen.
+const tagsHtml = (list, w, h) => list.filter((g) => g[0] === "tag").map((g) => `<span class="ptag ${g[3] || "w"} ${g[4] || "c"}" style="left:${n1((g[1][0] / w) * 100)}%;top:${n1((g[1][1] / h) * 100)}%">${esc(g[2])}</span>`).join("");
+const ZOOM = `<span class="pzoom" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>`;
 const BADGE = { g: ["ok", "Right"], b: ["no", "Wrong"] };
-const photoFrame = (f, i, numbered, full = true) => `<figure class="pframe"${full ? ' role="listitem"' : ""}><div class="pimg"><img src="${PDIR}${f.f}" width="${f.w}" height="${f.h}" alt="${esc(f.label + ": " + f.sub)}" loading="lazy" decoding="async"><svg viewBox="0 0 ${f.w} ${f.h}" aria-hidden="true">${photoGuides(f.g, f.w)}</svg>${full && BADGE[f.tone] ? `<span class="pbadge ${BADGE[f.tone][0]}">${BADGE[f.tone][1]}</span>` : ""}</div>${full ? `<figcaption>${numbered ? `<b>${i + 1}</b> ` : ""}${esc(f.label)}<span>${esc(f.sub)}</span></figcaption>` : ""}</figure>`;
+const photoFrame = (f, i, numbered, full = true) => `<figure class="pframe"${full ? ' role="listitem"' : ""}><div class="pimg"${full ? ' tabindex="0" role="button" aria-label="Enlarge"' : ""}><img src="${PDIR}${f.f}" width="${f.w}" height="${f.h}" alt="${esc(f.label + ": " + f.sub)}" loading="lazy" decoding="async"><svg viewBox="0 0 ${f.w} ${f.h}" aria-hidden="true">${photoGuides(f.g, f.w)}</svg>${full ? tagsHtml(f.g, f.w, f.h) : ""}${full && BADGE[f.tone] ? `<span class="pbadge ${BADGE[f.tone][0]}">${BADGE[f.tone][1]}</span>` : ""}${full ? ZOOM : ""}</div>${full ? `<figcaption>${numbered ? `<b>${i + 1}</b> ` : ""}${esc(f.label)}<span>${esc(f.sub)}</span></figcaption>` : ""}</figure>`;
 
 function photoArt(id) {
   const p = PHOTO[id]; if (!p) return null; const live = p.frames[p.live ?? 0];
@@ -48,8 +52,8 @@ function photoArt(id) {
   };
 }
 
-// Players: the full swing (17 positions) and the tempo (6 positions on a 3:1 clock). Same photos, swapped in place.
-const BEAT = [600, 150, 150, 150, 150, 220, 80, 60, 50, 80, 70, 90, 100, 110, 130, 320, 1000];
+// Players: the full swing and the tempo (6 positions on a 3:1 clock). Same photos, swapped in place.
+const BEAT = [600, 150, 150, 150, 150, 220, 80, 60, 50, 80, 70, 90, 100, 110, 130, 320, 1000].slice(0, Math.max(1, SWING.length - 1)).concat([1000]);
 const PLAYERS = {
   swing: { frames: SWING, labels: SEQ_LABELS, beats: BEAT },
   tempo: { frames: TEMPO, labels: TEMPO_LABELS, beats: [450, 250, 250, 250, 125, 125], fill: { 1: [75, 750], 4: [100, 250] } },  // back 750 ms, down 250 ms
@@ -92,7 +96,7 @@ if (typeof document !== "undefined") document.addEventListener("click", async (e
   setTimeout(step, P.beats[0]);
 });
 
-export const sequenceArt = () => SWING.length ? player("swing", "", `<div class="pp-strip" role="list" aria-label="The 17 positions of the swing">${SWING.map(([f, w, h], i) =>
+export const sequenceArt = () => SWING.length ? player("swing", "", `<div class="pp-strip" role="list" aria-label="The ${SWING.length} positions of the swing">${SWING.map(([f, w, h], i) =>
   `<button class="pp-th" role="listitem" data-pp-i="${i}" aria-current="${i === 0}"><img src="${PDIR}${f}" width="${w}" height="${h}" alt="" loading="lazy" decoding="async"><span><b>${i + 1}</b> ${esc(SEQ_LABELS[i])}</span></button>`).join("")}</div>`) : "";
 const tempoArt = () => ({
   bad: false, cap: ["Slow back, quick down", ""],
@@ -101,6 +105,27 @@ const tempoArt = () => ({
     return player("tempo", `<div class="tbar" aria-label="Backswing three beats, downswing one beat"><i class="tb-fill"></i><span style="flex:3">Back <b>3</b></span><span style="flex:1">Down <b>1</b></span></div>`);
   },
 });
+
+// ---------------- Enlarge ----------------
+// Tap a photo: it opens full screen with its guides and labels; swipe to the other photos of the same tip.
+function openLightbox(pimg) {
+  const box = pimg.closest(".pdemo, .sframes"); if (!box) return;
+  const figs = [...box.querySelectorAll(":scope > figure")], at = Math.max(0, figs.indexOf(pimg.closest("figure")));
+  const lb = document.createElement("div"); lb.className = "lbox"; lb.setAttribute("role", "dialog"); lb.setAttribute("aria-modal", "true"); lb.setAttribute("aria-label", "Photos");
+  lb.innerHTML = `<button class="lb-x" aria-label="Close"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button><div class="lb-track"></div>${figs.length > 1 ? `<p class="lb-n"><span>${at + 1}</span> of ${figs.length}, swipe for the others</p>` : ""}`;
+  const track = lb.querySelector(".lb-track");
+  for (const f of figs) { const c = f.cloneNode(true); c.removeAttribute("role"); c.querySelector(".pimg")?.removeAttribute("tabindex"); c.querySelector(".pimg")?.removeAttribute("role"); const sl = document.createElement("div"); sl.className = "lb-slide"; sl.appendChild(c); track.appendChild(sl); }
+  const prev = document.activeElement, close = () => { lb.remove(); document.removeEventListener("keydown", key); document.body.classList.remove("lb-open"); prev?.focus?.(); };
+  const key = (e) => { if (e.key === "Escape") close(); if (e.key === "ArrowRight") track.scrollBy({ left: track.clientWidth }); if (e.key === "ArrowLeft") track.scrollBy({ left: -track.clientWidth }); };
+  lb.querySelector(".lb-x").onclick = close; lb.addEventListener("click", (e) => { if (e.target === lb || e.target.classList.contains("lb-slide")) close(); });
+  document.addEventListener("keydown", key); document.body.appendChild(lb); document.body.classList.add("lb-open");
+  track.scrollLeft = at * track.clientWidth; lb.querySelector(".lb-x").focus();
+  const n = lb.querySelector(".lb-n span"); if (n) track.addEventListener("scroll", () => { n.textContent = Math.round(track.scrollLeft / track.clientWidth) + 1; }, { passive: true });
+}
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (e) => { const p = e.target.closest?.(".pdemo .pimg, .sframes .pimg"); if (p && !p.closest(".lbox")) openLightbox(p); });
+  document.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches?.(".pdemo .pimg, .sframes .pimg")) { e.preventDefault(); openLightbox(e.target); } });
+}
 
 export function artFor(id) {
   if (id === "tempo" && TEMPO.length) return tempoArt();
@@ -146,6 +171,30 @@ export function faultGuides(rule, data, m = {}, tone = "b") {
     case "headstill": { const x = P(L0, 0)[0]; g.push(["line", [x, n1(P(L0, 0)[1] - 0.08 * h)], [x, n1(P(L0, 0)[1] + 0.12 * h)], "n", 0], ["path", [P(L0, 0), P(L, 0)], tone]); break; }
     default: return null;
   }
+  // the label that says what the line is
+  const T = (pt, text, al = "c", dx = 0, dy = 0, t = tone) => g.push(["tag", [n1(pt[0] + dx), n1(pt[1] + dy)], text, t, al]);
+  const knee = P(L, 26), below = (y) => Math.min(n1(y + 0.045 * h), n1(0.96 * h));
+  switch (rule) {
+    case "stance": case "chipstance": T([mid(P(L, 11), P(L, 12))[0], knee[1]], "Shoulder width", "c", 0, 0, "w"); break;
+    case "ballpos": T([mid(P(L, 27), P(L, 28))[0], hp(L)[1] + 0.02 * h], "Centre", "c", 0, 0, "w"); break;
+    case "weightset": case "stayleft": case "transfer": T([mid(P(L0, 27), P(L0, 28))[0], below(gy + 0.03 * h)], "Weight", "c", 0, 0, "w");
+      if (rule !== "weightset") T([P(L0, 27)[0], n1(P(L0, rule === "transfer" ? 0 : 11)[1] - 0.03 * h)], "Left foot at setup", "c", 0, 0, "w"); break;
+    case "tilt": { const r = P(L, 12), l = P(L, 11); T([r[0] - (l[0] - r[0]) * 0.3, r[1]], "Level", "r", -6, 0, "w"); break; }
+    case "handsahead": if (ball) T([ball[0], hands(L)[1] - 0.06 * h], "Vertical", "c", 0, 0, "w"); break;
+    case "hinge": T(hp(L), "Back line", "r", -10); break;
+    case "knees": T(knee, "Knee", "l", 12); break;
+    case "reach": T([sh(L)[0], hands(L)[1] + 0.11 * h], "Under the shoulder"); break;
+    case "forearms": T(P(L, 14), "Right forearm", "r", -10); break;
+    case "heels": T([sh(L)[0], gy - 0.05 * h], "Shoulder line"); break;
+    case "eyesover": { const e = mid(P(L, 2), P(L, 5)); T([e[0], (e[1] + (ball ? ball[1] : gy)) / 2], "Eye line", "l", 10); break; }
+    case "sway": T([hp(L0)[0], P(L0, 12)[1] - 0.03 * h], "Hips at setup", "c", 0, 0, "w"); break;
+    case "arms": T(P(L, 11), "Shoulders", "l", 10); break;
+    case "posture": T([6, P(L0, 0)[1]], "Head at setup", "l", 0, 0, "w"); break;
+    case "feet": T(P(L0, 27), "Feet at setup", "l", 0.06 * w, 0, "w"); break;
+    case "upper": { const s2 = sh(L), p2 = hp(L); T([s2[0] + (p2[0] - s2[0]) * 0.35, s2[1] + (p2[1] - s2[1]) * 0.35], "Chest", "l", 12); T(p2, "Pelvis", "l", 12); break; }
+    case "flip": T(hands(L), "Hands", "l", 0.05 * w); break;
+    case "headstill": T([P(L0, 0)[0], P(L0, 0)[1] - 0.1 * h], "Head at setup", "c", 0, 0, "w"); break;
+  }
   return g.length ? { frame: fi, g } : null;
 }
 // The four pictures of a swing, the guide on its frame. Old swings saved only the pictures.
@@ -153,5 +202,5 @@ export function swingFramesHtml(data, rule = null, m = {}, tone = "b") {
   const imgs = Array.isArray(data) ? data : data?.img;
   if (!imgs?.length) return "";
   const fg = Array.isArray(data) ? null : faultGuides(rule, data, m, tone), w = data.w || 150, h = data.h || 200;
-  return imgs.map((u, i) => `<figure class="sframe${fg?.frame === i ? " on" : ""}"><div class="pimg"><img alt="${FRAME_NAMES[i]}" src="${u}" width="${w}" height="${h}">${fg?.frame === i ? `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true">${photoGuides(fg.g, w)}</svg>` : ""}</div><figcaption>${FRAME_NAMES[i]}</figcaption></figure>`).join("");
+  return imgs.map((u, i) => `<figure class="sframe${fg?.frame === i ? " on" : ""}"><div class="pimg" tabindex="0" role="button" aria-label="Enlarge ${FRAME_NAMES[i]}"><img alt="${FRAME_NAMES[i]}" src="${u}" width="${w}" height="${h}">${fg?.frame === i ? `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true">${photoGuides(fg.g, w)}</svg>${tagsHtml(fg.g, w, h)}` : ""}${ZOOM}</div><figcaption>${FRAME_NAMES[i]}</figcaption></figure>`).join("");
 }

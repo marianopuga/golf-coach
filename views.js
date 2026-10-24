@@ -1,11 +1,11 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, clubById } from "./rules.js?v=14";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, clubById } from "./rules.js?v=15";
 import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH,
-  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=14";
-import { badWeight, resultLabel } from "./voice.js?v=14";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=14";
-import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml } from "./art.js?v=14";
-import { T } from "./lines.js?v=14";
+  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=15";
+import { badWeight, resultLabel } from "./voice.js?v=15";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=15";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml } from "./art.js?v=15";
+import { T } from "./lines.js?v=15";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -279,7 +279,7 @@ async function loadYou(root) {
 function renderLibrary() {
   const el = $("#tab-library");
   el.innerHTML = `
-    <header class="lt"><p class="greet">Everything here comes from your Golf bible playlist</p><h1>Library</h1></header>
+    <header class="lt"><p class="greet">Everything here comes from your Golf bible playlist</p><h1>Library</h1><p class="muted small" style="margin:6px 0 0">Tap any photo to see it full screen with its lines and labels.</p></header>
     <details class="chap" open><summary><h2>How a session works</h2></summary><div class="body"><ol class="steps">
       <li>Earphones in. Choose Pittwater or Swing Factory and how many balls or minutes you have.</li>
       <li>The app tells you which club to take, how many balls and where the camera goes.</li>
@@ -289,7 +289,7 @@ function renderLibrary() {
       <li>Say how the ball flew in your own words, and at Swing Factory the distance. Practice swings next to the ball are ignored on their own.</li>
       <li>Say "pause" when a friend hits and "resume" when you are back.</li>
       <li>At the end, tap End twice and open your report.</li></ol></div></details>
-    <details class="chap"><summary><h2>The full swing</h2><span class="muted small">17 positions</span></summary><div class="body">${sequenceArt() || `<ol class="seq-labels">${SEQ_LABELS.map((l) => `<li>${esc(l)}</li>`).join("")}</ol>`}
+    <details class="chap"><summary><h2>The full swing</h2><span class="muted small">${SEQ_LABELS.length} positions</span></summary><div class="body">${sequenceArt() || `<ol class="seq-labels">${SEQ_LABELS.map((l) => `<li>${esc(l)}</li>`).join("")}</ol>`}
       <p class="muted small">Play it at the real tempo, slow back and quick down, or tap any position. Face on, a 7 iron.</p></div></details>
     <details class="chap"><summary><h2>Where to put the camera</h2></summary><div class="body">${campDiagram()}
       <p><b>In front</b>: facing your chest, across the ball. It checks stance, ball position, weight, turn, sway, balance and finish.</p>
