@@ -1,15 +1,15 @@
 // Live session: camera, pose model, pre-shot check, swing detection, ball detection, the coach's voice and listening.
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-import { CAMERA, BAG, clubById } from "./rules.js?v=16";
+import { CAMERA, BAG, goalLabel, clubById } from "./rules.js?v=17";
 import { features, frameHint, pickGolfer, SwingDetector, analyze, runChecks, setupCheck, setupMetrics, averageFeatures, coach, ruleById,
-  dispute, skipFocus, buildPlan, calibrationPlan, keyTimes, groupOf, ballRoi, detectBall, ballHit, resOf } from "./engine.js?v=16";
-import { parseUtterance } from "./voice.js?v=16";
-import { L, T, blockCall } from "./lines.js?v=16";
-import * as Speech from "./speech.js?v=16";
-import * as Listen from "./listen.js?v=16";
-import { artFor } from "./art.js?v=16";
-import { DB, S, save, frames } from "./store.js?v=16";
-import * as views from "./views.js?v=16";
+  dispute, skipFocus, buildPlan, calibrationPlan, keyTimes, groupOf, ballRoi, detectBall, ballHit, resOf } from "./engine.js?v=17";
+import { parseUtterance } from "./voice.js?v=17";
+import { L, T, blockCall } from "./lines.js?v=17";
+import * as Speech from "./speech.js?v=17";
+import * as Listen from "./listen.js?v=17";
+import { artFor } from "./art.js?v=17";
+import { DB, S, save, frames } from "./store.js?v=17";
+import * as views from "./views.js?v=17";
 
 const $ = (s) => document.querySelector(s);
 const camWord = (v) => (v === "dtl" ? "camera behind" : "camera in front");
@@ -155,7 +155,7 @@ function applyBlock(first, queue = !first) {
   S.clubId = b.cat === "random" ? b.sequence[0] : b.clubId; S.view = b.view; det.club = group(); save();
   $("#clubLive").value = S.clubId; $("#viewLive").value = b.view;
   guide(`${b.name}, ${b.balls} ${b.cat === "putt" ? "putts" : "balls"}. ${CAMERA[b.view]}`);
-  say(blockCall(b, session.blockIdx, session.plan.blocks.length, { first, name: S.profile.name, clubId: S.clubId, minutes: minutesLeft() }), { queue });
+  say(blockCall(b, session.blockIdx, session.plan.blocks.length, { first, name: S.profile.name, clubId: S.clubId, minutes: minutesLeft(), prevShort: !!session.plan.blocks[session.blockIdx - 1]?.short }), { queue });
   renderBlockbar();
 }
 function advanceBlock(manual) {
@@ -179,7 +179,8 @@ function renderBlockbar() {
   const time = left != null ? `, ${Math.max(0, left)} min left` : "";
   if (!b) { bb.innerHTML = `<div class="top"><span><b>${session.calib ? "Calibration" : "Plan"} done</b></span><span>${n} blocks</span></div><div class="segbar">${seg}</div>`; return; }
   const clubTxt = b.cat === "random" ? `Random: ${clubById(S.clubId).name}` : b.name;
-  bb.innerHTML = `<div class="top"><span><b>${clubTxt}</b> ${session.blockDone} of ${b.balls}</span><span>${session.calib ? "Calibration" : "Block"} ${session.blockIdx + 1} of ${n}, ${camWord(b.view)}${time}</span></div><div class="segbar">${seg}</div>`;
+  const g = b.goal ? `<div class="goal"><b>${goalLabel(b.goal)}${b.goal.carry ? `, about ${b.goal.carry} m` : ""}</b>${b.goal.aim}</div>` : "";
+  bb.innerHTML = `<div class="top"><span><b>${clubTxt}</b> ${session.blockDone} of ${b.balls}</span><span>${session.calib ? "Calibration" : "Block"} ${session.blockIdx + 1} of ${n}, ${camWord(b.view)}${time}</span></div>${g}<div class="segbar">${seg}</div>`;
 }
 
 function stop() {

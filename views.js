@@ -1,11 +1,11 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, clubById } from "./rules.js?v=16";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, SWING_LEN, goalLabel, clubById } from "./rules.js?v=17";
 import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH,
-  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=16";
-import { badWeight, resultLabel } from "./voice.js?v=16";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=16";
-import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml } from "./art.js?v=16";
-import { T } from "./lines.js?v=16";
+  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=17";
+import { badWeight, resultLabel } from "./voice.js?v=17";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=17";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml } from "./art.js?v=17";
+import { T } from "./lines.js?v=17";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -65,11 +65,12 @@ function ring(good, n) {
 }
 function planTable(plan) {
   const time = plan.mode === "time", range = plan.blocks.filter((b) => !b.short), short = plan.blocks.filter((b) => b.short);
-  const row = (b, i) => `<tr><td class="n">${i + 1}</td><td><b>${esc(b.name)}</b>${b.why && b.phase !== "calib" ? `<small>${esc(b.why)}</small>` : ""}</td><td class="n">${b.balls}${time && b.minutes ? `<small>${b.minutes} min</small>` : ""}</td><td><span class="cam">${CAM_ICON}${camText(b.view)}</span></td></tr>`;
+  const goal = (g, same) => (g ? `<span class="bgoal">${esc(goalLabel(g)).replace(/ (\d+%)$/, "&nbsp;$1")}${g.carry ? ` <em>about&nbsp;${g.carry}&nbsp;m</em>` : ""}</span>${same ? "" : `<span class="baim">${esc(g.aim)}</span>`}` : "");
+  const row = (b, i, all) => `<tr><td class="n">${i + 1}</td><td><b>${esc(b.name)}</b>${goal(b.goal, all[i - 1]?.goal?.aim === b.goal?.aim)}${b.why && b.phase !== "calib" && b.phase !== "warmup" ? `<small>${esc(b.why)}</small>` : ""}</td><td class="n">${b.balls}${time && b.minutes ? `<small>${b.minutes} min</small>` : ""}</td><td><span class="cam">${CAM_ICON}${camText(b.view)}</span></td></tr>`;
   return `<div class="card-scroll"><table class="score"><tr><th class="c">#</th><th>Club</th><th class="c">Balls</th><th>Camera</th></tr>
     ${range.map(row).join("")}
     <tr class="sub"><td></td><td>${time ? `Range, about ${plan.minutes} min` : "Range total"}</td><td class="n">${range.reduce((a, b) => a + b.balls, 0)}</td><td></td></tr>
-    ${short.length ? `<tr class="sub"><td></td><td colspan="3">Short game, with your own balls</td></tr>${short.map((b, i) => row(b, range.length + i)).join("")}` : ""}
+    ${short.length ? `<tr class="sub"><td></td><td colspan="3">Short game, with your own balls</td></tr>${short.map((b, i) => row(b, range.length + i, plan.blocks)).join("")}` : ""}
   </table></div>`;
 }
 function renderToday() {
@@ -113,15 +114,20 @@ function renderToday() {
     </section>` : ""}
     <section class="panel">
       <h2>Your focus</h2>
-      ${fr ? `<div class="focus">${ring(l5.filter(Boolean).length, l5.length)}<div style="display:grid;gap:4px"><h3>${esc(fr.title)}</h3><p class="muted small">${esc(fr.why)}</p><p class="small"><a href="${VIDEOS[fr.src].url || "#"}" target="_blank" rel="noopener">${VIDEOS[fr.src].who}: ${esc(VIDEOS[fr.src].title)}</a></p></div></div>
+      ${fr ? `<div class="focus">${ring(l5.filter(Boolean).length, l5.length)}<div style="display:grid;gap:4px"><h3>${esc(fr.title)}</h3><p class="muted small">${esc(fr.why)}</p>${VIDEOS[fr.src]?.url ? `<p class="small"><a href="${VIDEOS[fr.src].url}" target="_blank" rel="noopener">Watch the lesson</a></p>` : ""}</div></div>
              <p class="muted small">Fixed after 4 good swings out of 5, then the next one starts. Before each shot the app also checks your setup and says "Ready".</p>`
            : `<p class="muted">${cal ? "Your first focus is chosen after calibration, from what the camera sees in your swing." : "Your first focus is chosen from your first coached swings."}</p>`}
     </section>
     <section class="panel">
       <div class="sect"><h2>${cal ? "Calibration plan" : "Your plan"}</h2><span class="muted small nw">${plan.blocks.length} blocks</span></div>
-      ${cal ? `<p class="muted small">Swing normally, no corrections. After each ball say how it flew${V.tracer ? " and the distance on the screen" : ""}. The camera moves once per club.</p>` : ""}
+      ${cal ? `<p class="muted small">Full swings at about 80%, the swing you would use on the course, and no corrections. After each ball say how it flew${V.tracer ? " and the distance on the screen" : ""}. The camera moves once per club.</p>` : ""}
       ${planTable(plan)}
       ${plan.adapted || cal ? "" : `<p class="muted small">Standard split for now. After a few sessions, the club you hit worst gets more balls, goes first and comes back at the end as a retest.</p>`}
+      <details class="why"><summary>What the goals mean</summary>
+        <p><b>Effort</b> is how hard you swing compared with your hardest. At 80% you can still hold your finish, balanced, for 3 seconds. That is the swing you take to the course: it hits the middle of the face more often and loses less distance than it feels.</p>
+        <ul class="glist">${["full", "tq", "half", "chip", "putt"].map((k) => `<li><b>${SWING_LEN[k].name}</b> ${esc(SWING_LEN[k].how)}</li>`).join("")}</ul>
+        <p>Your weakest club starts with three quarter swings at 70%, slower so you can feel the fix, and comes back at 80% at the end to see if it holds.</p>
+      </details>
       <details class="why"><summary>Why this order</summary>
         <p>Half swings first to loosen up, then from short clubs to long ones, so you reach the driver warm. ${plan.blocks.some((b) => b.phase === "random") ? "The random block at the end changes club every ball, like on the course. " : ""}${V.short.length ? "Short game comes last, on the greens, with your own balls. " : ""}The camera changes side between clubs so each club is checked from both sides over time.</p>
       </details>
@@ -306,7 +312,7 @@ function renderLibrary() {
       <p class="muted">The camera sees your body, not the ball's flight. Your words are how the app learns your results. Speak after the app stops talking, within 40 seconds of the swing.</p>
       <dl class="words">${VOICE_HELP.map(([w, d]) => `<dt>${esc(w)}</dt><dd>${esc(d)}</dd>`).join("")}</dl></div></details>
     ${TOPICS.map(([name, sub, ids]) => `<details class="chap"><summary><h2>${name}</h2><span class="muted small">${sub}</span></summary><div class="body">${ids.map((id) => ruleById(id)).filter(Boolean).map(tipHtml).join("")}</div></details>`).join("")}
-    <details class="chap"><summary><h2>Video lessons</h2></summary><div class="body">${Object.values(VIDEOS).filter((v) => v.url).map((v) => `<p><a href="${v.url}" target="_blank" rel="noopener">${esc(v.title)}</a><br><small class="muted">${v.who}</small></p>`).join("")}</div></details>`;
+    <details class="chap"><summary><h2>Video lessons</h2></summary><div class="body">${Object.values(VIDEOS).filter((v) => v.url).map((v) => `<p><a href="${v.url}" target="_blank" rel="noopener">${esc(v.title)}</a></p>`).join("")}</div></details>`;
   el.querySelectorAll("details.chap").forEach((d) => d.addEventListener("toggle", () => d.open && loadYou(d), { once: true }));
 }
 
@@ -366,7 +372,7 @@ function renderProfile() {
     <section class="panel"><h2>Your data</h2><p class="muted small">Everything is saved only on this phone. Export a backup to Files from time to time.</p>
       ${tuneSummary(DB.coach).length ? `<p class="small">Adapted to you after your corrections: ${tuneSummary(DB.coach).map((t) => esc(t.title.toLowerCase())).join(", ")}.</p><button class="btn line" id="pTune">Undo the adjustments</button>` : ""}
       <button class="btn line" id="pBackup">Export a backup</button><button class="btn line" id="pReset">Restart the focus</button><button class="btn line" id="pClear" style="color:var(--error)">Delete all history</button></section>
-    <p class="muted small">Scratch Golfer Dreams, version 11. Voice: Kokoro, Apache 2.0.</p>`;
+    <p class="muted small">Scratch Golfer Dreams, version 12. Voice: Kokoro, Apache 2.0.</p>`;
   const bind = (id, fn) => ($("#" + id).onchange = (e) => { fn(e.target); save(); });
   bind("pName", (t) => (P.name = t.value.trim() || "Mariano")); bind("pHeight", (t) => (P.height = Number(t.value) || 185)); bind("pLevel", (t) => (P.level = t.value));
   bind("pReason", (t) => (S.reason = t.checked)); bind("pPre", (t) => (S.preshot = t.checked)); bind("pAuto", (t) => (S.autoPractice = t.checked)); bind("pGhost", (t) => (S.ghost = t.checked)); bind("pAsk", (t) => (S.ask = t.checked));

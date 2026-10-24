@@ -2,6 +2,8 @@
 import { features, SwingDetector, analyze, runChecks, setupCheck, setupMetrics, averageFeatures, coach, emptyCoachState, reportText, frameHint,
   pickGolfer, buildPlan, calibrationPlan, dispute, skipFocus, ballRoi, detectBall, ballHit, stockDistances, roundStats, weeklySummary, calibSummary, coachNotes } from "../engine.js";
 import { parseUtterance } from "../voice.js";
+import { GOALS, goalLabel } from "../rules.js";
+import { T, blockCall, catalog, sentences, keyOf } from "../lines.js";
 
 const W = 640, H = 480;
 function body({ hipShiftX = 0, handsX = 0.5, handsY = 0.62, spanScale = 1, noseDy = 0, stance = 0.16, shTilt = 0.01, upperX = 0, dx = 0, roll = 0 }) {
@@ -141,6 +143,25 @@ const hist = [{ id: "s1", start: 1, swings: [
 plan = buildPlan({ venue: "pw", total: 100, sessions: hist });
 expect("weakest club right after the warm up", plan.blocks[1].cat === "driver" && plan.worst === "driver");
 expect("weakest club retested", plan.blocks.some((b) => b.phase === "retest"));
+
+// --- A goal for every block: swing length, effort and what to try to do
+const allPlans = [buildPlan({ venue: "pw", total: 100 }), buildPlan({ venue: "sf", minutes: 60 }), cal, plan];
+expect("every block has a goal", allPlans.every((p) => p.blocks.every((b) => b.goal && b.goal.aim && goalLabel(b.goal))));
+expect("warm up: half swings at 50%", allPlans.every((p) => p.blocks[0].phase === "warmup" && p.blocks[0].goal.swing === "half" && p.blocks[0].goal.effort === 50));
+expect("calibration: full swings at 80%", cal.blocks.filter((b) => !b.short).slice(1).every((b) => b.goal.key === "calib" && goalLabel(b.goal) === "Full swing, 80%"));
+expect("weakest club: three quarter at 70%, retest back at 80%", plan.blocks[1].goal.swing === "tq" && plan.blocks[1].goal.effort === 70 && plan.blocks.find((b) => b.phase === "retest").goal.effort === 80);
+const pp = buildPlan({ venue: "pw", total: 100 }).blocks.filter((b) => b.cat === "putt");
+expect("putting: short putts first, then long ones", pp.length === 2 && pp[0].goal.key === "puttShort" && pp[1].goal.key === "puttLong");
+const dh = [{ start: 1, swings: Array.from({ length: 6 }, (_, i) => ({ clubId: "7i", block: "main", res: { result: "straight", sev: 0, distance: 128 + i } })) }];
+const b7 = buildPlan({ venue: "sf", minutes: 60, sessions: dh }).blocks.filter((b) => b.clubId === "7i");
+expect("full swing blocks show the usual carry", b7.some((b) => b.goal.swing === "full" && b.goal.carry === 130));
+expect("no carry on slowed down blocks", b7.filter((b) => b.goal.swing !== "full").every((b) => !b.goal.carry));
+const focusD = [{ start: 1, swings: Array.from({ length: 6 }, () => ({ clubId: "7i", block: "focus", res: { result: "straight", sev: 0, distance: 100 } })) }];
+expect("slowed down swings don't count as usual distance", !stockDistances(focusD)["7i"]);
+const said = blockCall(plan.blocks[1], 1, plan.blocks.length, { first: false, clubId: plan.blocks[1].clubId, minutes: null });
+expect("the coach says the goal", said.includes("Three quarter swings at 70 percent."));
+const cat = catalog();
+expect("every goal sentence is recorded", Object.values(GOALS).every((g) => sentences(T.goal(g)).every((x) => cat.has(keyOf(x)))));
 
 // --- Voice, distances, rounds, weekly
 expect("voice: your words", parseUtterance("big slice")?.sev === 3 && parseUtterance("muy a la izquierda")?.result === "hook" && parseUtterance("one forty")?.distance === 140);

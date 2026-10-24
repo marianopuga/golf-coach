@@ -179,6 +179,9 @@ table.score td small { display: block; color: var(--text-2); font-size: 13px; li
 details.why summary { cursor: pointer; color: var(--secondary); font-weight: 600; list-style: none; min-height: 44px; display: flex; align-items: center; font-size: 15px }
 details.why summary::-webkit-details-marker { display: none }
 details.why p { color: var(--text-2); font-size: 14px; margin-top: 4px }
+table.score .bgoal { display: block; margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--secondary) } table.score .bgoal em { font-style: normal; font-weight: 500; color: var(--text-2); margin-left: 2px }
+table.score .baim { display: block; font-size: 13px; line-height: 1.4; color: var(--text) }
+details.why .glist { margin: 6px 0 4px; padding-left: 18px; color: var(--text-2); font-size: 14px; display: grid; gap: 4px } details.why .glist b { color: var(--text) }
 
 /* Stats */
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px }
@@ -290,10 +293,12 @@ dialog#confirm .acts2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
 #voiceNote .row { display: flex; gap: 8px } #voiceNote button { border: 0; border-radius: var(--r-sm); min-height: 44px; padding: 8px 14px; font-weight: 600 } #voiceNote .go { background: #173F32; color: #fff } #voiceNote .x { background: transparent; color: #2B2111; text-decoration: underline }
 #panel { background: #262B28; border-radius: 22px 22px 0 0; padding: 14px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 12px; max-height: 62vh; overflow-y: auto }
 .blocks { display: grid; gap: 7px } .blocks .top { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: #A9B5AE; flex-wrap: wrap } .blocks .top b { color: #EEF3EF; font-weight: 700; font-size: 17px }
+.blocks .goal { font-size: 14px; line-height: 1.35; color: #C3CEC7 } .blocks .goal b { color: #CFE449; font-weight: 700; margin-right: 6px }
 .segbar { display: grid; grid-auto-flow: column; gap: 3px; height: 5px } .segbar i { border-radius: 3px; background: #26352D } .segbar i.done { background: #CFE449 } .segbar i.now { background: linear-gradient(90deg, #CFE449 var(--p, 0%), #2E3531 var(--p, 0%)) }
 .verdict { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 14px; align-items: center }
 .verdict .word { font-size: 34px; font-weight: 700; line-height: 1; color: #A9B5AE; grid-row: span 3; letter-spacing: -.02em }
 .verdict.good .word { color: #6CC891 } .verdict.bad .word { color: #F08A84 }
+.verdict .what, .verdict .cue, .verdict .tempo { grid-column: 2 }
 .verdict .what { font-size: 17px; font-weight: 600; line-height: 1.2 }
 .verdict .cue { color: #C3CEC7; font-size: 15px; line-height: 1.4 } .verdict .tempo { color: #E2A853; font-size: 13px; font-weight: 600 }
 .verdict .vpic { grid-column: 3; grid-row: 1 / span 3; width: 74px } .verdict .vpic figure { margin: 0 } .verdict .vpic img { width: 74px; height: auto; border-radius: 10px; background: var(--soft) } .verdict .vpic svg { width: 74px; height: auto }
@@ -377,6 +382,6 @@ dialog#confirm .acts2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
   </div>
 </section>
 
-<script type="module" src="app.js?v=16"></script>
+<script type="module" src="app.js?v=17"></script>
 </body>
 </html>

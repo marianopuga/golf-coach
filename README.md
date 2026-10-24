@@ -3,7 +3,7 @@
 A free iPhone web app that watches your swing through the camera and tells you, by voice, the one thing to fix. Every rule comes from the "Golf bible" YouTube playlist.
 
 ## How it works
-1. Choose the range: Pittwater Golf Centre (balls, plus chipping, bunker and putting) or Swing Factory (minutes, Toptracer distances). The app builds a plan: warm up, your weakest club first, the rest from short to long, a retest and a random block. The first session is a calibration with no corrections.
+1. Choose the range: Pittwater Golf Centre (balls, plus chipping, bunker and putting) or Swing Factory (minutes, Toptracer distances). The app builds a plan: warm up, your weakest club first, the rest from short to long, a retest and a random block. Every block has a goal: swing length (full, three quarter, half, chip, putt), effort (for example 80%) and what to try to do with the ball; the coach says it when the block starts. The first session is a calibration with no corrections.
 2. Pose detection (MediaPipe, on the phone, free) finds your body. It locks on you and ignores other people in the picture.
 3. Before each shot it checks your setup one thing at a time and says "Ready". After each swing it speaks the main correction, then details. Practice swings next to the ball are ignored when the ball is still there.
 4. One focus for all clubs, kept until you get it right in 4 of 5 swings. Weak measurements never become the focus.

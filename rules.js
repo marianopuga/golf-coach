@@ -54,6 +54,45 @@ export const CATS = {
   bunker: { name: "Bunker", pick: ["SW"], base: 6, short: "Greenside bunker shots." },
   putt:   { name: "Putting", pick: ["PT"], base: 10, short: "Putts on the putting green." },
 };
+// What each block is for: how long the swing is, how hard, and what to try to do with the ball.
+// Effort is compared with your hardest swing: at 80% you can still hold your finish, balanced, for 3 seconds.
+export const SWING_LEN = {
+  full: { name: "Full swing", many: "Full swings", how: "Hands above your right shoulder at the top." },
+  tq:   { name: "Three quarter swing", many: "Three quarter swings", how: "Hands at shoulder height at the top." },
+  half: { name: "Half swing", many: "Half swings", how: "Hands at hip height, club parallel to the ground, the same on the way through." },
+  chip: { name: "Chip swing", many: "Chip swings", how: "Hands back to your right thigh, the same length through." },
+  putt: { name: "Putt", many: "Putts", how: "Shoulders rock, back as long as through." },
+};
+export const GOALS = {
+  warmup:    { swing: "half", effort: 50, aim: "Clean contact and an easy rhythm, no power." },
+  calib:     { swing: "full", effort: 80, aim: "The swing you would use on the course, no trying harder." },
+  short:     { swing: "full", effort: 75, aim: "Pick a flag, hit the ball first, then the ground." },
+  mid:       { swing: "full", effort: 80, aim: "Solid contact in the middle of the face, straight at your target." },
+  long:      { swing: "full", effort: 80, aim: "Smooth tempo, let the loft lift the ball." },
+  hybrid:    { swing: "full", effort: 80, aim: "Sweep the ball off the ground, don't dig." },
+  driver:    { swing: "full", effort: 80, aim: "Smooth back, fastest after the ball, aim for the fairway, not for distance." },
+  focus:     { swing: "tq", effort: 70, aim: "Slower so you can feel the fix, solid contact before distance." },
+  retest:    { swing: "full", effort: 80, aim: "Back to your normal swing, see if the fix holds." },
+  random:    { swing: "full", effort: 80, aim: "Full routine every ball: pick a target, one practice swing, then hit." },
+  chip:      { swing: "chip", aim: "Land it a metre onto the green and let it roll to the hole." },
+  bunker:    { swing: "tq", effort: 70, aim: "Splash the sand behind the ball and finish the swing, getting out is the goal." },
+  puttShort: { swing: "putt", dist: "1 to 2 metres", aim: "Hole as many as you can." },
+  puttLong:  { swing: "putt", dist: "6 to 10 metres", aim: "Stop each one within a putter length of the hole." },
+  calibChip: { swing: "chip", aim: "Your usual chip, land it on the green." },
+  calibPutt: { swing: "putt", dist: "about 3 metres", aim: "Your usual stroke." },
+};
+export function goalKey(cat, phase, part = 0) {
+  if (phase === "calib") return cat === "chip" ? "calibChip" : cat === "putt" ? "calibPutt" : "calib";
+  if (["warmup", "focus", "retest", "random"].includes(phase)) return phase;
+  if (cat === "putt") return part === 0 ? "puttShort" : "puttLong";
+  return GOALS[cat] ? cat : "mid";
+}
+// "Full swing, 80%", "Putts from 1 to 2 metres", "Chip swing"
+export function goalLabel(g) {
+  if (!g) return "";
+  const s = SWING_LEN[g.swing];
+  return g.effort ? `${s.name}, ${g.effort}%` : g.dist ? `${s.many} from ${g.dist}` : s.name;
+}
 export const RANGE_ORDER = ["short", "mid", "long", "hybrid", "driver"];
 export const SHORT_ORDER = ["chip", "bunker", "putt"];
 

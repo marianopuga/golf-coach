@@ -1,6 +1,6 @@
 // Everything the coach says, in one place. The same functions build the live speech and the list of
 // sentences that are pre-recorded with the neural voice (tools/voice-catalog.mjs), so they always match.
-import { RULES, BAG, CAMERA, clubById } from "./rules.js?v=16";
+import { RULES, BAG, CAMERA, GOALS, SWING_LEN, clubById } from "./rules.js?v=17";
 
 // Sentence split and lookup key, shared by the player and the recorder.
 export function sentences(text) {
@@ -58,6 +58,13 @@ export const T = {
   firstClub: (id) => `First, the ${clubName(id)}.`,
   count: (n, putts) => `${n} ${putts ? (n === 1 ? "putt" : "putts") : n === 1 ? "ball" : "balls"}.`,
   camera: (view) => (view === "dtl" ? "Camera behind you." : "Camera in front of you."),
+  // "Full swings at 80 percent. Solid contact in the middle of the face, straight at your target."
+  goal: (g) => {
+    if (!g) return "";
+    const s = SWING_LEN[g.swing];
+    const how = g.effort ? `${s.many} at ${g.effort} percent.` : g.dist ? `${s.many} from ${g.dist}.` : `${s.many}, back as long as through.`;
+    return `${how} ${g.aim}`;
+  },
   minutes: (n) => (n === 1 ? "One minute left." : `${n} minutes left.`),
   ofN: (k, n) => `${k} of ${n}.`,
   nextClub: (id) => `Next: the ${clubName(id)}.`,
@@ -90,10 +97,11 @@ export function blockCall(b, idx, n, opts) {
   if (b.cat === "random") { out.push(T.randomClubs(b.balls), T.firstClub(opts.clubId)); }
   else out.push(T.takeClub(b.clubId), T.count(b.balls, b.cat === "putt"));
   out.push(T.camera(b.view));
-  if (b.phase === "calib") out.push(L.calibNoCorrect);
+  if (b.phase === "retest") out.push(L.retest);
+  else if (b.short && b.phase !== "calib" && !opts.first && !opts.prevShort) out.push(L.shortGame);
+  if (b.goal) out.push(T.goal(b.goal));
   else if (b.phase === "warmup") out.push(L.halfEasy);
-  else if (b.phase === "retest") out.push(L.retest);
-  else if (b.short && !opts.first) out.push(L.shortGame);
+  if (b.phase === "calib") out.push(L.calibNoCorrect);
   if (opts.minutes != null && !opts.first) out.push(T.minutes(Math.max(0, opts.minutes)));
   return out.join(" ");
 }
@@ -111,6 +119,7 @@ export function catalog({ name = "Mariano", maxBlock = 20, maxBalls = 30, maxMin
   for (let n = 1; n <= maxBalls; n++) { addText(T.count(n, false), n <= 15); addText(T.count(n, true)); addText(T.randomClubs(n)); addText(T.leftWith(n)); }
   for (const id of clubs) [T.takeClub, T.firstClub, T.nextClub, T.thenClub, T.oneMoreWith, T.clubSaid].forEach((f, j) => addText(f(id), j === 0 || j === 2));
   addText(T.camera("dtl"), true); addText(T.camera("face"), true);
+  for (const g of Object.values(GOALS)) addText(T.goal(g), true);
   for (let n = 0; n <= maxMinutes; n++) addText(T.minutes(n), [15, 5, 1].includes(n));
   for (let n = 1; n <= maxSwings; n++) addText(T.swingsSoFar(n));
   addText(T.testVoice(name), true);

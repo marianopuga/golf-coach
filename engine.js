@@ -1,8 +1,8 @@
 // Pure logic: pose features, golfer lock, ball detection, swing detection, metrics, setup checks,
 // coaching, plans by venue, stats, rounds and reports. No DOM, so everything is tested in Node.
-import { RULES, RESULT_TIPS, BAD_RESULTS, GROUPS, BAG, CATS, RANGE_ORDER, SHORT_ORDER, VENUES, BALL_POS, clubById } from "./rules.js?v=16";
-import { badWeight, resultLabel } from "./voice.js?v=16";
-import { L, T } from "./lines.js?v=16";
+import { RULES, RESULT_TIPS, BAD_RESULTS, GROUPS, BAG, CATS, RANGE_ORDER, SHORT_ORDER, VENUES, BALL_POS, GOALS, goalKey, clubById } from "./rules.js?v=17";
+import { badWeight, resultLabel } from "./voice.js?v=17";
+import { L, T } from "./lines.js?v=17";
 
 const I = { nose: 0, lSh: 11, rSh: 12, lEl: 13, rEl: 14, lWr: 15, rWr: 16, lIdx: 19, rIdx: 20, lHip: 23, rHip: 24,
   lKn: 25, rKn: 26, lAn: 27, rAn: 28, lHe: 29, rHe: 30, lTo: 31, rTo: 32 };
@@ -473,7 +473,7 @@ export function sessionStats(s) {
 export function stockDistances(sessions) {
   const by = {};
   for (const s of sessions || []) for (const w of s.swings || []) {
-    const d = resOf(w)?.distance; if (!d || w.practice || !w.clubId) continue;
+    const d = resOf(w)?.distance; if (!d || w.practice || !w.clubId || w.block === "warmup" || w.block === "focus") continue;
     (by[w.clubId] ??= []).push({ d, t: w.t || s.start, bad: badWeight(resOf(w)) >= 1 });
   }
   const out = {};
@@ -553,13 +553,20 @@ export function buildPlan({ venue = "pw", total, minutes, bag, sessions = [], ro
     if (s.faultRate != null) parts.push(`${Math.round(100 * s.faultRate)}% swing faults`);
     return (c === worst ? "Your weakest lately: " : "Lately: ") + parts.join(", ") + ".";
   };
+  // The goal of each block. Full swings at 75 to 80% also show the usual carry once 5 distances are logged.
+  const sd = stockDistances(sessions);
+  const goal = (cat, phase, clubId, part = 0) => {
+    const k = goalKey(cat, phase, part), g = { key: k, ...GOALS[k] }, d = cat !== "random" && sd[clubId];
+    if (d && d.n >= 5 && g.swing === "full" && g.effort >= 75) g.carry = Math.round(d.median / 5) * 5;
+    return g;
+  };
   const blocks = [];
   // Normal sessions start on the other camera side than last time, so every club gets both over time.
   let view = calib || (sessions.length % 2 === 0) ? "dtl" : "face";
   const flip = () => (view = view === "dtl" ? "face" : "dtl");
   const add = (cat, clubId, n, phase, extra = {}) => {
     if (!clubId || n <= 0) return;
-    blocks.push({ cat, clubId, name: cat === "random" ? "Random clubs" : clubById(clubId).name, balls: n, view, phase, why: phase === "warmup" ? CATS.warmup.short : phase === "retest" ? "Retest your weakest club now that you are warm." : phase === "random" ? CATS.random.short : why(cat), ...extra });
+    blocks.push({ cat, clubId, name: cat === "random" ? "Random clubs" : clubById(clubId).name, balls: n, view, phase, why: phase === "warmup" ? CATS.warmup.short : phase === "retest" ? "Retest your weakest club now that you are warm." : phase === "random" ? CATS.random.short : why(cat), goal: goal(cat, phase, clubId), ...extra });
   };
   add("warmup", pick("warmup"), warm, "warmup"); // camera behind for the warm up: it checks your setup
   const order = worst ? [worst, ...cats.filter((c) => c !== worst)] : cats;
@@ -583,7 +590,7 @@ export function buildPlan({ venue = "pw", total, minutes, bag, sessions = [], ro
     if (calib && c === "bunker") continue; // the camera cannot see a ball in sand yet
     const n = calib ? 10 : Math.max(5, Math.round(CATS[c].base * (w[c] / CATS[c].base)));
     const parts = calib || c !== "bunker" ? 2 : 1;
-    split(n, parts).forEach((k, i) => { const v = i === 0 ? (c === "putt" ? "face" : "dtl") : (c === "putt" ? "dtl" : "face"); short.push({ cat: c, clubId: id, name: CATS[c].name, balls: k, view: v, phase: calib ? "calib" : "short", short: true, why: calib ? "Calibration, no corrections." : CATS[c].short }); });
+    split(n, parts).forEach((k, i) => { const v = i === 0 ? (c === "putt" ? "face" : "dtl") : (c === "putt" ? "dtl" : "face"); short.push({ cat: c, clubId: id, name: CATS[c].name, balls: k, view: v, phase: calib ? "calib" : "short", short: true, why: calib ? "Calibration, no corrections." : CATS[c].short, goal: goal(c, calib ? "calib" : "short", id, i) }); });
   }
   const all = [...blocks, ...short];
   if (V.mode === "time") all.forEach((b) => { if (!b.short) b.minutes = Math.max(1, Math.round(b.balls / V.rate)); });
