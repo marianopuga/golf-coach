@@ -1,11 +1,11 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, SWING_LEN, LEN_ORDER, goalLabel, clubById } from "./rules.js?v=20";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, SWING_LEN, LEN_ORDER, goalLabel, clubById } from "./rules.js?v=21";
 import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH,
-  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=20";
-import { badWeight, resultLabel } from "./voice.js?v=20";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=20";
-import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml, lengthsArt } from "./art.js?v=20";
-import { T } from "./lines.js?v=20";
+  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=21";
+import { badWeight, resultLabel } from "./voice.js?v=21";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=21";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml, lengthsArt } from "./art.js?v=21";
+import { T } from "./lines.js?v=21";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -199,7 +199,8 @@ function lineChart(points, { max = 1, fmt = (v) => Math.round(v * 100) + "%", la
   const x = (i) => Lm + (points.length === 1 ? (W - Lm - R) / 2 : (i * (W - Lm - R)) / (points.length - 1)), y = (v) => T + (1 - v / max) * (H - T - B);
   const grid = [0, 0.5, 1].map((g) => `<line x1="${Lm}" x2="${W - R}" y1="${y(g * max)}" y2="${y(g * max)}" stroke="var(--line)"/><text x="${Lm - 6}" y="${y(g * max) + 4}" text-anchor="end">${fmt(g * max)}</text>`).join("");
   const path = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join("");
-  const labels = points.map((p, i) => (points.length <= 6 || i % Math.ceil(points.length / 6) === 0 || i === points.length - 1 ? `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === points.length - 1 && points.length > 1 ? "end" : i === 0 && points.length > 1 ? "start" : "middle"}">${p.label}</text>` : "")).join("");
+  const n = points.length, step = n <= 6 ? 1 : Math.ceil(n / 5);   // the last date always shows; the one before it only if it doesn't touch it
+  const labels = points.map((p, i) => (i === n - 1 || (i % step === 0 && n - 1 - i >= step) ? `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === points.length - 1 && points.length > 1 ? "end" : i === 0 && points.length > 1 ? "start" : "middle"}">${p.label}</text>` : "")).join("");
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">${grid}<path d="${path}L${x(points.length - 1)},${y(0)}L${x(0)},${y(0)}Z" fill="var(--tint)"/><path d="${path}" fill="none" stroke="var(--olive)" stroke-width="2.4"/>${points.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.v)}" r="${i === points.length - 1 ? 4.5 : 3}" fill="var(--olive)"/>`).join("")}${labels}</svg>`;
 }
 function spark(vals) {
@@ -373,7 +374,7 @@ function renderProfile() {
     <section class="panel"><h2>Your data</h2><p class="muted small">Everything is saved only on this phone. Export a backup to Files from time to time.</p>
       ${tuneSummary(DB.coach).length ? `<p class="small">Adapted to you after your corrections: ${tuneSummary(DB.coach).map((t) => esc(t.title.toLowerCase())).join(", ")}.</p><button class="btn line" id="pTune">Undo the adjustments</button>` : ""}
       <button class="btn line" id="pBackup">Export a backup</button><button class="btn line" id="pReset">Restart the focus</button><button class="btn line" id="pClear" style="color:var(--error)">Delete all history</button></section>
-    <p class="muted small">Scratch Golfer Dreams, version 15. Voice: Kokoro, Apache 2.0.</p>`;
+    <p class="muted small">Scratch Golfer Dreams, version 16. Voice: Kokoro, Apache 2.0.</p>`;
   const bind = (id, fn) => ($("#" + id).onchange = (e) => { fn(e.target); save(); });
   bind("pName", (t) => (P.name = t.value.trim() || "Mariano")); bind("pHeight", (t) => (P.height = Number(t.value) || 185)); bind("pLevel", (t) => (P.level = t.value));
   bind("pReason", (t) => (S.reason = t.checked)); bind("pPre", (t) => (S.preshot = t.checked)); bind("pAuto", (t) => (S.autoPractice = t.checked)); bind("pGhost", (t) => (S.ghost = t.checked)); bind("pAsk", (t) => (S.ask = t.checked));

@@ -1,7 +1,7 @@
 // The coach's voice. Pre-recorded neural voice clips (Kokoro, recorded once, stored with the app) played through
 // Web Audio, so it sounds like a person and works offline. Sentences that were never recorded fall back to the
 // best voice installed on the phone. Short sounds (earcons) confirm things without words.
-import { sentences, keyOf } from "./lines.js?v=20";
+import { sentences, keyOf } from "./lines.js?v=21";
 
 export const VOICES = { michael: "Coach", deep: "Deep" };
 let ctx = null, index = null, voiceId = "michael", loading = null;

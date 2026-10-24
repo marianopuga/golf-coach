@@ -1,6 +1,6 @@
 // Everything the coach says, in one place. The same functions build the live speech and the list of
 // sentences that are pre-recorded with the neural voice (tools/voice-catalog.mjs), so they always match.
-import { RULES, BAG, CAMERA, GOALS, SWING_LEN, clubById } from "./rules.js?v=20";
+import { RULES, BAG, CAMERA, GOALS, SWING_LEN, clubById } from "./rules.js?v=21";
 
 // Sentence split and lookup key, shared by the player and the recorder.
 export function sentences(text) {
