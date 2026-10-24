@@ -1,11 +1,11 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, clubById } from "./rules.js?v=15";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, clubById } from "./rules.js?v=16";
 import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH,
-  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=15";
-import { badWeight, resultLabel } from "./voice.js?v=15";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=15";
-import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml } from "./art.js?v=15";
-import { T } from "./lines.js?v=15";
+  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=16";
+import { badWeight, resultLabel } from "./voice.js?v=16";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=16";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml } from "./art.js?v=16";
+import { T } from "./lines.js?v=16";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -263,9 +263,9 @@ function campDiagram() {
 }
 function tipHtml(r) {
   const v = VIDEOS[r.src], a = artFor(r.id);
-  const tags = r.auto ? `<span class="tag">${r.kind === "setup" ? "before the shot" : "after the shot"}, ${r.view === "dtl" ? "camera behind" : r.view === "face" ? "camera in front" : "any camera"}</span>${r.conf === "low" ? '<span class="tag weak">weak measurement</span>' : ""}` : "";
   const pics = !a ? "" : a.block ? a.block() : `<div class="cmp ${a.bad ? "" : "one"}" data-tip="${r.id}">${a.figure("good")}${a.bad ? a.figure("bad") : ""}</div>`;
-  return `<div class="tip"><h3>${esc(r.title)}${tags}</h3>${pics}<p>${esc(r.rule)}</p><small>${v.url ? `<a href="${v.url}" target="_blank" rel="noopener">${v.who}: ${esc(v.title)}</a>` : esc(v.title)}</small><div class="you" data-you="${r.id}"></div></div>`;
+  const watch = v?.url ? `<a class="watch" href="${v.url}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>Watch the lesson</a>` : "";
+  return `<div class="tip"><h3>${esc(r.title)}</h3>${pics}<p>${esc(r.rule)}</p>${watch}<div class="you" data-you="${r.id}"></div></div>`;
 }
 async function loadYou(root) {
   for (const el of root.querySelectorAll("[data-you]")) {
@@ -279,7 +279,7 @@ async function loadYou(root) {
 function renderLibrary() {
   const el = $("#tab-library");
   el.innerHTML = `
-    <header class="lt"><p class="greet">Everything here comes from your Golf bible playlist</p><h1>Library</h1><p class="muted small" style="margin:6px 0 0">Tap any photo to see it full screen with its lines and labels.</p></header>
+    <header class="lt"><p class="greet">Your tips, step by step</p><h1>Library</h1><p class="muted small" style="margin:6px 0 0">Tap any photo to see it full screen.</p></header>
     <details class="chap" open><summary><h2>How a session works</h2></summary><div class="body"><ol class="steps">
       <li>Earphones in. Choose Pittwater or Swing Factory and how many balls or minutes you have.</li>
       <li>The app tells you which club to take, how many balls and where the camera goes.</li>
@@ -306,13 +306,13 @@ function renderLibrary() {
       <p class="muted">The camera sees your body, not the ball's flight. Your words are how the app learns your results. Speak after the app stops talking, within 40 seconds of the swing.</p>
       <dl class="words">${VOICE_HELP.map(([w, d]) => `<dt>${esc(w)}</dt><dd>${esc(d)}</dd>`).join("")}</dl></div></details>
     ${TOPICS.map(([name, sub, ids]) => `<details class="chap"><summary><h2>${name}</h2><span class="muted small">${sub}</span></summary><div class="body">${ids.map((id) => ruleById(id)).filter(Boolean).map(tipHtml).join("")}</div></details>`).join("")}
-    <details class="chap"><summary><h2>The videos</h2></summary><div class="body">${Object.values(VIDEOS).filter((v) => v.url).map((v) => `<p><a href="${v.url}" target="_blank" rel="noopener">${esc(v.title)}</a><br><small class="muted">${v.who}</small></p>`).join("")}</div></details>`;
+    <details class="chap"><summary><h2>Video lessons</h2></summary><div class="body">${Object.values(VIDEOS).filter((v) => v.url).map((v) => `<p><a href="${v.url}" target="_blank" rel="noopener">${esc(v.title)}</a><br><small class="muted">${v.who}</small></p>`).join("")}</div></details>`;
   el.querySelectorAll("details.chap").forEach((d) => d.addEventListener("toggle", () => d.open && loadYou(d), { once: true }));
 }
 
 // ---------------- Profile ----------------
 let clearArmed = 0;
-const PRECHECK_NAMES = { stance: "Stance width", chipstance: "Chip stance", ballpos: "Ball position", reach: "Distance to the ball", hinge: "Lean from the hips", knees: "Knee flex", weightset: "Weight on the front foot", tilt: "Shoulder tilt", forearms: "Forearms (Danny Maude)", handsahead: "Hands ahead", eyesover: "Eyes over the ball (putting)" };
+const PRECHECK_NAMES = { stance: "Stance width", chipstance: "Chip stance", ballpos: "Ball position", reach: "Distance to the ball", hinge: "Lean from the hips", knees: "Knee flex", weightset: "Weight on the front foot", tilt: "Shoulder tilt", forearms: "Forearms", handsahead: "Hands ahead", eyesover: "Eyes over the ball (putting)" };
 function renderProfile() {
   const el = $("#tab-profile"), P = S.profile, initials = P.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "MP";
   const lastCal = DB.sessions.filter((s) => s.calib && (s.swings || []).length).at(-1);
@@ -366,7 +366,7 @@ function renderProfile() {
     <section class="panel"><h2>Your data</h2><p class="muted small">Everything is saved only on this phone. Export a backup to Files from time to time.</p>
       ${tuneSummary(DB.coach).length ? `<p class="small">Adapted to you after your corrections: ${tuneSummary(DB.coach).map((t) => esc(t.title.toLowerCase())).join(", ")}.</p><button class="btn line" id="pTune">Undo the adjustments</button>` : ""}
       <button class="btn line" id="pBackup">Export a backup</button><button class="btn line" id="pReset">Restart the focus</button><button class="btn line" id="pClear" style="color:var(--error)">Delete all history</button></section>
-    <p class="muted small">Scratch Golfer Dreams, version 10. Rules from 9 videos in your Golf bible playlist. Voice: Kokoro, Apache 2.0.</p>`;
+    <p class="muted small">Scratch Golfer Dreams, version 11. Voice: Kokoro, Apache 2.0.</p>`;
   const bind = (id, fn) => ($("#" + id).onchange = (e) => { fn(e.target); save(); });
   bind("pName", (t) => (P.name = t.value.trim() || "Mariano")); bind("pHeight", (t) => (P.height = Number(t.value) || 185)); bind("pLevel", (t) => (P.level = t.value));
   bind("pReason", (t) => (S.reason = t.checked)); bind("pPre", (t) => (S.preshot = t.checked)); bind("pAuto", (t) => (S.autoPractice = t.checked)); bind("pGhost", (t) => (S.ghost = t.checked)); bind("pAsk", (t) => (S.ask = t.checked));

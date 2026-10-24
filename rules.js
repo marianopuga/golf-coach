@@ -15,7 +15,7 @@ export const VIDEOS = {
   maude:   { title: "To Hit Driver Straight Always Do This Before Every Swing", who: "Danny Maude", url: "https://www.youtube.com/watch?v=pGU1H5mXm98" },
   shiels:  { title: "Top 5 Driver Golf Tips", who: "Rick Shiels", url: "https://www.youtube.com/watch?v=r5u52YuNVG8" },
   irons:   { title: "How to Stop Hitting Bad Iron Shots, 3 Simple Tips", who: "Rick Shiels", url: "https://www.youtube.com/watch?v=d5M7Tc2mZCc" },
-  extra:   { title: "Not from the playlist: added because you asked for it", who: "Coach", url: "" },
+  extra:   { title: "", who: "", url: "" },
 };
 
 // Rule groups
@@ -124,7 +124,7 @@ export const RULES = [
   {
     id: "weightset", kind: "setup", auto: true, conf: "high", view: "face", clubs: ["iron", "chip"], priority: 6, src: "irons", metric: "addrWeight", tol: 0.06,
     title: "Irons and chips: weight on the left foot",
-    rule: "Push the middle of your chest slightly toward the target so about 65% of your weight is on your left foot (Rick Shiels). For a chip, put slightly more weight on the left foot and keep it there the whole swing (Videojug).",
+    rule: "Push the middle of your chest slightly toward the target so about 65% of your weight is on your left foot. For a chip, put slightly more weight on the left foot and keep it there the whole swing.",
     fix: () => "Chest a bit toward the target, more weight on your front foot.",
     why: "Weight left lets you hit the ball first, then the ground.",
     // the camera cannot weigh you: it sees where the chest and hips sit between the feet. Leaning back reads below 0.44.
@@ -133,7 +133,7 @@ export const RULES = [
   {
     id: "tilt", kind: "setup", auto: true, conf: "high", view: "face", clubs: FULL, priority: 7, src: "setup", metric: "leadShHigher", tol: 0.03,
     title: "Left shoulder higher at setup",
-    rule: "Your left hand is above the right on the grip, so your left shoulder sits higher and your upper body leans slightly behind the ball. With the driver, add a bit more tilt so you can hit up on the ball (Rick Shiels).",
+    rule: "Your left hand is above the right on the grip, so your left shoulder sits higher and your upper body leans slightly behind the ball. With the driver, add a bit more tilt so you can hit up on the ball.",
     fix: (m, g) => (g === "driver" ? "Tilt away from the target a bit, right shoulder lower." : "Right shoulder a little lower."),
     why: "It sets your arms to hang in the right place for the grip.",
     check: (m, g) => (m.tiltDeg == null ? null : g === "driver" ? m.tiltDeg >= 3 && m.leadShHigher > 0 : m.leadShHigher >= 0.02),
@@ -141,7 +141,7 @@ export const RULES = [
   {
     id: "handsahead", kind: "setup", auto: true, conf: "low", view: "face", clubs: ["iron", "chip"], priority: 8, src: "irons", metric: "handsAhead", tol: 0.05,
     title: "Hands slightly ahead of the ball",
-    rule: "Preset the handle slightly forward at setup and return to that position at impact (Rick Shiels). For a chip, rest the shaft against the inside of your left thigh (Videojug).",
+    rule: "Preset the handle slightly in front of the club head at setup and return to that position at impact. For a chip, rest the shaft against the inside of your left thigh.",
     fix: () => "Hands a little ahead of the ball.",
     why: "It helps you strike the ball before the ground.",
     check: (m, g) => (m.handsAhead == null ? null : m.handsAhead >= (g === "chip" ? 0.03 : -0.03)),
@@ -184,7 +184,7 @@ export const RULES = [
   {
     id: "tempo", kind: "motion", auto: true, conf: "low", view: "both", clubs: FULL, priority: 2, src: "extra", metric: "tempoRatio", tol: 0.5,
     title: "Smooth tempo, not a hit",
-    rule: "A flowing swing (Videojug) needs a backswing that takes clearly longer than the downswing. You said you swing too hard: the app measures how long your backswing and downswing take and tracks the ratio. Your target is set from your calibration, not from the internet.",
+    rule: "A flowing swing has a backswing that takes clearly longer than the downswing: about three beats back, one beat down. The app times both on every swing and tracks the ratio against your own calibration.",
     cue: "Too quick. Slower back, smooth start down.",
     why: "A rushed swing is all arms and no body.",
     ok: "Nice tempo.",
@@ -193,7 +193,7 @@ export const RULES = [
   {
     id: "sway", kind: "motion", auto: true, conf: "high", view: "face", clubs: SWINGS, priority: 3, src: "extra", metric: "sway", tol: 0.06,
     title: "Turn, don't sway",
-    rule: "On the backswing your hips turn instead of sliding away from the target. Not a playlist tip: included because you said you move from side to side.",
+    rule: "On the backswing your hips turn instead of sliding away from the target. Your right knee and hip stay inside your right foot.",
     cue: "Sway. Turn around your right hip, don't slide.",
     why: "Sliding moves the low point, so contact changes every swing.",
     ok: "No sway.",
@@ -216,7 +216,7 @@ export const RULES = [
   {
     id: "feet", kind: "motion", auto: true, conf: "high", view: "face", clubs: SWINGS, priority: 5, src: "extra", metric: "feetMoved", tol: 0.08,
     title: "Stay stable on your feet",
-    rule: "Your feet stay planted through the swing. Not a playlist tip: included because you said you feel unstable.",
+    rule: "Your feet stay planted through the swing. At the finish you stand balanced on your left foot, the right foot up on its toe.",
     cue: "Feet moved. Stay planted, swing easier.",
     why: "If your feet move, nothing else can repeat.",
     ok: "Stable feet.",
@@ -225,7 +225,7 @@ export const RULES = [
   {
     id: "stayleft", kind: "motion", auto: true, conf: "high", view: "face", clubs: ["iron", "chip"], priority: 6, src: "irons", metric: "impWeight", tol: 0.08,
     title: "Stay on the left side through impact",
-    rule: "Keep your weight on your left foot through the backswing and impact. Hanging back on the right foot to lift the ball gives thin and fat shots (Rick Shiels). For a chip, the weight stays on the left foot the whole swing (Videojug).",
+    rule: "Keep your weight on your left foot through the backswing and impact. Hanging back on the right foot to lift the ball gives thin and fat shots. For a chip, the weight stays on the left foot the whole swing.",
     cue: "Fell back. Stay on your left side.",
     why: "Weight back means you hit the ground or the top of the ball.",
     ok: "Weight stayed left.",
@@ -243,7 +243,7 @@ export const RULES = [
   {
     id: "upper", kind: "motion", auto: true, conf: "low", view: "face", clubs: ["driver", "hybrid"], priority: 8, src: "maude", metric: "upperAhead", tol: 0.05,
     title: "Driver: upper body behind the ball",
-    rule: "Imagine one dot in the middle of your chest and one in the middle of your pelvis. If the upper dot gets ahead of the lower dot coming through, you are in slice territory. Keep your head feeling behind the ball through impact (Danny Maude), with a slight tilt back so you hit up (Rick Shiels).",
+    rule: "Imagine one dot in the middle of your chest and one in the middle of your pelvis. If the upper dot gets ahead of the lower dot coming through, you are in slice territory. Keep your head feeling behind the ball through impact, with a slight tilt back so you hit up.",
     cue: "Upper body got ahead. Head behind the ball.",
     why: "Chest ahead of the hips is slice territory.",
     ok: "Stayed behind the ball.",
@@ -252,7 +252,7 @@ export const RULES = [
   {
     id: "flip", kind: "motion", auto: true, conf: "low", view: "face", clubs: ["iron", "chip"], priority: 9, src: "irons", metric: "impHandsAhead", tol: 0.1,
     title: "No scooping at impact",
-    rule: "At impact the grip is ahead of the ball and the left arm, wrist and shaft make one straight line. Do not flip or cup the wrist trying to lift the ball: the club gets it in the air (Rick Shiels). In a chip, arms and wrists stay passive (Videojug).",
+    rule: "At impact the grip is ahead of the ball and the left arm, wrist and shaft make one straight line. Do not flip or cup the wrist trying to lift the ball: the club gets it in the air. In a chip, arms and wrists stay passive.",
     cue: "Wrists flipped. Keep the handle ahead through the ball.",
     why: "Scooping makes thin and fat shots and costs distance.",
     ok: "Wrists stayed quiet.",
@@ -288,48 +288,48 @@ export const RULES = [
 
   // ---------------- Read and practise (not measured) ----------------
   { id: "grip-left", auto: false, src: "grip", title: "Left hand grip",
-    rule: "Let the arm hang naturally. Put the grip under the heel of the left palm and wrap the fingers around it. Looking down you see two or three knuckles. Left thumb on top of the grip, relaxed, not stretched." },
+    rule: "Let your left arm hang naturally. Place the grip under the heel pad of your left palm and across the fingers, then wrap the fingers around it, thumb on top of the grip, relaxed. Looking down you see two or three knuckles." },
   { id: "grip-right", auto: false, src: "grip", title: "Right hand grip",
-    rule: "Let the right arm hang and put the hand on the grip without bending the hand or wrist. Grip toward the tips of the fingers, not the base. The left thumb sits in the groove of the right hand. Right thumb in line with the right shoulder. Wrist in a straight line with the arm." },
+    rule: "Let your right arm hang and bring the hand onto the grip without bending the wrist. The grip sits toward the tips of the fingers, not the base. Your left thumb fits into the groove of the right palm. Keep the right wrist straight, in line with the arm, and don't look into your hands while you grip." },
   { id: "grip-style", auto: false, src: "grip", title: "Your grip: Vardon",
-    rule: "You use the Vardon grip: the little finger of your right hand rests between the index and middle fingers of your left hand." },
+    rule: "You use the Vardon grip: the little finger of your right hand comes off the grip and rests on top of your left hand, in the gap between the left index and middle fingers." },
   { id: "grip-check", auto: false, src: "grip", title: "Grip check",
     rule: "Stretch your arm out in front: if the club face stays square, the grip is right. If it turns, adjust. Do not look into your hands while gripping: it twists the wrists." },
   { id: "grip-palm", auto: false, src: "mistakes", title: "Fingers, not palm",
     rule: "Gripping with the palm of the left hand instead of the fingers opens the club face in the downswing and you slice." },
   { id: "aim", auto: false, src: "mistakes", title: "Aim straight",
-    rule: "Most golfers aim to the right without knowing it, then open the shoulders to compensate and slice. Aim straight at the target with your shoulders square. The camera needs a club on the ground to check this." },
+    rule: "Most golfers aim to the right of the target without knowing it, then open their shoulders at setup to compensate: a short body turn and a slice. Aim your feet straight at the target and keep your shoulders square to the same line." },
   { id: "setup-steps", auto: false, src: "setup", title: "Setup in five steps",
     rule: "1. Club behind the ball, face to the target, sole on the ground. 2. Feet shoulder width, ball slightly forward of middle. 3. Lean from the hips. 4. Unlock the knees, weight on the balls of the feet. 5. Take the grip, left shoulder higher." },
   { id: "driver-up", auto: false, src: "shiels", title: "Hit up with the driver",
     rule: "Like a plane taking off, the club moves up into the ball. Keep the upper body slightly tilted back through impact while the hips turn." },
   { id: "speed", auto: false, src: "shiels", title: "Don't slow down with the driver",
-    rule: "Do not guide the ball. The club head must be at its fastest through the ball and after it, with your arms fully extending. The camera is too slow to measure this." },
+    rule: "Don't guide the ball. The club head must be at its fastest through the ball and after it, with your arms fully extending and your body turning through the shot." },
   { id: "strike", auto: false, src: "shiels", title: "Hit the centre of the face",
-    rule: "Spray foot powder on the face to see where you strike. After each shot say \"center\", \"toe\" or \"heel\" and the app logs it." },
+    rule: "Spray foot powder on the club face to see where you strike. After each shot say \"center\", \"toe\" or \"heel\" and the app logs it." },
   { id: "chip-steps", auto: false, src: "chipping", title: "Chipping in three steps",
-    rule: "Use chipping up to 5 m from the green. 1. Club flat on its sole, face square to the target, about half a metre behind the ball; feet close together, body slightly open; ball in the middle. 2. Lean from the hips, legs slightly bent, a bit more weight on the left foot, shaft against the inside of the left thigh. 3. Keep the weight left, let the body lead, arms and wrists passive, back as long as through, finish facing the target." },
+    rule: "Use chipping up to 5 m from the green. 1. Club flat on its sole, face square to the target. Stand about half a metre from the ball with your feet close together, body turned slightly left of the target, ball in the middle. 2. Lean from the hips, legs slightly bent, a bit more weight on the left foot, shaft against the inside of the left thigh. 3. Keep the weight left, let the body lead, arms and wrists passive, back as long as through, finish facing the target." },
   { id: "putt-setup", auto: false, src: "putting", title: "Putting setup",
     rule: "Putter on its sole, face square to the target. Feet parallel to the target line, ball forward toward the left foot so you catch it on the upswing. Lean from the hips until your eyes are over the ball, knees slightly flexed, weight on the balls of the feet, arms hanging." },
   { id: "putt-grip", auto: false, src: "putting", title: "Putting grip",
     rule: "Right hand on, thumb straight down. Left index finger over the first two fingers of the right hand, left thumb in the groove of the right hand. Or the reverse grip, left hand below. Very light grip pressure." },
   { id: "putt-stroke", auto: false, src: "putting", title: "Putting stroke",
-    rule: "The stroke comes from the shoulders and chest; no hands or wrists, so the face stays square. Short putts go straight back and through; long putts turn a bit inside. Back as long as through, and swing through the ball instead of hitting it." },
+    rule: "The stroke comes from your shoulders and chest, rotating around the spine. Knees and head stay still and the hands stay quiet, so the face stays square. Short putts go straight back and through; long putts turn a bit inside. Back as long as through, and swing through the ball instead of hitting it." },
   { id: "bunker", auto: false, src: "bunker", title: "Greenside bunker",
-    rule: "Sand wedge, face open. Aim about 3 m left with an open stance, ball forward. Do not touch the sand at address. Hit the sand 5 to 8 cm behind the ball, hands passive, no release, swing along your stance line, keep your height, full finish." },
+    rule: "Sand wedge with the face open. Aim your body about 3 m left of the target, the same way as the face, ball forward in your stance. The club points at your navel: hands level with the ball, not in front of it. Hold the club above the sand and grip gently. Hit the sand 5 to 8 cm behind the ball, swing along your body line, not at the target, and make a full follow through." },
 ];
 
-// Ball flight words, how bad each outcome is, and what your playlist says about it.
+// Ball flight words, how bad each outcome is, and what the tips say about it.
 export const RESULT_TIPS = {
-  slice: "Slices: check your setup forearms (Danny Maude): right elbow down, right palm facing the target. Check you are not aiming right (Videojug) and that your upper body stays behind your hips at impact.",
-  hook: "Hooks: Danny Maude says to go toward the opposite feeling. Your forearms may be too closed at setup, with the left hand too far on top.",
-  pull: "Pulls left: weight on the heels makes the swing travel flat and pull the ball left (Videojug, set up mistakes).",
-  push: "Pushes right: often the aim. Most golfers aim right without knowing it (Videojug, set up mistakes).",
-  thin: "Thin shots (Rick Shiels, irons): ball not too far forward, 65% of your weight on the left foot through impact, handle ahead of the ball instead of flipping.",
-  top: "Topped shots: keep your height through the swing (Videojug) and stay on your left side (Rick Shiels).",
-  fat: "Fat shots (Rick Shiels, irons): ball position for each club, weight on the left foot instead of hanging back, handle ahead at impact.",
+  slice: "Slices: check your forearms at setup: right elbow down, right palm facing the target. Check you are not aiming right, and that your upper body stays behind your hips at impact.",
+  hook: "Hooks: go toward the opposite feeling. Your forearms may be too closed at setup, with the left hand too far on top.",
+  pull: "Pulls left: weight on the heels makes the swing travel flat and pull the ball left.",
+  push: "Pushes right: often the aim. Most golfers aim right without knowing it.",
+  thin: "Thin shots: ball not too far forward, 65% of your weight on the left foot through impact, handle ahead of the ball instead of flipping.",
+  top: "Topped shots: keep your height through the swing and stay on your left side.",
+  fat: "Fat shots: ball position for each club, weight on the left foot instead of hanging back, handle ahead at impact.",
   shank: "Shanks: check your distance to the ball at setup, arms hanging naturally.",
-  sky: "Skied shots with the driver: tee lower and hit up, not down (Rick Shiels).",
+  sky: "Skied shots with the driver: tee lower and hit up, not down.",
 };
 export const RESULTS = ["straight", "slice", "hook", "push", "pull", "thin", "top", "fat", "shank", "sky"];
 export const BAD_RESULTS = RESULTS.filter((r) => r !== "straight");

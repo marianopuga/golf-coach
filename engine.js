@@ -1,8 +1,8 @@
 // Pure logic: pose features, golfer lock, ball detection, swing detection, metrics, setup checks,
 // coaching, plans by venue, stats, rounds and reports. No DOM, so everything is tested in Node.
-import { RULES, RESULT_TIPS, BAD_RESULTS, GROUPS, BAG, CATS, RANGE_ORDER, SHORT_ORDER, VENUES, BALL_POS, clubById } from "./rules.js?v=15";
-import { badWeight, resultLabel } from "./voice.js?v=15";
-import { L, T } from "./lines.js?v=15";
+import { RULES, RESULT_TIPS, BAD_RESULTS, GROUPS, BAG, CATS, RANGE_ORDER, SHORT_ORDER, VENUES, BALL_POS, clubById } from "./rules.js?v=16";
+import { badWeight, resultLabel } from "./voice.js?v=16";
+import { L, T } from "./lines.js?v=16";
 
 const I = { nose: 0, lSh: 11, rSh: 12, lEl: 13, rEl: 14, lWr: 15, rWr: 16, lIdx: 19, rIdx: 20, lHip: 23, rHip: 24,
   lKn: 25, rKn: 26, lAn: 27, rAn: 28, lHe: 29, rHe: 30, lTo: 31, rTo: 32 };
@@ -659,7 +659,7 @@ export function reportText(sessions, sid, coachState) {
   const unparsed = (s.voiceLog || []).filter((v) => !v.parsed).slice(-40);
   if (unparsed.length) L.push("", "Words the app did not understand: " + unparsed.map((v) => `"${v.text}"`).join(", "));
   const tips = Object.entries(st.results).filter(([r, n]) => RESULT_TIPS[r] && n >= 3).map(([r]) => RESULT_TIPS[r]);
-  if (tips.length) { L.push("", "From your playlist, about your ball flight:"); tips.forEach((t) => L.push("  " + t)); }
+  if (tips.length) { L.push("", "About your ball flight:"); tips.forEach((t) => L.push("  " + t)); }
   if (coachState?.focus) L.push("", `Current focus: ${ruleById(coachState.focus.id)?.title}`);
   L.push("", "Swings: " + JSON.stringify((s.swings || []).map((w) => ({ c: w.clubId, b: w.block, v: w.view, p: w.practice ? (w.practice === "auto" ? "auto" : 1) : 0, r: resOf(w) ? resultLabel(resOf(w)) : null, said: (w.voice || []).map((x) => x.text), ball: w.ball ? { hit: w.ball.hit, seen: !!w.ball.before } : null, pre: w.setup?.logged?.map((x) => x.id), nr: w.setup?.notReady ? 1 : 0, f: (w.checks || []).filter((c) => !c.pass).map((c) => c.id), m: w.m, q: w.q }))));
   return L.join("\n");

@@ -1,6 +1,6 @@
 // Pictures of the swing: photos of one golfer (art/p3, generated from our shot list, checked by hand) with translucent guides on top.
 // Sizes, captions and guide positions in pixels come from art-data.js. Tips without an approved photo show text only.
-import { PHOTO, PDIR, SWING, TEMPO, HERO } from "./art-data.js?v=15";
+import { PHOTO, PDIR, SWING, TEMPO, HERO } from "./art-data.js?v=16";
 
 // The names of the full swing positions come with the photos (the sequence can be shorter while a photo is being redone)
 export const SEQ_LABELS = SWING.length ? SWING.map((x) => x[3]) : ["Setup", "Takeaway", "Club parallel", "Lead arm parallel", "Three quarter", "Top", "Transition", "Downswing", "Delivery",

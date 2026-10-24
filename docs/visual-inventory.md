@@ -51,6 +51,20 @@ Estados: cumple, parcial (falta la foto del error), pendiente (solo texto).
 
 Resumen: 40 cumple, 1 pendiente (grip-style).
 
+## Revisión contra los videos (24 oct, noche)
+
+Se revisaron los 9 videos cuadro a cuadro (unos 450 cuadros con los textos y gráficos del instructor), no solo las transcripciones.
+Desajustes encontrados y corregidos:
+- Eyes over the ball: el error del video es inclinarse demasiado, no quedar muy erguido. Se saca I06; falta la foto "demasiado inclinado".
+- Aim: el error del video es apuntar a la derecha y abrir los hombros para compensar. G02 mostraba lo contrario y se saca; falta la foto correcta del error.
+- Pendulum: el video solo muestra el error de pegar y frenar. Se saca H05 (backswing largo).
+- Setup in five steps: el video muestra cinco pasos, el 2 y el 5 de frente. Ahora son cinco fotos en ese orden.
+- Arms: entra C04 rehecha (solo brazos, pecho mirando la pelota) frente a A06.
+- Left hand grip: entra J01 rehecha (grip bajo la almohadilla del talón de la palma, cruzando los dedos) antes de J02.
+- Textos: grip izquierdo y derecho, Vardon, aim, chipping, putt stroke y bunker reescritos según lo que el video muestra (por ejemplo, en el bunker el palo apunta al ombligo y las manos no van adelante).
+- Speed y strike: los videos usan driver; las fotos son de hierro. Quedan hasta que lleguen las versiones con driver.
+Sin referencias a videos ni coaches en los textos; cada consejo termina con un enlace discreto "Watch the lesson".
+
 ## Revisión del 24 oct (tarde), después de tus capturas
 
 Sacadas de la app hasta que lleguen rehechas:

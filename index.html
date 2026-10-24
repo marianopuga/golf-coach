@@ -226,6 +226,8 @@ details.chap[open] > summary::after { transform: rotate(225deg) translateY(-2px)
 details.chap .body { display: grid; gap: 18px; padding-bottom: 20px }
 .tip { display: grid; gap: 10px; border-top: 1px solid var(--border); padding-top: 16px } .tip:first-child { border-top: 0; padding-top: 0 }
 .tip small { color: var(--text-2) }
+.tip .watch { justify-self: start; display: inline-flex; align-items: center; gap: 5px; min-height: 32px; font-size: 13px; font-weight: 600; color: var(--text-2); text-decoration: none }
+.tip .watch svg { color: var(--primary) }
 .cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px }
 .cmp.one { grid-template-columns: minmax(0, 220px) }
 .cmp figure { margin: 0; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md); padding: 8px 4px 2px; position: relative; display: grid }
@@ -375,6 +377,6 @@ dialog#confirm .acts2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
   </div>
 </section>
 
-<script type="module" src="app.js?v=15"></script>
+<script type="module" src="app.js?v=16"></script>
 </body>
 </html>

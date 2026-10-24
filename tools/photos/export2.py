@@ -98,7 +98,7 @@ def stance_lines(img):
 def F(img, label, sub, tone="n", g=(), box=FACE, tag="f"): return dict(img=img, label=label, sub=sub, tone=tone, g=list(g), box=box, tag=tag)
 LOWF, UPF, HANDF = (212, 590, 812, 1290), (262, 280, 762, 905), (287, 560, 787, 1285)
 LEGD, ARMD, REACHD = (60, 560, 620, 1230), (230, 380, 630, 880), (120, 330, 680, 1000)
-CHIP, DRV, WIDE, POST = (90, 100, 1000, 1330), (300, 760, 900, 1290), (20, 200, 1020, 1330), (112, 60, 912, 1290)
+CHIP, DRV, WIDE, POST, AIMD = (90, 100, 1000, 1330), (300, 760, 900, 1290), (20, 200, 1020, 1330), (112, 60, 912, 1290), (120, 190, 920, 1350)
 A01, A06, A10, FIN_ = "A01", "A06", "A10", "A15"   # A15 is the finish until A16 and A17 come back with the hands in the right order
 TB = lambda t: "b" if t == "b" else "w"     # guide tone for a panel tone
 # Labels on the photo say what each line is. al: c centred on the point, l starts at the point, r ends at it.
@@ -126,7 +126,7 @@ def turn_line(i, t="w"):
     r, l = P(i, "RS"), P(i, "LS"); d = (l[0] - r[0], l[1] - r[1])
     return [["line", (r[0] - d[0] * .2, r[1] - d[1] * .2), (l[0] + d[0] * .2, l[1] + d[1] * .2), TB(t), 0], tag(mid(r, l), "Shoulders", TB(t), "c", 0, 34)]
 HEAD_Y = 308                                     # top of the cap at setup (A01), the same frame as A10 and C06
-CU = {"J02": (210, 40, 1410, 940), "J03": (200, 40, 1400, 940), "J04": (268, 15, 1468, 915),
+CU = {"J01": (168, 40, 1368, 940), "J02": (210, 40, 1410, 940), "J03": (200, 40, 1400, 940), "J04": (268, 15, 1468, 915),
       "L01": (189, 75, 1389, 975), "K": (480, 170, 1080, 770), "L02": (200, 94, 1400, 994), "M": (0, 0, 1536, 1024)}
 TIPS = {
  "stance": ("variants", 0, [F(A01, "7 iron", "Feet about shoulder width", g=stance_g(A01)), F("D01", "Driver", "Wider than your shoulders", g=stance_g("D01"))]),
@@ -147,13 +147,14 @@ TIPS = {
                                                                                           tag(P("B01", "RE"), "Right forearm", "w", "r", -14)], box=ARMD, tag="arm")]),
  "heels": ("pair", 0, [F("B01", "Balls of the feet", "Balanced, ready to move", "g", [weight("B01", 62, ["Heel", "Toe"], "RHe", "RT", 40)], DTL, "d"),
                        F("B08", "On the heels", "Sitting back", "b", [weight("B08", 12, ["Heel", "Toe"], "RHe", "RT", 40)], DTL, "d")]),
- "setup-steps": ("sequence", 3, [F("F01", "Club behind the ball", "Face to the target, sole down", box=DTL, tag="d"),
-                                 F("F02", "Grip on, standing tall", "Feet set, ball a little forward", box=DTL, tag="d"),
+ "setup-steps": ("sequence", 4, [F("F01", "Club behind the ball", "Face to the target, sole on the ground", box=DTL, tag="d"),
+                                 F(A01, "Feet and ball", "Shoulder width, ball slightly forward", g=stance_g(A01)),
                                  F("F03", "Lean from the hips", "Back straight", g=spine_g("F03"), box=DTL, tag="d"),
-                                 F("B01", "Unlock the knees", "Weight on the balls of the feet", g=leg_g("B01"), box=DTL, tag="d")]),
- "aim": ("pair", 0, [F("G01", "Parallel to the sticks", "Feet, hips and shoulders on the line", "g", box=DTL, tag="d"), F("G02", "Feet off the line", "Left foot pulled back, aimed left", "b", box=DTL, tag="d")]),
- "eyesover": ("pair", 0, [F(i, l, s, t, eyes_g(i, t), DTL, "d") for i, l, s, t in (("I05", "Eyes over the ball", "You see the line", "g"), ("I06", "Too upright", "Eyes inside the ball", "b"))]),
- "arms": ("sequence", 1, [F(A01, "Setup", "Shoulders square to the ball", g=turn_line(A01)), F(A06, "Top", "Chest turned away, the arms only follow", g=turn_line(A06))]),
+                                 F("B01", "Unlock the knees", "Weight on the balls of the feet", g=leg_g("B01"), box=DTL, tag="d"),
+                                 F("A01x", "Take the grip", "Left shoulder higher, spine behind the ball", g=shoulders("A01x") + [tag((P("A01x", "RS")[0] - (P("A01x", "LS")[0] - P("A01x", "RS")[0]) * .3, P("A01x", "RS")[1]), "Level", "w", "l", 4, -26)], tag="fx")]),
+ "aim": ("single", 0, [F("G01", "Square to the target", "Feet and shoulders parallel to the target line", g=[tag((392, 1300), "Feet line"), tag((818, 1300), "Target line")], box=AIMD, tag="aim")]),
+ "eyesover": ("single", 0, [F("I05", "Eyes over the ball", "Lean from the hips, not too far over", g=eyes_g("I05"), box=DTL, tag="d")]),
+ "arms": ("pair", 0, [F(A06, "Body turned", "Shoulders turn, the arms follow", "g", turn_line(A06)), F("C04", "Arms only", "Chest still facing the ball", "b", turn_line("C04", "b"))]),
  "sway": ("sequence", 1, [F(i, l, s, g=foot_line(i, "RA", P(i, "RS")[1] - 30, dx=-26)) for i, l, s in
                           ((A01, "Setup", "A line up from your right foot"), (A06, "Top", "Hips turned, still inside the line"))]),
  "posture": ("pair", 1, [F(A01, "Setup", "The line sits on top of your head", g=[["line", (112, HEAD_Y), (912, HEAD_Y), "w", 0], tag((898, HEAD_Y), "Head at setup", "w", "r")], box=POST, tag="post"),
@@ -171,20 +172,21 @@ TIPS = {
  "upper": ("pair", 0, [F("D02", "Chest behind the pelvis", "Head behind the ball", "g", chest_pelvis("D02", "g")), F("D03", "Chest ahead", "Lunging at the ball", "b", chest_pelvis("D03", "b"))]),
  "driver-up": ("single", 0, [F("D02", "Hitting up", "The club rises into the ball", g=[["arrow", (P("D02", "ball")[0] - 190, P("D02", "ball")[1] + 34), (P("D02", "ball")[0] + 170, P("D02", "ball")[1] - 31), "w"],
                                                                                       tag((P("D02", "ball")[0] + 160, P("D02", "ball")[1] - 64), "Club rising", "w", "r")], box=DRV, tag="drv")]),
- "speed": ("single", 0, [F("A11", "Arms fully extended", "Fastest after the ball, with every club", box=WIDE, tag="w")]),
+ "speed": ("single", 0, [F("A11", "Arms fully extended", "Fastest through the ball and after it", box=WIDE, tag="w")]),
  "chipstance": ("pair", 0, [F("H01", "Feet close together", "Stance slightly open", "g", stance_g("H01")), F("H02", "Too wide", "Full swing stance", "b", stance_g("H02"))]),
  "vshape": ("sequence", 0, [F(i, l, s, g=vee(i, "n"), box=CHIP, tag="chip") for i, l, s in
                             (("H01", "Setup", "Shoulders and hands make a V"), ("H03", "Back", "The V turns with the body"), ("H04", "Through", "Same V after the ball"))]),
  "pendulum": ("pair", 0, [F(i, l, s, t, (), CHIP, "chip") for i, l, s, t in
-                          (("H03", "Back", "Hands to the thigh", "g"), ("H04", "Through", "The same length", "g"), ("H05", "Back", "Far too long", "b"), ("H06", "Through", "Stops after the ball", "b"))]),
+                          (("H03", "Back", "Hands to the thigh", "g"), ("H04", "Through", "The same length", "g"), ("H06", "Stopped", "Hit the ball and stopped", "b"))]),
  "chip-steps": ("sequence", 0, [F(i, l, s, box=CHIP, tag="chip") for i, l, s, p in
                                 (("H01", "Set up", "Feet close, ball in the middle", 60), ("H03", "Back", "Small, wrists quiet, weight left", 60), ("H04", "Through", "As long as the backswing", 70))]),
  "headstill": ("pair", 0, [F(i, l, s, t, [["line", (512, 250), (512, 560), TB(t), 0], tag((512, 590), "Head at setup", TB(t))]) for i, l, s, t in
                            (("I03", "Head still", "Eyes stay on the spot", "g"), ("I04", "Head turns", "Following the ball", "b"))]),
  "putt-setup": ("variants", 0, [F("I01", "From the front", "Ball toward the left foot", g=centre_g("I01", 26)), F("I05", "From behind", "Eyes over the ball", g=eyes_g("I05"), box=DTL, tag="d")]),
  "putt-stroke": ("sequence", 0, [F(i, l, s, g=[["path", [P(i, "RS"), P(i, "hands"), P(i, "LS"), P(i, "RS")], "w"], tag(P(i, "hands"), "Triangle", "w", dy=40)]) for i, l, s in
-                                 (("I01", "Address", "Shoulders and arms make a triangle"), ("I02", "Back", "The shoulders rock it back"), ("I03", "Through", "As long as the backswing"))]),
- "grip-left": ("single", 0, [F("J02", "Left hand on", "Grip under the heel pad, two or three knuckles showing", box=CU["J02"], tag="c")]),
+                                 (("I01", "Address", "Shoulders and arms make a triangle"), ("I02", "Back", "The shoulders rock, hands quiet"), ("I03", "Through", "As long as the back, head still"))]),
+ "grip-left": ("sequence", 0, [F("J01", "Under the heel pad", "Across the fingers, from the index finger to under the heel pad", box=CU["J01"], tag="c"),
+                               F("J02", "Wrap the fingers", "Thumb on top, two or three knuckles showing", box=CU["J02"], tag="c")]),
  "grip-right": ("sequence", 1, [F("J03", "Right hand on", "In the fingers, wrist straight", box=CU["J03"], tag="c"),
                                 F("J04", "Grip complete", "Left thumb inside the right palm", box=CU["J04"], tag="c")]),
  "grip-check": ("pair", 0, [F(i, l, s, t, [["line", P(i, "hosel"), (P(i, "hosel")[0], P(i, "hosel")[1] - 135), "n", 0],
