@@ -1,6 +1,6 @@
 # Golf Coach: inventario visual
 
-Estado al 24 oct 2026. Fuente: rules.js (39 consejos), views.js (biblioteca, Today), app.js (foto del veredicto en vivo), art.js, art-data.js.
+Estado al 25 oct 2026. Fuente: rules.js (39 consejos), views.js (biblioteca, Today), app.js (foto del veredicto en vivo), art.js, art-data.js.
 Estrategia: fotos generadas con ChatGPT (mismo golfista, misma cancha al amanecer) + guías translúcidas dibujadas por la app.
 Fuente de las imágenes: el set final de 71 fotos (una por ID). Las fotos desde atrás del primer lote conservan el retoque de la pelota.
 Estados: cumple, parcial (falta la foto del error), pendiente (solo texto).
@@ -35,21 +35,34 @@ Estados: cumple, parcial (falta la foto del error), pendiente (solo texto).
 | headstill | Putt: cabeza quieta | Línea en la cabeza | I03, I04 | cumple |
 | grip-left | Mano izquierda | Dos pasos | J01, J02 | cumple |
 | grip-right | Mano derecha | Dos pasos | J03, J04 | cumple |
-| grip-style | Vardon | Primer plano del meñique | (J04) | pendiente: ChatGPT falló tres veces; mejor una foto real de tu agarre |
+| grip-style | Vardon | Primer plano con el meñique derecho marcado | J04v | cumple |
 | grip-check | Cara cuadrada con los brazos estirados | Correcto e incorrecto, línea de la cara y vertical | K01, K02 | cumple |
 | grip-palm | Dedos, no palma | Correcto e incorrecto | L01, L02 | cumple |
 | aim | Pies y hombros paralelos | Correcto e incorrecto | G01, G02 | cumple (G02 muestra los pies abiertos, no cerrados) |
 | setup-steps | Postura en pasos | Secuencia de 4 | F01, F02, F03, B01 | cumple |
 | driver-up | Pegar subiendo | Flecha de la trayectoria | D02 | cumple |
-| speed | Velocidad después de la pelota | Una foto | A11 | cumple |
-| strike | Centro de la cara | Centro, punta y talón | M01, M02, M03 | cumple |
+| speed | Velocidad después de la pelota | Driver después del impacto, brazos extendidos, tee sin pelota | D04 | cumple |
+| strike | Centro de la cara | Driver con talco: centro, punta y talón, con la marca en un aro | M04, M05, M06 | cumple |
 | chip-steps | Chip en tres pasos | Secuencia con barra de peso | H01, H03, H04 | cumple |
 | putt-setup | Postura de putt | De frente y desde atrás | I01, I05 | cumple |
 | putt-grip | Agarre de putt | Primer plano | J05 | cumple (detalle: grip de hierro) |
 | putt-stroke | Golpe con los hombros | Secuencia con el triángulo | I01, I02, I03 | cumple |
 | bunker | Salida de bunker | Postura y golpe | N01, N02 | cumple |
 
-Resumen: 40 cumple, 1 pendiente (grip-style).
+Resumen: 41 cumple. Faltan las fotos del error en aim (G02) y en eyes over the ball (I07); putt-grip sigue en texto (J05).
+
+## Lote del 25 oct
+
+Aprobadas e integradas:
+- J04v: Vardon a la altura del pecho, el meñique derecho sobre la mano izquierda. Grip-style deja de ser solo texto.
+- D04: driver después del impacto, de frente. Reemplaza a A11 (hierro) en speed, como en el video.
+- M04, M05 y M06: cara del driver con talco, marca al centro, en la punta y en el talón. Reemplazan a M01 a M03 (hierro) en strike. Punta: más corta y tiende al gancho; talón: más corta y tiende al slice.
+
+Rechazadas:
+- J05: es un hierro con grip redondo, no un putter, y la mano izquierda queda sobre el extremo del grip sin tomarlo.
+- G02: los pies, la cadera y los hombros apuntan a la izquierda (se ve la espalda completa). El error del video es pies a la derecha con hombros abiertos.
+- I07: los ojos quedan por dentro de la pelota y las piernas casi rectas; no muestra el exceso de inclinación.
+- Foto extra de putt de frente: la mano izquierda no toma el grip, y de frente no se puede ver si los ojos pasan la pelota.
 
 ## Revisión contra los videos (24 oct, noche)
 

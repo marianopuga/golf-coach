@@ -99,6 +99,7 @@ def F(img, label, sub, tone="n", g=(), box=FACE, tag="f"): return dict(img=img, 
 LOWF, UPF, HANDF = (212, 590, 812, 1290), (262, 280, 762, 905), (287, 560, 787, 1285)
 LEGD, ARMD, REACHD = (60, 560, 620, 1230), (230, 380, 630, 880), (120, 330, 680, 1000)
 CHIP, DRV, WIDE, POST, AIMD = (90, 100, 1000, 1330), (300, 760, 900, 1290), (20, 200, 1020, 1330), (112, 60, 912, 1290), (120, 190, 920, 1350)
+SPD = (0, 230, 1024, 1290)
 A01, A06, A10, FIN_ = "A01", "A06", "A10", "A15"   # A15 is the finish until A16 and A17 come back with the hands in the right order
 TB = lambda t: "b" if t == "b" else "w"     # guide tone for a panel tone
 # Labels on the photo say what each line is. al: c centred on the point, l starts at the point, r ends at it.
@@ -127,7 +128,7 @@ def turn_line(i, t="w"):
     return [["line", (r[0] - d[0] * .2, r[1] - d[1] * .2), (l[0] + d[0] * .2, l[1] + d[1] * .2), TB(t), 0], tag(mid(r, l), "Shoulders", TB(t), "c", 0, 34)]
 HEAD_Y = 308                                     # top of the cap at setup (A01), the same frame as A10 and C06
 CU = {"J01": (168, 40, 1368, 940), "J02": (210, 40, 1410, 940), "J03": (200, 40, 1400, 940), "J04": (268, 15, 1468, 915),
-      "L01": (189, 75, 1389, 975), "K": (480, 170, 1080, 770), "L02": (200, 94, 1400, 994), "M": (0, 0, 1536, 1024)}
+      "L01": (189, 75, 1389, 975), "K": (480, 170, 1080, 770), "J04v": (318, 90, 1318, 1010), "L02": (200, 94, 1400, 994), "M": (0, 0, 1536, 1024)}
 TIPS = {
  "stance": ("variants", 0, [F(A01, "7 iron", "Feet about shoulder width", g=stance_g(A01)), F("D01", "Driver", "Wider than your shoulders", g=stance_g("D01"))]),
  "ballpos": ("variants", 1, [F("E01", "Wedge", "In the middle", g=centre_g("E01"), box=LOWF, tag="low"),
@@ -172,7 +173,8 @@ TIPS = {
  "upper": ("pair", 0, [F("D02", "Chest behind the pelvis", "Head behind the ball", "g", chest_pelvis("D02", "g")), F("D03", "Chest ahead", "Lunging at the ball", "b", chest_pelvis("D03", "b"))]),
  "driver-up": ("single", 0, [F("D02", "Hitting up", "The club rises into the ball", g=[["arrow", (P("D02", "ball")[0] - 190, P("D02", "ball")[1] + 34), (P("D02", "ball")[0] + 170, P("D02", "ball")[1] - 31), "w"],
                                                                                       tag((P("D02", "ball")[0] + 160, P("D02", "ball")[1] - 64), "Club rising", "w", "r")], box=DRV, tag="drv")]),
- "speed": ("single", 0, [F("A11", "Arms fully extended", "Fastest through the ball and after it", box=WIDE, tag="w")]),
+ "speed": ("single", 0, [F("D04", "Arms fully extended", "Fastest through the ball and after it", box=SPD, tag="w",
+                           g=[tag((440, 512), "Arms extended", "w"), ["ring", (432, 1150), 26, "w"], tag((432, 1205), "Ball gone", "w")])]),
  "chipstance": ("pair", 0, [F("H01", "Feet close together", "Stance slightly open", "g", stance_g("H01")), F("H02", "Too wide", "Full swing stance", "b", stance_g("H02"))]),
  "vshape": ("sequence", 0, [F(i, l, s, g=vee(i, "n"), box=CHIP, tag="chip") for i, l, s in
                             (("H01", "Setup", "Shoulders and hands make a V"), ("H03", "Back", "The V turns with the body"), ("H04", "Through", "Same V after the ball"))]),
@@ -189,13 +191,16 @@ TIPS = {
                                F("J02", "Wrap the fingers", "Thumb on top, two or three knuckles showing", box=CU["J02"], tag="c")]),
  "grip-right": ("sequence", 1, [F("J03", "Right hand on", "In the fingers, wrist straight", box=CU["J03"], tag="c"),
                                 F("J04", "Grip complete", "Left thumb inside the right palm", box=CU["J04"], tag="c")]),
+ "grip-style": ("single", 0, [F("J04v", "Little finger on top", "Right little finger over the gap between the left index and middle fingers", box=CU["J04v"], tag="c",
+                                g=[["ring", (838, 628), 74, "w"], tag((925, 628), "Little finger", "w", "l")])]),
  "grip-check": ("pair", 0, [F(i, l, s, t, [["line", P(i, "hosel"), (P(i, "hosel")[0], P(i, "hosel")[1] - 135), "n", 0],
                                          ["line", P(i, "hosel"), (P(i, "hosel")[0] + (P(i, "toe")[0] - P(i, "hosel")[0]) * 1.3, P(i, "hosel")[1] + (P(i, "toe")[1] - P(i, "hosel")[1]) * 1.3), TB(t), 1],
                                          tag((P(i, "hosel")[0] - 12, P(i, "hosel")[1] - 120), "Vertical", "w", "r")], CU["K"], "c")
                             for i, l, s, t in (("K01", "Face square", "Toe points straight up", "g"), ("K02", "Face open", "Toe turned to the right", "b"))]),
  "grip-palm": ("pair", 0, [F("L01", "In the fingers", "Across the base of the fingers", "g", box=CU["L01"], tag="c"), F("L02", "In the palm", "Opens the face, you slice", "b", box=CU["L02"], tag="c")]),
- "strike": ("pair", 0, [F("M01", "Centre", "Solid and straight", "g", box=CU["M"], tag="c"), F("M02", "Toe", "Weak, curves away", "b", box=CU["M"], tag="c"),
-                        F("M03", "Heel", "Weak, often a shank", "b", box=CU["M"], tag="c")]),
+ "strike": ("pair", 0, [F(i, l, s, t, [["ring", c, r, TB(t)], tag((320, 885), "Toe", "w"), tag((1180, 870), "Heel", "w")], CU["M"], "c") for i, l, s, t, c, r in
+                        (("M04", "Centre", "Longest and straightest", "g", (727, 580), 116), ("M05", "Toe", "Shorter, tends to hook", "b", (455, 525), 108),
+                         ("M06", "Heel", "Shorter, tends to slice", "b", (1141, 530), 92))]),
  "bunker": ("sequence", 1, [F("N01", "Open setup", "Aim left, face open, ball forward", box=DTL, tag="d"), F("N02", "Splash the sand", "Enter 5 to 8 cm behind the ball", box=FACE, tag="f")]),
 }
 # The full swing ends at A15 until A16 and A17 are redone (their hands are reversed on the grip)
