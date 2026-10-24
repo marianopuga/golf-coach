@@ -45,11 +45,11 @@ Estados: cumple, parcial (falta la foto del error), pendiente (solo texto).
 | strike | Centro de la cara | Driver con talco: centro, punta y talón, con la marca en un aro | M04, M05, M06 | cumple |
 | chip-steps | Chip en tres pasos | Secuencia con barra de peso | H01, H03, H04 | cumple |
 | putt-setup | Postura de putt | De frente y desde atrás | I01, I05 | cumple |
-| putt-grip | Agarre de putt | Primer plano | J05 | cumple (detalle: grip de hierro) |
+| putt-grip | Agarre de putt | Solo texto | (ninguna) | cumple, en texto por decisión |
 | putt-stroke | Golpe con los hombros | Secuencia con el triángulo | I01, I02, I03 | cumple |
 | bunker | Salida de bunker | Postura y golpe | N01, N02 | cumple |
 
-Resumen: 41 cumple. Putt-grip sigue en texto: ChatGPT falló cuatro veces con J05.
+Resumen: 41 cumple. Putt-grip queda en texto por decisión, después de cinco intentos fallidos de ChatGPT con J05 (el último con tres manos).
 
 ## Reintento del 25 oct
 
