@@ -28,17 +28,17 @@ Estados: cumple, parcial (falta la foto del error), pendiente (solo texto).
 | feet | Pies firmes | Línea sobre el pie izquierdo, aro en el pie | A16, C07 | cumple |
 | transfer | Peso derecha y luego izquierda | Secuencia de 4 con barra de peso | A01, A06, A10, A16 | cumple |
 | stayleft | Peso a la izquierda en el impacto | Barra de peso | A10, C08 | cumple |
-| upper | Driver: pecho detrás de la pelvis | Puntos de pecho y pelvis | D02 (D03) | parcial (rehacer D03) |
+| upper | Driver: pecho detrás de la pelvis | Puntos de pecho y pelvis | D02, D03 | cumple |
 | flip | Brazo y palo en línea | Línea hombro mano cabeza del palo | A10, C09 | cumple |
-| vshape | La V se mantiene | Secuencia de 3 más el error | H01, H03, H04, H07 | cumple |
+| vshape | La V se mantiene | Secuencia de 3 más el error | H01, H03, H04, H07 | cumple (la cámara ya no lo mide: no ve muñecas ni palo) |
 | pendulum | Atrás igual que adelante | Dos correctas, dos incorrectas | H03 a H06 | cumple |
 | headstill | Putt: cabeza quieta | Línea en la cabeza | I03, I04 | cumple |
 | grip-left | Mano izquierda | Dos pasos | J01, J02 | cumple |
 | grip-right | Mano derecha | Dos pasos | J03, J04 | cumple |
-| grip-style | Vardon | Primer plano del meñique | (J04) | pendiente |
-| grip-check | Cara cuadrada con los brazos estirados | Correcto e incorrecto | (K01, K02) | pendiente |
+| grip-style | Vardon | Primer plano del meñique | (J04) | pendiente: ChatGPT falló tres veces; mejor una foto real de tu agarre |
+| grip-check | Cara cuadrada con los brazos estirados | Correcto e incorrecto, línea de la cara y vertical | K01, K02 | cumple |
 | grip-palm | Dedos, no palma | Correcto e incorrecto | L01, L02 | cumple |
-| aim | Pies y hombros paralelos | Correcto e incorrecto | G01 (G02) | parcial (rehacer G02) |
+| aim | Pies y hombros paralelos | Correcto e incorrecto | G01, G02 | cumple (G02 muestra los pies abiertos, no cerrados) |
 | setup-steps | Postura en pasos | Secuencia de 4 | F01, F02, F03, B01 | cumple |
 | driver-up | Pegar subiendo | Flecha de la trayectoria | D02 | cumple |
 | speed | Velocidad después de la pelota | Una foto | A11 | cumple |
@@ -49,7 +49,11 @@ Estados: cumple, parcial (falta la foto del error), pendiente (solo texto).
 | putt-stroke | Golpe con los hombros | Secuencia con el triángulo | I01, I02, I03 | cumple |
 | bunker | Salida de bunker | Postura y golpe | N01, N02 | cumple |
 
-Resumen: 37 cumple, 2 parciales, 2 pendientes.
+Resumen: 40 cumple, 1 pendiente (grip-style).
+
+## Rehechas del 24 oct
+
+D03 (pelota en el talón izquierdo), G02, K01 y K02 aprobadas. J04 sigue sin mostrar el meñique del Vardon.
 
 ## Control de detalle del set final
 

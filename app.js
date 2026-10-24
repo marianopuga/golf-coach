@@ -1,15 +1,15 @@
 // Live session: camera, pose model, pre-shot check, swing detection, ball detection, the coach's voice and listening.
 import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-import { CAMERA, BAG, clubById } from "./rules.js?v=13";
+import { CAMERA, BAG, clubById } from "./rules.js?v=14";
 import { features, frameHint, pickGolfer, SwingDetector, analyze, runChecks, setupCheck, setupMetrics, averageFeatures, coach, ruleById,
-  dispute, skipFocus, buildPlan, calibrationPlan, keyTimes, groupOf, ballRoi, detectBall, ballHit, resOf } from "./engine.js?v=13";
-import { parseUtterance } from "./voice.js?v=13";
-import { L, T, blockCall } from "./lines.js?v=13";
-import * as Speech from "./speech.js?v=13";
-import * as Listen from "./listen.js?v=13";
-import { artFor } from "./art.js?v=13";
-import { DB, S, save, frames } from "./store.js?v=13";
-import * as views from "./views.js?v=13";
+  dispute, skipFocus, buildPlan, calibrationPlan, keyTimes, groupOf, ballRoi, detectBall, ballHit, resOf } from "./engine.js?v=14";
+import { parseUtterance } from "./voice.js?v=14";
+import { L, T, blockCall } from "./lines.js?v=14";
+import * as Speech from "./speech.js?v=14";
+import * as Listen from "./listen.js?v=14";
+import { artFor } from "./art.js?v=14";
+import { DB, S, save, frames } from "./store.js?v=14";
+import * as views from "./views.js?v=14";
 
 const $ = (s) => document.querySelector(s);
 const camWord = (v) => (v === "dtl" ? "camera behind" : "camera in front");
@@ -56,16 +56,30 @@ $("#voiceNoteClose") && ($("#voiceNoteClose").onclick = () => showVoiceNote(fals
 $("#voiceNoteOpen") && ($("#voiceNoteOpen").onclick = () => { location.href = Listen.safariLink(); });
 
 // ---------------- Pose model ----------------
-let landmarker = null;
-async function initModel() {
-  const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+// The full model measures fine positions (head, hands, short strokes) clearly better than the lite one in the
+// photo exam (test/photo-exam.test.mjs), so it is the default. If this phone cannot keep up (under 18 frames a
+// second for 5 seconds) the app switches to the lite model once and remembers it.
+let landmarker = null, vision = null, poseModel = S.poseModel || "full", swapping = false, slowFullSince = 0;
+const MODEL_URL = (k) => `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${k}/float16/1/pose_landmarker_${k}.task`;
+async function makeLandmarker(kind) {
+  vision ??= await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
   const make = (delegate) => PoseLandmarker.createFromOptions(vision, {
-    baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task", delegate },
+    baseOptions: { modelAssetPath: MODEL_URL(kind), delegate },
     runningMode: "VIDEO", numPoses: 2, minPoseDetectionConfidence: 0.5, minTrackingConfidence: 0.5,
   });
-  try { landmarker = await make("GPU"); } catch (e) { landmarker = await make("CPU"); }
+  try { return await make("GPU"); } catch (e) { return await make("CPU"); }
 }
-const modelReady = initModel().then(() => views.setModelState("Camera coach ready. It works offline from now on."))
+async function initModel() {
+  try { landmarker = await makeLandmarker(poseModel); }
+  catch (e) { if (poseModel === "lite") throw e; poseModel = "lite"; landmarker = await makeLandmarker("lite"); }
+}
+function useLiteModel() {
+  if (swapping || poseModel === "lite") return;
+  swapping = true;
+  makeLandmarker("lite").then((lm) => { const old = landmarker; landmarker = lm; poseModel = S.poseModel = "lite"; save(); try { old?.close(); } catch (e) {} })
+    .catch(() => {}).finally(() => { swapping = false; slowFullSince = 0; });
+}
+const modelReady = initModel().then(() => views.setModelState(`Camera coach ready (${poseModel === "full" ? "precise" : "fast"} model). It works offline from now on.`))
   .catch((e) => views.setModelState("Could not load the pose model. Check your internet and reopen the app. " + e.message));
 
 // ---------------- Session state ----------------
@@ -89,7 +103,7 @@ function verdict(kind, word, what, cue, ruleId = null) {
 }
 
 async function startCamera() {
-  stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+  stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 60 } }, audio: false });
   video.srcObject = stream; await video.play().catch(() => {});
 }
 
@@ -177,6 +191,7 @@ function stop() {
   if (s && !s.swings.length) DB.sessions = DB.sessions.filter((x) => x !== s);
   save(); $("#live").hidden = true; document.body.classList.remove("live-on"); showVoiceNote(false);
   if (s?.swings.length) views.openReport(s.id, "today"); else views.go("today");
+  views.pruneFrames().catch(() => {});
 }
 function setPaused(p) {
   if (!running) return;
@@ -222,6 +237,7 @@ function loop() {
     fpsCount++;
     if (now - fpsT0 > 1000) {
       fps = (fpsCount * 1000) / (now - fpsT0); fpsCount = 0; fpsT0 = now;
+      if (poseModel === "full" && fps < 18) { slowFullSince ||= now; if (now - slowFullSince > 5000 && det.state !== "swing") useLiteModel(); } else slowFullSince = 0;
       if (fps < 12) { slowSince ||= now; if (!slowWarned && now - slowSince > 4000) { slowWarned = true; say(L.slow); } } else slowSince = 0;
       const left = minutesLeft();
       if (left != null) for (const mk of [15, 5, 0]) if (left <= mk && !timeWarned[mk]) { timeWarned[mk] = 1; say(mk ? T.minutes(mk) : L.timeUp, { queue: true }); }
@@ -269,7 +285,7 @@ function preShot(now) {
   const a = averageFeatures(still); if (!a) return;
   const ball = findBall(a);
   const m = setupMetrics(a, S.view, S.clubId, group(), ball);
-  const sc = setupCheck(m, group(), S.view, { selected: S.prechecks, muted: session.muted });
+  const sc = setupCheck(m, group(), S.view, { selected: S.prechecks, muted: session.muted, tune: DB.coach.tune });
   const prev = pre;
   pre = { t: now, addr: a, ball: ball || prev?.ball || null, m, sc, ready: sc.ready, said: prev?.said || [], readySaid: prev?.readySaid || false, lastSay: prev?.lastSay || 0, lastId: prev?.lastId || null };
   if (session.calib || !S.preshot) return; // calibration: logged, never spoken
@@ -292,9 +308,9 @@ function onSwing(sw) {
   const before = p0?.ball ?? null, after = before ? findBall(addrFeat) : null, hit = ballHit(before, after);
   let m;
   try { m = analyze(sw, view, { clubId, group: grp, ball: before }); } catch (e) { console.warn(e); return; }
-  const checks = grp === "warmup" ? [] : runChecks(m, grp, view, { kind: "motion", muted: session.muted });
-  const sc = p0?.sc || setupCheck(m, grp, view, { selected: S.prechecks, muted: session.muted });
-  const q = { fps: Math.round(fps), poses: lastPoses, down: m.downFrames };
+  const checks = grp === "warmup" ? [] : runChecks(m, grp, view, { kind: "motion", muted: session.muted, tune: DB.coach.tune });
+  const sc = p0?.sc || setupCheck(m, grp, view, { selected: S.prechecks, muted: session.muted, tune: DB.coach.tune });
+  const q = { fps: Math.round(fps), poses: lastPoses, down: m.downFrames, model: poseModel };
   const recW = {
     id: uid(), t: Date.now(), clubId, club: grp, cat: blk ? (blk.cat === "random" ? clubById(clubId).cat : blk.cat) : clubById(clubId).cat, block: blk?.phase || null, blockIdx: session.blockIdx ?? null,
     view, m, checks, setup: { checks: sc.checks, logged: sc.logged, ready: sc.ready, notReady: !sc.ready && !session.calib, said: p0?.said || [] },
@@ -305,7 +321,7 @@ function onSwing(sw) {
   // Practice swing: the ball is still there, or no ball was under you once detection has proven reliable here
   const autoPractice = S.autoPractice && !session.calib && grp !== "bunker" && (hit === false || (hit === null && ballReliability() >= 0.8));
   session.swings.push(recW); lastSwing = recW;
-  renderThumbs(sw, recW.id);
+  renderThumbs(sw, recW.id, before);
   $("#vTempo").textContent = m.tempoRatio ? `Tempo ${m.tempoRatio.toFixed(1)} : 1` : "";
   if (autoPractice) {
     recW.practice = "auto";
@@ -380,7 +396,7 @@ function markPractice() {
 function markWrong() {
   const id = lastSwing?.items?.[0]?.id;
   if (!id || lastSwing.disputed) { say(L.nothingUndo); return; }
-  lastSwing.disputed = id; dispute(DB.coach, id);
+  lastSwing.disputed = id; dispute(DB.coach, id, lastSwing.m, lastSwing.club); // learns how far off the check was
   session.disputes[id] = (session.disputes[id] || 0) + 1;
   if (session.disputes[id] >= 2 && !session.muted.includes(id)) { session.muted.push(id); say(T.stopChecking(ruleById(id).title)); }
   else say(L.noCount);
@@ -441,35 +457,38 @@ $("#explainBtn").onclick = () => { Speech.unlock(); explain(); };
 $("#clubLive").onchange = (e) => { S.clubId = e.target.value; det.club = group(); save(); renderBlockbar(); say(T.clubSaid(S.clubId)); };
 $("#viewLive").onchange = (e) => { S.view = e.target.value; save(); guide(CAMERA[S.view]); renderBlockbar(); say(CAMERA[S.view]); };
 
-// ---------------- Frames for the replay and the export ----------------
-const RING = 140, ring = []; let ringI = 0;
+// ---------------- Frames for the replay, the report and the export ----------------
+// Each frame is cropped around you (fixed when you take your address) so the pictures stay sharp: 270 x 360.
+const RING = 110, ring = [], CW = 270, CH = 360; let ringI = 0, capRoi = null;
+function roiFor(f) {
+  const W = video.videoWidth, H = video.videoHeight, bh = f.bodyH, h = Math.min(H, bh * 1.75), w = Math.min(W, h * 0.75);
+  const cx = S.view === "dtl" ? (f.hp.x + f.hands.x) / 2 : f.hp.x, cy = (f.nose.y + Math.max(f.lAn.y, f.rAn.y)) / 2 - bh * 0.05; // behind: keep the ball in
+  return { x: Math.max(0, Math.min(W - w, cx - w / 2)), y: Math.max(0, Math.min(H - h, cy - h / 2)), w, h };
+}
 function capture(t, f) {
   if (det.state === "address" || det.state === "swing") lastPoses = Math.max(lastPoses, curPoses.length);
-  if (det.state !== "address" && det.state !== "swing" && det.state !== "cooldown") return;
+  if (det.state !== "address" && det.state !== "swing" && det.state !== "cooldown") { capRoi = null; return; }
   if (!video.videoWidth) return;
+  if (!capRoi) { if (!f.ok || !(f.bodyH > 0)) return; capRoi = roiFor(f); } // fixed from the address to the finish, so frames line up
   let e = ring[ringI % RING]; if (!e) e = ring[ringI % RING] = { c: document.createElement("canvas") };
-  const w = 200, h = Math.round((200 * video.videoHeight) / video.videoWidth);
-  if (e.c.width !== w || e.c.height !== h) { e.c.width = w; e.c.height = h; }
-  e.c.getContext("2d").drawImage(video, 0, 0, w, h);
-  e.t = t; e.p = f.p ? f.p.map((q) => ({ x: q.nx, y: q.ny })) : null; ringI++;
+  if (e.c.width !== CW || e.c.height !== CH) { e.c.width = CW; e.c.height = CH; }
+  const r = capRoi, W = video.videoWidth, H = video.videoHeight;
+  e.c.getContext("2d").drawImage(video, r.x, r.y, r.w, r.h, 0, 0, CW, CH);
+  e.t = t; e.p = f.p ? f.p.map((q) => ({ x: (q.nx * W - r.x) / r.w, y: (q.ny * H - r.y) / r.h })) : null; e.roi = r; ringI++;
 }
 const nearestFrame = (t) => { let best = null; for (const e of ring) if (e?.t != null && e.p && (!best || Math.abs(e.t - t) < Math.abs(best.t - t))) best = e; return best; };
 const BONES = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28], [27, 31], [28, 32]];
-function renderThumbs(sw, swingId) {
+const r3 = (v) => Math.round(v * 1000) / 1000;
+function renderThumbs(sw, swingId, ball) {
   const kt = keyTimes(sw), list = ["setup", "top", "impact", "finish"].map((n) => nearestFrame(kt[n]));
   if (list.some((f) => !f)) { $("#thumbs").hidden = true; return; }
-  const setup = list[0].p, xs = setup.map((q) => q.x), ys = setup.map((q) => q.y);
-  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, top = Math.min(...ys), bot = Math.max(...ys);
-  const srcW = list[0].c.width, srcH = list[0].c.height;
-  const ch = Math.min(srcH, (bot - top) * 1.55 * srcH), cw = Math.min(srcW, ch * 0.75);
-  const sx = Math.max(0, Math.min(srcW - cw, cx * srcW - cw / 2)), sy = Math.max(0, Math.min(srcH - ch, ((top + bot) / 2) * srcH - ch / 2));
-  const cvs = [...$("#thumbs").querySelectorAll("canvas")], urls = [];
+  const setup = list[0].p, roi = list[0].roi, W = video.videoWidth, H = video.videoHeight;
+  const cvs = [...$("#thumbs").querySelectorAll("canvas")], imgs = [];
+  for (const fr of list) { try { imgs.push(fr.c.toDataURL("image/jpeg", 0.8)); } catch (e) {} }
   cvs.forEach((cv, i) => {
     const g = cv.getContext("2d"), fr = list[i];
-    g.fillStyle = "#000"; g.fillRect(0, 0, cv.width, cv.height);
-    g.drawImage(fr.c, sx, sy, cw, ch, 0, 0, cv.width, cv.height);
-    try { urls.push(cv.toDataURL("image/jpeg", 0.72)); } catch (e) {}
-    const P = (q) => [((q.x * srcW - sx) / cw) * cv.width, ((q.y * srcH - sy) / ch) * cv.height];
+    g.fillStyle = "#000"; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(fr.c, 0, 0, cv.width, cv.height);
+    const P = (q) => [q.x * cv.width, q.y * cv.height];
     g.lineWidth = 2; g.strokeStyle = "rgba(255,255,255,.8)"; g.lineCap = "round";
     for (const [a, b] of BONES) { g.beginPath(); g.moveTo(...P(fr.p[a])); g.lineTo(...P(fr.p[b])); g.stroke(); }
     g.strokeStyle = "#e3c25c"; g.setLineDash([5, 4]);
@@ -478,7 +497,9 @@ function renderThumbs(sw, swingId) {
     if (i === 2) { const y = P(setup[0])[1]; g.beginPath(); g.moveTo(0, y); g.lineTo(cv.width, y); g.stroke(); } // head height at setup
     g.setLineDash([]);
   });
-  if (swingId && urls.length === 4) frames.put(swingId, urls);
+  // Saved with the landmarks of each picture, so the report can draw the same guides as the Library on your swing
+  if (swingId && imgs.length === 4) frames.put(swingId, { v: 2, w: CW, h: CH, img: imgs, lm: list.map((fr) => fr.p.map((q) => [r3(q.x), r3(q.y)])),
+    ball: ball && roi ? [r3((ball.x - roi.x) / roi.w), r3((ball.y - roi.y) / roi.h)] : null });
   $("#thumbs").hidden = false;
 }
 

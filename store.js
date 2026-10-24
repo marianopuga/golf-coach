@@ -1,7 +1,7 @@
 // Saved data. Settings, coaching, sessions and rounds in localStorage; swing pictures in IndexedDB.
 // Everything stays on the phone.
-import { BAG } from "./rules.js?v=13";
-import { emptyCoachState } from "./engine.js?v=13";
+import { BAG } from "./rules.js?v=14";
+import { emptyCoachState } from "./engine.js?v=14";
 
 const KEY = "golfcoach.v2";
 function load() {

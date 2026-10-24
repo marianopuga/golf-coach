@@ -73,15 +73,16 @@ const SWINGS = ["driver", "hybrid", "iron", "chip", "bunker"];
 export const RULES = [
   // ---------------- Setup (pre-shot check) ----------------
   {
-    id: "stance", kind: "setup", auto: true, conf: "high", view: "face", clubs: FULL, priority: 1, src: "shiels",
+    id: "stance", kind: "setup", auto: true, conf: "high", view: "face", clubs: FULL, priority: 1, src: "shiels", metric: "stanceRatio", tol: 0.25,
     title: "Stance width",
     rule: "Irons and hybrid: feet about shoulder width apart. Driver: a much wider stance than with your irons, so you can make speed.",
-    fix: (m, g) => (g === "driver" ? (m.stanceRatio < 1.2 ? "Feet wider for the driver." : "Feet a bit closer.") : (m.stanceRatio < 0.85 ? "Feet a bit wider." : "Feet a bit closer.")),
+    fix: (m, g) => (g === "driver" ? (m.stanceRatio < 1.8 ? "Feet wider for the driver." : "Feet a bit closer.") : (m.stanceRatio < 0.95 ? "Feet a bit wider." : "Feet a bit closer.")),
     why: "A stable base lets you turn instead of sway.",
-    check: (m, g) => (m.stanceRatio == null ? null : g === "driver" ? m.stanceRatio >= 1.2 && m.stanceRatio <= 2.1 : m.stanceRatio >= 0.85 && m.stanceRatio <= 1.5),
+    // ankles apart over the distance between the shoulder joints (narrower than the outside of the shoulders)
+    check: (m, g) => (m.stanceRatio == null ? null : g === "driver" ? m.stanceRatio >= 1.8 && m.stanceRatio <= 2.8 : m.stanceRatio >= 0.95 && m.stanceRatio <= 1.8),
   },
   {
-    id: "chipstance", kind: "setup", auto: true, conf: "high", view: "face", clubs: ["chip"], priority: 1, src: "chipping",
+    id: "chipstance", kind: "setup", auto: true, conf: "high", view: "face", clubs: ["chip"], priority: 1, src: "chipping", metric: "stanceRatio", tol: 0.15,
     title: "Chipping: feet close together",
     rule: "For a chip, stand with your feet close together and turn feet, hips and shoulders slightly left of the target (an open stance), so the follow through is easy even on a short swing.",
     fix: () => "Feet closer together for the chip.",
@@ -89,7 +90,7 @@ export const RULES = [
     check: (m) => (m.stanceRatio == null ? null : m.stanceRatio <= 0.95),
   },
   {
-    id: "ballpos", kind: "setup", auto: true, conf: "high", view: "face", clubs: ["driver", "hybrid", "iron", "chip", "putt"], priority: 2, src: "irons",
+    id: "ballpos", kind: "setup", auto: true, conf: "high", view: "face", clubs: ["driver", "hybrid", "iron", "chip", "putt"], priority: 2, src: "irons", metric: "ballPosErr", tol: 0.05,
     title: "Ball position for this club",
     rule: "Wedges: ball in the middle of the stance. 7 iron: about one ball left of centre. 4 and 5 iron: about two balls left of centre. Driver: just inside your left heel. Putter: forward, toward the left foot. Chip: middle of the stance, so the loft lifts the ball.",
     fix: (m) => (m.ballPosErr > 0 ? "Ball a little back." : "Ball a little forward."),
@@ -97,7 +98,7 @@ export const RULES = [
     check: (m) => (m.ballPosErr == null ? null : Math.abs(m.ballPosErr) <= 0.12),
   },
   {
-    id: "hinge", kind: "setup", auto: true, conf: "high", view: "dtl", clubs: SWINGS, priority: 3, src: "setup",
+    id: "hinge", kind: "setup", auto: true, conf: "high", view: "dtl", clubs: SWINGS, priority: 3, src: "setup", metric: "hingeDeg", tol: 6,
     title: "Lean from the hips, back straight",
     rule: "Lean your upper body forward from the hips. Do not bend your back. You cannot turn around a bent spine, so you end up swinging with your arms.",
     fix: (m) => (m.hingeDeg < 20 ? "Hips back, lean from the hips." : "Stand a bit taller."),
@@ -105,7 +106,7 @@ export const RULES = [
     check: (m) => (m.hingeDeg == null ? null : m.hingeDeg >= 20 && m.hingeDeg <= 55),
   },
   {
-    id: "knees", kind: "setup", auto: true, conf: "high", view: "dtl", clubs: [...SWINGS, "putt"], priority: 4, src: "setup",
+    id: "knees", kind: "setup", auto: true, conf: "high", view: "dtl", clubs: [...SWINGS, "putt"], priority: 4, src: "setup", metric: "kneeDeg", tol: 6,
     title: "Unlock your knees",
     rule: "Flex your knees slightly. Not locked straight, not sitting down.",
     fix: (m) => (m.kneeDeg > 172 ? "Soft knees." : "Stand up a little, less knee bend."),
@@ -113,7 +114,7 @@ export const RULES = [
     check: (m) => (m.kneeDeg == null ? null : m.kneeDeg >= 135 && m.kneeDeg <= 172),
   },
   {
-    id: "reach", kind: "setup", auto: true, conf: "high", view: "dtl", clubs: SWINGS, priority: 5, src: "setup",
+    id: "reach", kind: "setup", auto: true, conf: "high", view: "dtl", clubs: SWINGS, priority: 5, src: "setup", metric: "reach", tol: 0.08,
     title: "Distance to the ball: arms hang",
     rule: "With the right posture your arms hang naturally from your shoulders. If your hands reach out in front of your shoulders you are too far from the ball; if they are tucked behind, you are too close.",
     fix: (m) => (m.reach > 0.3 ? "Step a little closer, let your arms hang." : "Step back a little, give your hands room."),
@@ -121,15 +122,16 @@ export const RULES = [
     check: (m) => (m.reach == null ? null : m.reach >= -0.05 && m.reach <= 0.3),
   },
   {
-    id: "weightset", kind: "setup", auto: true, conf: "high", view: "face", clubs: ["iron", "chip"], priority: 6, src: "irons",
+    id: "weightset", kind: "setup", auto: true, conf: "high", view: "face", clubs: ["iron", "chip"], priority: 6, src: "irons", metric: "addrWeight", tol: 0.06,
     title: "Irons and chips: weight on the left foot",
     rule: "Push the middle of your chest slightly toward the target so about 65% of your weight is on your left foot (Rick Shiels). For a chip, put slightly more weight on the left foot and keep it there the whole swing (Videojug).",
     fix: () => "Chest a bit toward the target, more weight on your front foot.",
     why: "Weight left lets you hit the ball first, then the ground.",
-    check: (m) => (m.addrWeight == null ? null : m.addrWeight >= 0.55),
+    // the camera cannot weigh you: it sees where the chest and hips sit between the feet. Leaning back reads below 0.44.
+    check: (m) => (m.addrWeight == null ? null : m.addrWeight >= 0.44),
   },
   {
-    id: "tilt", kind: "setup", auto: true, conf: "high", view: "face", clubs: FULL, priority: 7, src: "setup",
+    id: "tilt", kind: "setup", auto: true, conf: "high", view: "face", clubs: FULL, priority: 7, src: "setup", metric: "leadShHigher", tol: 0.03,
     title: "Left shoulder higher at setup",
     rule: "Your left hand is above the right on the grip, so your left shoulder sits higher and your upper body leans slightly behind the ball. With the driver, add a bit more tilt so you can hit up on the ball (Rick Shiels).",
     fix: (m, g) => (g === "driver" ? "Tilt away from the target a bit, right shoulder lower." : "Right shoulder a little lower."),
@@ -137,23 +139,23 @@ export const RULES = [
     check: (m, g) => (m.tiltDeg == null ? null : g === "driver" ? m.tiltDeg >= 3 && m.leadShHigher > 0 : m.leadShHigher >= 0.02),
   },
   {
-    id: "handsahead", kind: "setup", auto: true, conf: "low", view: "face", clubs: ["iron", "chip"], priority: 8, src: "irons",
+    id: "handsahead", kind: "setup", auto: true, conf: "low", view: "face", clubs: ["iron", "chip"], priority: 8, src: "irons", metric: "handsAhead", tol: 0.05,
     title: "Hands slightly ahead of the ball",
     rule: "Preset the handle slightly forward at setup and return to that position at impact (Rick Shiels). For a chip, rest the shaft against the inside of your left thigh (Videojug).",
     fix: () => "Hands a little ahead of the ball.",
     why: "It helps you strike the ball before the ground.",
-    check: (m, g) => (m.handsAhead == null ? null : m.handsAhead >= (g === "chip" ? 0.06 : 0.02)),
+    check: (m, g) => (m.handsAhead == null ? null : m.handsAhead >= (g === "chip" ? 0.03 : -0.03)),
   },
   {
-    id: "forearms", kind: "setup", auto: true, conf: "low", view: "dtl", clubs: FULL, priority: 9, src: "maude",
+    id: "forearms", kind: "setup", auto: true, conf: "low", view: "dtl", clubs: FULL, priority: 9, src: "maude", metric: "forearmGap", tol: 0.04,
     title: "Right arm not above the left",
     rule: "Slicers set up with the right elbow pointing out and the right arm higher than the left, so the face is open to the path. Keep the right elbow pointing down and turn the right palm to face the target. Looking down the line, the right arm should not sit above the left.",
     fix: () => "Right elbow down, right arm under the left.",
     why: "A high right arm opens the face to your path, and the ball slices.",
-    check: (m) => (m.forearmGap == null ? null : m.forearmGap <= 0.06),
+    check: (m) => (m.forearmGap == null ? null : m.forearmGap <= 0.02),
   },
   {
-    id: "heels", kind: "setup", auto: true, conf: "low", view: "dtl", clubs: SWINGS, priority: 10, src: "mistakes",
+    id: "heels", kind: "setup", auto: true, conf: "low", view: "dtl", clubs: SWINGS, priority: 10, src: "mistakes", metric: "shoulderOverFeet", tol: 0.05,
     title: "Weight on the balls of your feet",
     rule: "Your weight sits on the balls of your feet, not on your heels. Weight on the heels makes the swing go flat around the body and pulls the ball left. The camera can only guess this from where your shoulders sit over your feet.",
     fix: () => "Weight toward the balls of your feet.",
@@ -161,7 +163,7 @@ export const RULES = [
     check: (m) => (m.shoulderOverFeet == null ? null : m.shoulderOverFeet >= 0.06),
   },
   {
-    id: "eyesover", kind: "setup", auto: true, conf: "high", view: "dtl", clubs: ["putt"], priority: 2, src: "putting",
+    id: "eyesover", kind: "setup", auto: true, conf: "high", view: "dtl", clubs: ["putt"], priority: 2, src: "putting", metric: "eyesOver", tol: 0.05,
     title: "Putting: eyes over the ball",
     rule: "Lean forward from your hips until your eyes are directly over the ball, so you can see where you aim. Do not bend too far over: distance is easier to judge.",
     fix: (m) => (m.eyesOver > 0 ? "Lean a little less, eyes over the ball." : "Lean a little more, eyes over the ball."),
@@ -171,7 +173,7 @@ export const RULES = [
 
   // ---------------- Motion (post-shot feedback) ----------------
   {
-    id: "arms", kind: "motion", auto: true, conf: "high", view: "face", clubs: FULL, priority: 1, src: "shiels",
+    id: "arms", kind: "motion", auto: true, conf: "high", view: "face", clubs: FULL, priority: 1, src: "shiels", metric: "shoulderTurn", tol: 0.08,
     title: "Use your body, not just your arms",
     rule: "Your shoulders and hips turn and your arms follow what the body allows. On the way down the body turns, the hips fire, and only at the end do the arms add a bit of speed.",
     cue: "All arms. Turn your chest away, arms follow.",
@@ -180,7 +182,7 @@ export const RULES = [
     check: (m) => (m.shoulderTurn == null ? null : m.shoulderTurn <= 0.7),
   },
   {
-    id: "tempo", kind: "motion", auto: true, conf: "low", view: "both", clubs: FULL, priority: 2, src: "extra",
+    id: "tempo", kind: "motion", auto: true, conf: "low", view: "both", clubs: FULL, priority: 2, src: "extra", metric: "tempoRatio", tol: 0.5,
     title: "Smooth tempo, not a hit",
     rule: "A flowing swing (Videojug) needs a backswing that takes clearly longer than the downswing. You said you swing too hard: the app measures how long your backswing and downswing take and tracks the ratio. Your target is set from your calibration, not from the internet.",
     cue: "Too quick. Slower back, smooth start down.",
@@ -189,7 +191,7 @@ export const RULES = [
     check: (m) => (m.tempoRatio == null ? null : m.tempoRatio >= 2.5),
   },
   {
-    id: "sway", kind: "motion", auto: true, conf: "high", view: "face", clubs: SWINGS, priority: 3, src: "extra",
+    id: "sway", kind: "motion", auto: true, conf: "high", view: "face", clubs: SWINGS, priority: 3, src: "extra", metric: "sway", tol: 0.06,
     title: "Turn, don't sway",
     rule: "On the backswing your hips turn instead of sliding away from the target. Not a playlist tip: included because you said you move from side to side.",
     cue: "Sway. Turn around your right hip, don't slide.",
@@ -198,7 +200,7 @@ export const RULES = [
     check: (m, g) => (m.sway == null ? null : m.sway <= (g === "chip" ? 0.15 : 0.22)),
   },
   {
-    id: "posture", kind: "motion", auto: true, conf: "high", view: "both", clubs: SWINGS, priority: 4, src: "bunker",
+    id: "posture", kind: "motion", auto: true, conf: "high", view: "both", clubs: SWINGS, priority: 4, src: "bunker", metric: "headRise", tol: 0.05,
     title: "Keep your height through the swing",
     rule: "Keep the height of your body constant through the swing. Do not stand up or dip down before impact.",
     cue: (m) => ((m.headRise ?? 0) > 0 || (m.hingeLoss ?? 0) > 10 ? "Stood up. Keep your height until the ball is gone." : "Dipped down. Keep your height."),
@@ -206,40 +208,40 @@ export const RULES = [
     ok: "Kept your height.",
     check: (m) => {
       if (m.headRise == null) return null;
-      if (Math.abs(m.headRise) > 0.12) return false;
+      if (Math.abs(m.headRise) > 0.15) return false;
       if (m.hingeLoss != null && m.hingeLoss > 10) return false;
       return true;
     },
   },
   {
-    id: "feet", kind: "motion", auto: true, conf: "high", view: "face", clubs: SWINGS, priority: 5, src: "extra",
+    id: "feet", kind: "motion", auto: true, conf: "high", view: "face", clubs: SWINGS, priority: 5, src: "extra", metric: "feetMoved", tol: 0.08,
     title: "Stay stable on your feet",
     rule: "Your feet stay planted through the swing. Not a playlist tip: included because you said you feel unstable.",
     cue: "Feet moved. Stay planted, swing easier.",
     why: "If your feet move, nothing else can repeat.",
     ok: "Stable feet.",
-    check: (m) => (m.feetMoved == null ? null : m.feetMoved <= 0.15),
+    check: (m) => (m.feetMoved == null ? null : m.feetMoved <= 0.2),
   },
   {
-    id: "stayleft", kind: "motion", auto: true, conf: "high", view: "face", clubs: ["iron", "chip"], priority: 6, src: "irons",
+    id: "stayleft", kind: "motion", auto: true, conf: "high", view: "face", clubs: ["iron", "chip"], priority: 6, src: "irons", metric: "impWeight", tol: 0.08,
     title: "Stay on the left side through impact",
     rule: "Keep your weight on your left foot through the backswing and impact. Hanging back on the right foot to lift the ball gives thin and fat shots (Rick Shiels). For a chip, the weight stays on the left foot the whole swing (Videojug).",
     cue: "Fell back. Stay on your left side.",
     why: "Weight back means you hit the ground or the top of the ball.",
     ok: "Weight stayed left.",
-    check: (m) => (m.impWeight == null ? null : m.impWeight >= 0.5),
+    check: (m) => (m.impWeight == null ? null : m.impWeight >= 0.4),
   },
   {
-    id: "transfer", kind: "motion", auto: true, conf: "high", view: "face", clubs: FULL, priority: 7, src: "setup",
+    id: "transfer", kind: "motion", auto: true, conf: "high", view: "face", clubs: FULL, priority: 7, src: "setup", metric: "transfer", tol: 0.1,
     title: "Finish on your left side",
     rule: "Shift your weight to the right for the backswing and to the left for the follow through. Finish with your whole body facing the target.",
     cue: "Finished on your back foot. Finish on the left, facing the target.",
     why: "A full finish shows the body led the swing.",
     ok: "Good finish.",
-    check: (m) => (m.transfer == null ? null : m.transfer >= 0.65),
+    check: (m) => (m.transfer == null ? null : m.transfer >= 0.8),
   },
   {
-    id: "upper", kind: "motion", auto: true, conf: "low", view: "face", clubs: ["driver", "hybrid"], priority: 8, src: "maude",
+    id: "upper", kind: "motion", auto: true, conf: "low", view: "face", clubs: ["driver", "hybrid"], priority: 8, src: "maude", metric: "upperAhead", tol: 0.05,
     title: "Driver: upper body behind the ball",
     rule: "Imagine one dot in the middle of your chest and one in the middle of your pelvis. If the upper dot gets ahead of the lower dot coming through, you are in slice territory. Keep your head feeling behind the ball through impact (Danny Maude), with a slight tilt back so you hit up (Rick Shiels).",
     cue: "Upper body got ahead. Head behind the ball.",
@@ -248,16 +250,16 @@ export const RULES = [
     check: (m) => (m.upperAhead == null ? null : m.upperAhead <= 0.02),
   },
   {
-    id: "flip", kind: "motion", auto: true, conf: "low", view: "face", clubs: ["iron", "chip"], priority: 9, src: "irons",
+    id: "flip", kind: "motion", auto: true, conf: "low", view: "face", clubs: ["iron", "chip"], priority: 9, src: "irons", metric: "impHandsAhead", tol: 0.1,
     title: "No scooping at impact",
     rule: "At impact the grip is ahead of the ball and the left arm, wrist and shaft make one straight line. Do not flip or cup the wrist trying to lift the ball: the club gets it in the air (Rick Shiels). In a chip, arms and wrists stay passive (Videojug).",
     cue: "Wrists flipped. Keep the handle ahead through the ball.",
     why: "Scooping makes thin and fat shots and costs distance.",
     ok: "Wrists stayed quiet.",
-    check: (m) => (m.wristFlip == null ? null : m.wristFlip <= 25),
+    check: (m) => (m.impHandsAhead != null ? m.impHandsAhead >= -0.15 : m.wristFlip == null ? null : m.wristFlip <= 25),
   },
   {
-    id: "vshape", kind: "motion", auto: true, conf: "low", view: "face", clubs: ["chip"], priority: 3, src: "chipping",
+    id: "vshape", kind: "motion", auto: false, conf: "low", view: "face", clubs: ["chip"], priority: 3, src: "chipping", metric: "vChange", tol: 0.05,
     title: "Chipping: keep the V",
     rule: "The swing comes from your body rotating, leading the arms and hands. Check the V between your shoulders and hands: it stays the same through the swing.",
     cue: "The V broke. Turn the body, quiet hands.",
@@ -266,7 +268,7 @@ export const RULES = [
     check: (m) => (m.vChange == null ? null : m.vChange <= 0.15),
   },
   {
-    id: "pendulum", kind: "motion", auto: true, conf: "high", view: "face", clubs: ["chip", "putt"], priority: 2, src: "chipping",
+    id: "pendulum", kind: "motion", auto: true, conf: "high", view: "face", clubs: ["chip", "putt"], priority: 2, src: "chipping", metric: "pendulum", tol: 0.2,
     title: "Back and through the same length",
     rule: "The chip and the putt are like a pendulum: the backswing is as long as the follow through. A common mistake is to hit the ball and stop instead of swinging through it.",
     cue: (m) => (m.pendulum < 1 ? "Short finish. Swing through as far as you went back." : "Long backswing, then you slowed down. Shorter back, same through."),
@@ -275,13 +277,13 @@ export const RULES = [
     check: (m) => (m.pendulum == null ? null : m.pendulum >= 0.75 && m.pendulum <= 1.5),
   },
   {
-    id: "headstill", kind: "motion", auto: true, conf: "high", view: "face", clubs: ["putt"], priority: 1, src: "putting",
+    id: "headstill", kind: "motion", auto: true, conf: "high", view: "face", clubs: ["putt"], priority: 1, src: "putting", metric: "headMove", tol: 0.03,
     title: "Putting: head and knees still",
     rule: "The stroke comes from the shoulders and chest. The arms and hands rock back and forth while the head and knees stay still. No wrists.",
     cue: "Head moved. Keep it still until the ball is gone.",
     why: "A still head keeps the face square.",
     ok: "Head stayed still.",
-    check: (m) => (m.headMove == null ? null : m.headMove <= 0.06),
+    check: (m) => (m.headMove == null ? null : m.headMove <= 0.07),
   },
 
   // ---------------- Read and practise (not measured) ----------------

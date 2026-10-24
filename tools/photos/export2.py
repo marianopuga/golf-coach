@@ -14,7 +14,7 @@ NAMES = {"nose": 0, "LS": 11, "RS": 12, "LE": 13, "RE": 14, "LW": 15, "RW": 16, 
 # points measured by eye on gridded crops (club head, hands, ball where the detector cannot see them)
 MAN = {"A01": {"club": (494, 1169), "hands": (548, 748), "ball": (536, 1170)}, "C03": {"club": (511, 1175), "hands": (410, 745), "ball": (546, 1175)},
        "A10": {"club": (514, 1172), "hands": (582, 752), "ball": (544, 1172)}, "C09": {"club": (516, 1158), "hands": (406, 719), "ball": (560, 1169)},
-       "D01": {"ball": (693, 1182)}, "D02": {"club": (605, 1175), "hands": (646, 737), "ball": (649, 1169)},
+       "D01": {"ball": (693, 1182)}, "D02": {"club": (605, 1175), "hands": (646, 737), "ball": (649, 1169)}, "D03": {"club": (664, 1166), "ball": (716, 1159)}, "K01": {"hosel": (780, 420), "toe": (788, 343)}, "K02": {"hosel": (795, 425), "toe": (868, 348)},
        "H07": {"club": (835, 372), "hands": (599, 685)}, "I05": {"ball": (532, 1161)}, "I06": {"ball": (590, 1166)}, "I01": {"ball": (548, 1176)},
        "E01": {"ball": (535, 1172)}}
 # scale into the shared frame of their series (mid ankles to mid ankles): A01x into the A set, the chip shots into the H set
@@ -111,7 +111,7 @@ def chest_pelvis(i, t):
     s_, h = P(i, "smid"), P(i, "hmid"); c = (s_[0] + (h[0] - s_[0]) * .35, s_[1] + (h[1] - s_[1]) * .35)
     return [["line", h, (h[0], c[1] - 60), "n", 0], ["path", [c, h], TB(t)]]
 CU = {"J01": (90, 40, 1290, 940), "J02": (210, 40, 1410, 940), "J03": (200, 40, 1400, 940), "J04": (268, 15, 1468, 915), "J05": (220, 15, 1420, 915),
-      "L01": (189, 75, 1389, 975), "L02": (200, 94, 1400, 994), "M": (0, 0, 1536, 1024)}
+      "L01": (189, 75, 1389, 975), "K": (480, 170, 1080, 770), "L02": (200, 94, 1400, 994), "M": (0, 0, 1536, 1024)}
 TIPS = {
  "stance": ("variants", 0, [F(A01, "7 iron", "Feet about shoulder width", g=stance_lines(A01)), F("D01", "Driver", "Wider than your shoulders", g=stance_lines("D01"))]),
  "ballpos": ("variants", 1, [F("E01", "Wedge", "In the middle", g=[centre("E01"), ring("E01")], box=LOWF, tag="low"),
@@ -134,7 +134,7 @@ TIPS = {
                                  F("F02", "Grip on, standing tall", "Feet set, ball a little forward", box=DTL, tag="d"),
                                  F("F03", "Lean from the hips", "Back straight", g=[spine("F03")], box=DTL, tag="d"),
                                  F("B01", "Unlock the knees", "Weight on the balls of the feet", g=[leg("B01")], box=DTL, tag="d")]),
- "aim": ("single", 0, [F("G01", "Parallel to the sticks", "Feet, hips and shoulders square to the line", box=DTL, tag="d")]),
+ "aim": ("pair", 0, [F("G01", "Parallel to the sticks", "Feet, hips and shoulders on the line", "g", box=DTL, tag="d"), F("G02", "Feet off the line", "Left foot pulled back, aimed left", "b", box=DTL, tag="d")]),
  "eyesover": ("pair", 0, [F(i, l, s, t, [down(i, "eye", TB(t), to=P(i, "ball")[1] - 26), ring(i, r=26, tone=TB(t))], DTL, "d") for i, l, s, t in
                           (("I05", "Eyes over the ball", "You see the line", "g"), ("I06", "Too upright", "Eyes inside the ball", "b"))]),
  "arms": ("pair", 0, [F(A06, "Body turned", "Arms follow the turn", "g"), F("C04", "Arms only", "Chest still facing you", "b")]),
@@ -149,7 +149,7 @@ TIPS = {
  "stayleft": ("pair", 0, [F(A10, "Weight left", "Chest over the ball", "g", [up_from_foot(A10, "LA", 250, dx=6), weight(A10, 80)]), F("C08", "Hanging back", "Weight on the right foot", "b", [up_from_foot("C08", "LA", 250, "b", dx=6), weight("C08", 30)])]),
  "flip": ("pair", 0, [F(i, l, s, t, [["path", [P(i, "LS"), P(i, "hands"), P(i, "club")], TB(t)]]) for i, l, s, t in
                       ((A10, "One straight line", "Left arm and shaft", "g"), ("C09", "Wrist flipped", "Club head passes the hands", "b"))]),
- "upper": ("single", 0, [F("D02", "Chest behind the pelvis", "Head behind the ball through impact", g=chest_pelvis("D02", "n"))]),
+ "upper": ("pair", 0, [F("D02", "Chest behind the pelvis", "Head behind the ball", "g", chest_pelvis("D02", "g")), F("D03", "Chest ahead", "Lunging at the ball", "b", chest_pelvis("D03", "b"))]),
  "driver-up": ("single", 0, [F("D02", "Hitting up", "The club rises into the ball", g=[["arrow", (P("D02", "ball")[0] - 190, P("D02", "ball")[1] + 34), (P("D02", "ball")[0] + 170, P("D02", "ball")[1] - 31), "w"]], box=DRV, tag="drv")]),
  "speed": ("single", 0, [F("A11", "Arms fully extended", "Fastest after the ball")]),
  "chipstance": ("pair", 0, [F("H01", "Feet close together", "Stance slightly open", "g", stance_lines("H01")), F("H02", "Too wide", "Full swing stance", "b", stance_lines("H02"))]),
@@ -172,6 +172,9 @@ TIPS = {
                                F("J02", "Close the hand", "Two or three knuckles showing", box=CU["J02"], tag="c")]),
  "grip-right": ("sequence", 1, [F("J03", "Right hand on", "In the fingers, wrist straight", box=CU["J03"], tag="c"),
                                 F("J04", "Grip complete", "Left thumb inside the right palm", box=CU["J04"], tag="c")]),
+ "grip-check": ("pair", 0, [F(i, l, s, t, [["line", P(i, "hosel"), (P(i, "hosel")[0], P(i, "hosel")[1] - 135), "n", 0],
+                                         ["line", P(i, "hosel"), (P(i, "hosel")[0] + (P(i, "toe")[0] - P(i, "hosel")[0]) * 1.3, P(i, "hosel")[1] + (P(i, "toe")[1] - P(i, "hosel")[1]) * 1.3), TB(t), 1]], CU["K"], "c")
+                            for i, l, s, t in (("K01", "Face square", "Toe points straight up", "g"), ("K02", "Face open", "Toe turned to the right", "b"))]),
  "grip-palm": ("pair", 0, [F("L01", "In the fingers", "Across the base of the fingers", "g", box=CU["L01"], tag="c"), F("L02", "In the palm", "Opens the face, you slice", "b", box=CU["L02"], tag="c")]),
  "strike": ("pair", 0, [F("M01", "Centre", "Solid and straight", "g", box=CU["M"], tag="c"), F("M02", "Toe", "Weak, curves away", "b", box=CU["M"], tag="c"),
                         F("M03", "Heel", "Weak, often a shank", "b", box=CU["M"], tag="c")]),

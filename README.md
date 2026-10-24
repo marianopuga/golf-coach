@@ -18,3 +18,5 @@ A free iPhone web app that watches your swing through the camera and tells you, 
 4. `art.js`, `art-data.js`, `art/p2/`: the Library photos (one golfer, generated from a shot list and checked by hand) with guides drawn on top. `tools/photos/` rebuilds them.
 5. `app.js`, `views.js`, `store.js`, `index.html`, `sw.js`: camera, screens, saved data, offline cache.
 6. `test/sim.test.mjs`: simulated swings and unit checks (`node test/sim.test.mjs`).
+7. `test/photo-exam.test.mjs`: the app's measurements run on the labeled photo set, right photos must pass and wrong ones fail (`node test/photo-exam.test.mjs --strict`). `test/learning.test.mjs`: learning from "that's wrong" and the best and worst swing picker.
+8. `docs/precision.md`: what the camera can and cannot judge, the exam numbers and how the app adapts to you.

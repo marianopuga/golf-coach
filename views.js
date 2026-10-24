@@ -1,10 +1,11 @@
 // Screens: Today, History, Progress, Library, Profile, the session report and the round log.
-import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, clubById } from "./rules.js?v=13";
-import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH } from "./engine.js?v=13";
-import { badWeight, resultLabel } from "./voice.js?v=13";
-import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=13";
-import { artFor, heroArt, sequenceArt, SEQ_LABELS } from "./art.js?v=13";
-import { T } from "./lines.js?v=13";
+import { RULES, VIDEOS, CAMERA, BAG, CATS, VENUES, VOICE_HELP, GROUPS, clubById } from "./rules.js?v=14";
+import { buildPlan, calibrationPlan, catStats, sessionStats, reportText, ruleById, coachNotes, badRate, resOf, stockDistances, roundStats, weeklySummary, TEE, APPROACH,
+  bestWorst, mainFault, swingScore, tuneSummary } from "./engine.js?v=14";
+import { badWeight, resultLabel } from "./voice.js?v=14";
+import { DB, S, save, resetCoach, clearHistory, frames, giveFile } from "./store.js?v=14";
+import { artFor, heroArt, sequenceArt, SEQ_LABELS, swingFramesHtml } from "./art.js?v=14";
+import { T } from "./lines.js?v=14";
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -209,6 +210,14 @@ function renderProgress() {
   const topRules = Object.keys(perRule).filter((id) => ruleById(id)?.conf === "high").map((id) => ({ id, vals: recent.map((s) => perRule[id][s.id] ?? null) })).map((r) => ({ ...r, last: [...r.vals].reverse().find((x) => x != null) ?? 0 })).sort((a, b) => b.last - a.last).slice(0, 6);
   const sdRows = BAG.filter((c) => sd[c.id]);
   const f = (v) => (v == null ? "–" : Math.round(v * 100) + "%");
+  // best swing ever and the best of the latest session, per club group and camera side
+  const gal = {};
+  for (const s of all.filter((s) => !s.calib)) for (const b of bestWorst(s.swings)) {
+    const g = (gal[b.key] ??= { group: b.group, view: b.view, ever: null, last: null });
+    if (!g.ever || swingScore(b.best) > swingScore(g.ever)) g.ever = b.best;
+    g.last = b.best;
+  }
+  const gallery = Object.values(gal).filter((g) => g.ever);
   el.innerHTML = `
     <header class="lt"><p class="greet">${plural(all.length, "session")}, ${plural(DB.rounds.length, "round")}</p><h1>Progress</h1></header>
     <section class="panel"><h2>Bad shots per session</h2>${pts.length >= 2 ? lineChart(pts, { label: "Bad shots per session" }) : `<p class="muted">Say how each ball flew and this line appears after two coached sessions. "Big" misses count more than "a bit".</p>`}</section>
@@ -222,7 +231,11 @@ function renderProgress() {
     ${cats.length ? `<section class="panel"><h2>Clubs lately</h2><p class="muted small">Your last three sessions. The plan gives more balls to the club at the top.</p>
       <div class="card-scroll"><table class="score"><tr><th>Group</th><th class="c">Swings</th><th class="c">Bad</th><th class="c">Faults</th></tr>${cats.map(([c, o], i) => `<tr><td><b>${CATS[c]?.name || c}</b>${i === 0 && o.score != null ? '<span class="tag">weakest</span>' : ""}</td><td class="n">${o.n}</td><td class="n">${o.logged ? Math.round(100 * Math.min(1, o.badRate)) + "%" : "–"}</td><td class="n">${o.checks ? pct(o.fails, o.checks) + "%" : "–"}</td></tr>`).join("")}</table></div></section>` : ""}
     <section class="panel"><h2>Faults over time</h2>${topRules.length ? `<div>${topRules.map((r) => `<div class="field"><span><b>${esc(ruleById(r.id).title)}</b><br><small class="muted">${Math.round(r.last * 100)}% of swings last time</small></span>${spark(r.vals)}</div>`).join("")}</div>` : `<p class="muted">Faults appear here once the app starts coaching you, after calibration.</p>`}</section>
+    ${gallery.length ? `<section class="panel"><h2>Your swing gallery</h2><p class="muted small">Your best swing so far next to your best one last time, for each club and camera side.</p>${gallery.map((g) => `<div class="bwg"><h3>${esc(GROUPS[g.group] || g.group)}, ${g.view === "dtl" ? "camera behind" : "camera in front"}</h3>
+      <div class="bwrow"><p class="small"><span class="pbadge ok">Best so far</span> ${fmtDate(g.ever.t, { day: "numeric", month: "short" })}, ${esc(clubById(g.ever.clubId).name)}${resOf(g.ever)?.result ? ", " + esc(resultLabel(resOf(g.ever))) : ""}</p><div class="sframes row4" data-sw="${g.ever.id}" data-rule=""></div></div>
+      ${g.last && g.last.id !== g.ever.id ? `<div class="bwrow"><p class="small"><span class="pbadge">Last time</span> ${fmtDate(g.last.t, { day: "numeric", month: "short" })}, ${esc(clubById(g.last.clubId).name)}${resOf(g.last)?.result ? ", " + esc(resultLabel(resOf(g.last))) : ""}</p><div class="sframes row4" data-sw="${g.last.id}" data-rule=""></div></div>` : ""}</div>`).join("")}</section>` : ""}
     <section class="panel"><h2>Fixed</h2>${DB.coach.mastered.length ? [...new Set(DB.coach.mastered)].map((id) => `<p><b>${esc(ruleById(id)?.title)}</b> <span class="tag">fixed</span></p>`).join("") : `<p class="muted">Nothing fixed yet. A fault counts as fixed after 4 good swings out of 5.</p>`}</section>`;
+  fillSwingFrames(el, all.flatMap((s) => s.swings || []));
 }
 
 // ---------------- Library ----------------
@@ -259,7 +272,8 @@ async function loadYou(root) {
     const id = el.dataset.you, sid = DB.coach.lastPass?.[id] || null;
     if (!sid || sid === true) continue;
     const fr = await frames.get(sid); if (!fr) continue;
-    el.innerHTML = `<div class="cmp one"><figure><span class="badge you">You, done right</span><img alt="Your swing" src="${fr[FRAME_OF[id] ?? 0]}"></figure></div>`;
+    const imgs = Array.isArray(fr) ? fr : fr.img; if (!imgs?.[FRAME_OF[id] ?? 0]) continue;
+    el.innerHTML = `<div class="cmp one"><figure><span class="badge you">You, done right</span><img alt="Your swing" src="${imgs[FRAME_OF[id] ?? 0]}"></figure></div>`;
   }
 }
 function renderLibrary() {
@@ -280,7 +294,14 @@ function renderLibrary() {
     <details class="chap"><summary><h2>Where to put the camera</h2></summary><div class="body">${campDiagram()}
       <p><b>In front</b>: facing your chest, across the ball. It checks stance, ball position, weight, turn, sway, balance and finish.</p>
       <p><b>Behind</b>: on the line from your hands to the target. It checks your posture from the hips, knees, distance to the ball and your arms.</p>
-      <p class="muted">The gold silhouette on the camera is your best setup so far. Match it before you hit.</p></div></details>
+      <p class="muted">The gold silhouette on the camera is your best setup so far. Match it before you hit.</p>
+      <h3>What makes the measurements reliable</h3>
+      <ol class="steps"><li>The whole swing in the picture, the club at the top too. A cut off club or head breaks the check.</li>
+        <li>Phone still, at hand height, square to you. A tilted phone tilts every line.</li>
+        <li>Sun behind the phone or to the side, not behind you. Backlight hides your arms.</li>
+        <li>Fitted clothes, and no other balls near yours: a stray white ball can be read as yours.</li>
+        <li>If a correction is wrong, say "that's wrong". After two on the same check, it adapts to you.</li></ol>
+      <p class="muted small">What the camera cannot judge: the club face, your grip and wrists, a rounded back, and your weight on the heels (only guessed). Those tips are for reading and practising.</p></div></details>
     <details class="chap"><summary><h2>Voice words</h2></summary><div class="body">
       <p class="muted">The camera sees your body, not the ball's flight. Your words are how the app learns your results. Speak after the app stops talking, within 40 seconds of the swing.</p>
       <dl class="words">${VOICE_HELP.map(([w, d]) => `<dt>${esc(w)}</dt><dd>${esc(d)}</dd>`).join("")}</dl></div></details>
@@ -343,8 +364,9 @@ function renderProfile() {
       <p class="muted small">You mix languages. English listening understands your golf words best; Spanish directions like "derecha" work too. The report lists every word it did not understand.</p></section>
     <p class="group-title">Data and privacy</p>
     <section class="panel"><h2>Your data</h2><p class="muted small">Everything is saved only on this phone. Export a backup to Files from time to time.</p>
+      ${tuneSummary(DB.coach).length ? `<p class="small">Adapted to you after your corrections: ${tuneSummary(DB.coach).map((t) => esc(t.title.toLowerCase())).join(", ")}.</p><button class="btn line" id="pTune">Undo the adjustments</button>` : ""}
       <button class="btn line" id="pBackup">Export a backup</button><button class="btn line" id="pReset">Restart the focus</button><button class="btn line" id="pClear" style="color:var(--error)">Delete all history</button></section>
-    <p class="muted small">Scratch Golfer Dreams, version 9. Rules from 9 videos in your Golf bible playlist. Voice: Kokoro, Apache 2.0.</p>`;
+    <p class="muted small">Scratch Golfer Dreams, version 10. Rules from 9 videos in your Golf bible playlist. Voice: Kokoro, Apache 2.0.</p>`;
   const bind = (id, fn) => ($("#" + id).onchange = (e) => { fn(e.target); save(); });
   bind("pName", (t) => (P.name = t.value.trim() || "Mariano")); bind("pHeight", (t) => (P.height = Number(t.value) || 185)); bind("pLevel", (t) => (P.level = t.value));
   bind("pReason", (t) => (S.reason = t.checked)); bind("pPre", (t) => (S.preshot = t.checked)); bind("pAuto", (t) => (S.autoPractice = t.checked)); bind("pGhost", (t) => (S.ghost = t.checked)); bind("pAsk", (t) => (S.ask = t.checked));
@@ -360,6 +382,7 @@ function renderProfile() {
   $("#pExport") && ($("#pExport").onclick = () => exportSession(lastCal.id, $("#pExport")));
   $("#pBackup").onclick = async () => { const r = await giveFile(`scratch-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(DB)); $("#pBackup").textContent = r === "cancelled" ? "Export a backup" : "Backup ready"; };
   $("#pReset").onclick = () => { resetCoach(); $("#pReset").textContent = "Focus restarted"; };
+  $("#pTune") && ($("#pTune").onclick = () => { DB.coach.tune = {}; save(); $("#pTune").textContent = "Adjustments undone"; });
   $("#pClear").onclick = async () => { if (await confirmDialog("Delete all history?", "Every session, round and swing picture on this phone is removed. This cannot be undone. Export a backup first if you want to keep it.", "Delete everything")) { clearHistory(); renderProfile(); toast("History deleted"); } };
 }
 
@@ -377,6 +400,34 @@ async function copyText(text, btn, label) {
   try { await navigator.clipboard.writeText(text); btn.textContent = "Copied"; } catch (e) { btn.textContent = "Copy failed, try again"; }
   setTimeout(() => (btn.textContent = label), 2500);
 }
+// One club group and camera side: the best swing, then the worst one with the guide for its main fault.
+function bwRow(w, kind) {
+  const r = resOf(w), fault = kind === "worst" ? mainFault(w) : null, rule = fault ? ruleById(fault) : null;
+  const res = r?.result ? esc(resultLabel(r)) : "no result said", cue = rule ? (typeof rule.cue === "string" ? rule.cue : typeof rule.fix === "string" ? rule.fix : rule.title) : "";
+  return `<div class="bwrow"><p class="small"><span class="pbadge ${kind === "best" ? "ok" : "no"}">${kind === "best" ? "Best" : "Worst"}</span> ${esc(clubById(w.clubId).name)}, ${res}${rule ? `. <b>${esc(rule.title)}</b>: ${esc(cue)}` : kind === "best" ? ". Nothing clear to fix from this side." : ""}</p>
+    <div class="sframes${kind === "best" ? " row4" : ""}" data-sw="${w.id}" data-rule="${fault || ""}"></div></div>`;
+}
+const bwGroup = (b) => `<div class="bwg"><h3>${esc(GROUPS[b.group] || b.group)}, ${b.view === "dtl" ? "camera behind" : "camera in front"} <span class="muted small">${plural(b.n, "swing")}</span></h3>${bwRow(b.best, "best")}${b.worst ? bwRow(b.worst, "worst") : ""}</div>`;
+async function fillSwingFrames(root, swings) {
+  const byId = Object.fromEntries((swings || []).map((w) => [w.id, w]));
+  for (const d of root.querySelectorAll("[data-sw]")) {
+    const f = await frames.get(d.dataset.sw), w = byId[d.dataset.sw];
+    d.innerHTML = f ? swingFramesHtml(f, d.dataset.rule || null, w?.m || {}, "b") : `<p class="muted small" style="grid-column:1/-1">No pictures saved for this swing.</p>`;
+  }
+}
+// Swing pictures take room on the phone: the last three sessions keep all of them, older ones keep their best
+// and worst swing per club and camera side. Calibration sessions keep everything.
+export async function pruneFrames() {
+  const ss = DB.sessions, recent = new Set(ss.slice(-3));
+  for (const s of ss) {
+    if (recent.has(s) || s.calib || s.pruned) continue;
+    const keep = new Set(); for (const b of bestWorst(s.swings)) { keep.add(b.best?.id); keep.add(b.worst?.id); }
+    for (const w of s.swings || []) if (!keep.has(w.id)) await frames.del(w.id);
+    s.pruned = true;
+  }
+  save();
+}
+
 export function openReport(sid, from = "history") {
   reportFrom = from; showOnly("report");
   const el = $("#screen-report"), s = DB.sessions.find((x) => x.id === sid);
@@ -392,8 +443,7 @@ export function openReport(sid, from = "history") {
   const setupF = st.faults.filter((f) => ruleById(f.id)?.kind === "setup"), motionF = st.faults.filter((f) => ruleById(f.id)?.kind === "motion");
   const bars = (list) => list.map((f) => `<div class="bar"><span>${esc(ruleById(f.id)?.title || f.id)}${ruleById(f.id)?.conf === "low" ? '<span class="tag weak">weak</span>' : ""}</span><span class="num muted">${f.fail}/${f.n}</span><i><span style="width:${f.rate}%"></span></i></div>`).join("");
   const real = (s.swings || []).filter((w) => !w.practice && resOf(w)?.result);
-  const best = real.filter((w) => resOf(w).result === "straight").sort((a, b) => (a.checks || []).filter((c) => !c.pass).length - (b.checks || []).filter((c) => !c.pass).length)[0];
-  const worst = real.slice().sort((a, b) => badWeight(resOf(b)) - badWeight(resOf(a)) || (b.checks || []).filter((c) => !c.pass).length - (a.checks || []).filter((c) => !c.pass).length)[0];
+  const bw = bestWorst(s.swings), tunes = tuneSummary(DB.coach);
   const unknown = (s.voiceLog || []).filter((v) => !v.parsed && !v.duringSpeech).slice(-20);
   el.innerHTML = `
     <button class="linkbtn" id="rBack">&lsaquo; ${reportFrom === "today" ? "Today" : "History"}</button>
@@ -401,12 +451,13 @@ export function openReport(sid, from = "history") {
     ${s.calib ? `<section class="panel hero"><h2>Send this to Claude</h2><p class="muted">The file has every swing, your words and the pictures. Attach it in your chat with Claude and the rules get tuned to you.</p><button class="btn" id="rExport">Export the file for Claude</button></section>` : ""}
     <section class="panel"><div class="stats"><div class="stat"><b>${st.n}</b><span>swings</span></div><div class="stat"><b>${r == null ? "–" : Math.round(r * 100) + "%"}</b><span>bad shots</span></div><div class="stat"><b>${st.practice}</b><span>practice, ignored</span></div></div></section>
     <section class="panel"><h2>Coach notes</h2><div class="notes">${notes.map((n) => `<p>${esc(n)}</p>`).join("")}</div></section>
-    ${best || worst ? `<section class="panel"><h2>Best and worst swing</h2>${best ? `<p class="small"><b>Best</b>: ${clubById(best.clubId).name}, ${esc(resultLabel(resOf(best)))}</p><div class="frames" data-f="${best.id}"></div>` : ""}${worst && worst !== best ? `<p class="small"><b>Worst</b>: ${clubById(worst.clubId).name}, ${esc(resultLabel(resOf(worst)))}</p><div class="frames" data-f="${worst.id}"></div>` : ""}</section>` : ""}
+    ${bw.length ? `<section class="panel"><h2>Best and worst swings</h2><p class="muted small">For each club and camera side. The line on the worst swing is the same guide as in the Library: it shows what to change.</p>${bw.map(bwGroup).join("")}</section>` : ""}
     <section class="panel"><h2>By club</h2><div class="card-scroll"><table class="score"><tr><th>Club</th><th class="c">Balls</th><th class="c">Straight</th><th class="c">Bad</th><th class="c">Dist.</th></tr>
       ${rows.map(([id, o]) => { const d = o.dist.sort((a, b) => a - b); return `<tr><td><b>${shortClub(id)}</b></td><td class="n">${o.n}</td><td class="n">${o.logged ? o.straight : "–"}</td><td class="n">${o.logged ? o.bad : "–"}</td><td class="c nw">${d.length ? d[Math.floor(d.length / 2)] + " m" : "–"}</td></tr>`; }).join("")}</table></div></section>
     ${setupF.length ? `<section class="panel"><h2>Setup, before the shot</h2>${bars(setupF)}</section>` : ""}
     ${motionF.length ? `<section class="panel"><h2>Swing, after the shot</h2>${bars(motionF)}</section>` : ""}
     ${logged ? `<section class="panel"><h2>Ball flight</h2>${flights.map(([k, n]) => `<div class="bar ${k === "straight" ? "good" : ""}"><span>${k[0].toUpperCase() + k.slice(1)}</span><span class="num muted">${n}</span><i><span style="width:${pct(n, logged)}%"></span></i></div>`).join("")}</section>` : ""}
+    ${tunes.length ? `<section class="panel"><h2>Adapted to you</h2><p class="muted small">Checks you corrected with "that's wrong". Each one moved a little, never past the tip's limits.</p>${tunes.map((t) => `<p class="small"><b>${esc(t.title)}</b>: adjusted from ${plural(t.n, "correction")}</p>`).join("")}</section>` : ""}
     ${unknown.length ? `<section class="panel"><h2>Words not understood</h2><p class="muted small">Claude uses these to teach the app your way of talking.</p><p>${unknown.map((v) => `"${esc(v.text)}"`).join(", ")}</p></section>` : ""}
     <section class="panel"><h2>The full report</h2><p class="muted small">Text version for Claude, if you prefer to paste it.</p>
       <button class="btn line" id="rCopy">Copy report</button>${s.calib ? "" : `<button class="btn line" id="rExport2">Export the file</button>`}
@@ -424,7 +475,7 @@ export function openReport(sid, from = "history") {
   $("#rCopy").onclick = () => copyText(reportText(DB.sessions, s.id, DB.coach), $("#rCopy"), "Copy report");
   $("#rExport") && ($("#rExport").onclick = () => exportSession(s.id, $("#rExport")));
   $("#rExport2") && ($("#rExport2").onclick = () => exportSession(s.id, $("#rExport2")));
-  el.querySelectorAll("[data-f]").forEach(async (d) => { const f = await frames.get(d.dataset.f); d.innerHTML = f ? f.map((u, i) => `<img alt="${["Setup", "Top", "Impact", "Finish"][i]}" src="${u}">`).join("") : `<p class="muted small" style="grid-column:1/-1">No pictures saved for this swing.</p>`; });
+  fillSwingFrames(el, s.swings);
 }
 
 // ---------------- Round log ----------------

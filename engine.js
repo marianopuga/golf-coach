@@ -1,8 +1,8 @@
 // Pure logic: pose features, golfer lock, ball detection, swing detection, metrics, setup checks,
 // coaching, plans by venue, stats, rounds and reports. No DOM, so everything is tested in Node.
-import { RULES, RESULT_TIPS, BAD_RESULTS, GROUPS, BAG, CATS, RANGE_ORDER, SHORT_ORDER, VENUES, BALL_POS, clubById } from "./rules.js?v=13";
-import { badWeight, resultLabel } from "./voice.js?v=13";
-import { L, T } from "./lines.js?v=13";
+import { RULES, RESULT_TIPS, BAD_RESULTS, GROUPS, BAG, CATS, RANGE_ORDER, SHORT_ORDER, VENUES, BALL_POS, clubById } from "./rules.js?v=14";
+import { badWeight, resultLabel } from "./voice.js?v=14";
+import { L, T } from "./lines.js?v=14";
 
 const I = { nose: 0, lSh: 11, rSh: 12, lEl: 13, rEl: 14, lWr: 15, rWr: 16, lIdx: 19, rIdx: 20, lHip: 23, rHip: 24,
   lKn: 25, rKn: 26, lAn: 27, rAn: 28, lHe: 29, rHe: 30, lTo: 31, rTo: 32 };
@@ -276,9 +276,14 @@ export function analyze(sw, view, ctx = {}) {
     m.transfer = ((fin.hp.x - trail.x) * dir) / feetSpan;
     m.impWeight = impactOk ? (((imp.sh.x + imp.hp.x) / 2 - trail.x) * dir) / feetSpan : null;
     m.upperAhead = impactOk ? ((imp.sh.x - imp.hp.x) * dir) / T : null;
-    m.feetMoved = Math.max(dist(fin.lAn, addr.lAn), dist(fin.rAn, addr.rAn)) / stanceW;
+    // A good finish keeps the lead foot planted and pivots the trail foot on its toe: the trail heel
+    // rising is not "moving". Count the lead ankle and the trail toe only.
+    m.feetMoved = Math.max(dist(fin.lAn, addr.lAn), dist(fin.p[I.rTo], addr.p[I.rTo])) / stanceW;
     const wa = (f) => angle(f.p[I.lEl], f.p[I.lWr], f.p[I.lIdx]);
     if (impactOk && wa(addr) != null && wa(imp) != null) m.wristFlip = Math.abs(wa(imp) - wa(addr));
+    // Scooping shows as the hands arriving behind the ball. The pose model cannot see the club or the
+    // wrist angle well, but it sees the hands, and the ball position is known from the setup.
+    if (impactOk && ctx.ball) m.impHandsAhead = ((imp.hands.x - ctx.ball.x) * dir) / T;
     const v = (f) => dist(f.hands, f.sh) / T, v0 = v(addr);
     m.vChange = Math.max(...fr.filter((x) => x.t <= sw.impT + 200).map((x) => Math.abs(v(x.f) - v0)));
   } else {
@@ -294,11 +299,31 @@ export const ruleById = (id) => RULES.find((r) => r.id === id);
 const say = (v, m, g) => (typeof v === "function" ? v(m, g) : v);
 const appliesTo = (r, group, view) => r.auto && r.clubs.includes(group) && (r.view === "both" || r.view === view);
 
-export function runChecks(m, group, view, { kind = null, muted = [] } = {}) {
+// ---------------- Learning from you ----------------
+// When you say a correction was wrong, the app works out how far that measurement was from passing. After two
+// such corrections on the same check it shifts the check by the median of them, never more than the rule's
+// tolerance (rule.tol), so it adapts to your body and camera without drifting away from the tip.
+export function tuneOffset(tune, id) {
+  const r = ruleById(id), t = tune?.[id];
+  if (!r?.metric || !t || t.log.length < 2) return 0;
+  const v = t.log.slice().sort((a, b) => a - b), med = v[Math.floor(v.length / 2)];
+  return Math.max(-r.tol, Math.min(r.tol, med));
+}
+const tuned = (r, m, tune) => { const o = tuneOffset(tune, r.id); return o && m[r.metric] != null ? { ...m, [r.metric]: m[r.metric] + o } : m; };
+export function flipNeeded(r, m, group) {      // smallest shift of the measurement that changes the verdict
+  if (!r?.metric || m?.[r.metric] == null) return null;
+  const was = r.check(m, group), step = r.tol / 20;
+  for (let k = 1; k <= 20; k++) for (const sg of [1, -1]) {
+    const d = sg * k * step, p = r.check({ ...m, [r.metric]: m[r.metric] + d }, group);
+    if (p != null && p !== was) return Math.round(d * 1000) / 1000;
+  }
+  return null;
+}
+export function runChecks(m, group, view, { kind = null, muted = [], tune = null } = {}) {
   const out = [];
   for (const r of RULES) {
     if (!appliesTo(r, group, view) || muted.includes(r.id) || (kind && r.kind !== kind)) continue;
-    const pass = r.check(m, group);
+    const pass = r.check(tune ? tuned(r, m, tune) : m, group);
     if (pass === null || pass === undefined) continue;
     out.push({ id: r.id, pass });
   }
@@ -306,15 +331,15 @@ export function runChecks(m, group, view, { kind = null, muted = [] } = {}) {
 }
 // Pre-shot check: the first failing setup rule (by priority) and what to say. Low confidence rules are
 // logged but not spoken until calibration proves them.
-export function setupCheck(m, group, view, { selected = null, muted = [] } = {}) {
-  const checks = runChecks(m, group, view, { kind: "setup", muted }).filter((c) => !selected || selected.includes(c.id));
+export function setupCheck(m, group, view, { selected = null, muted = [], tune = null } = {}) {
+  const checks = runChecks(m, group, view, { kind: "setup", muted, tune }).filter((c) => !selected || selected.includes(c.id));
   const failing = checks.filter((c) => !c.pass).map((c) => ruleById(c.id)).sort((a, b) => a.priority - b.priority);
   const speakable = failing.filter((r) => r.conf === "high");
   return { checks, failing, next: speakable[0] || null, fix: speakable[0] ? say(speakable[0].fix, m, group) : null, ready: speakable.length === 0, logged: failing.map((r) => ({ id: r.id, fix: say(r.fix, m, group) })) };
 }
 
 // ---------------- Coaching after the swing ----------------
-export function emptyCoachState() { return { v: 3, focus: null, hist: {}, mastered: [], disputes: {}, skipped: {}, lastPass: {} }; }
+export function emptyCoachState() { return { v: 3, focus: null, hist: {}, mastered: [], disputes: {}, skipped: {}, lastPass: {}, tune: {} }; }
 function pickFocus(state, group, failingIds, exclude) {
   const cands = RULES.filter((r) => r.auto && r.kind === "motion" && r.conf === "high" && r.clubs.includes(group) && r.id !== exclude && !(state.skipped[r.id] > 0) &&
     (failingIds.includes(r.id) || (state.hist[r.id] || []).slice(-5).filter((x) => !x).length >= 3));
@@ -359,10 +384,42 @@ export function coach(state, checks, m, group, view, mode, opts = {}) {
   const lowFails = failing.filter((r) => r.conf === "low").map((r) => r.id);
   return { speech: lines.join(" "), items, event, lowFails, detail: items.length ? ruleById(items[0].id).rule : "", focusId: state.focus?.id || null };
 }
-export function dispute(state, ruleId) {
+export function dispute(state, ruleId, m = null, group = null) {
   const h = state.hist[ruleId]; if (h?.length) h.pop();
   if (state.focus?.id === ruleId && state.focus.hist.length) state.focus.hist.pop();
   state.disputes[ruleId] = (state.disputes[ruleId] || 0) + 1;
+  const d = m ? flipNeeded(ruleById(ruleId), tuned(ruleById(ruleId), m, state.tune), group) : null;
+  if (d != null) { const t = ((state.tune ??= {})[ruleId] ??= { log: [] }); t.log.push(d + tuneOffset(state.tune, ruleId)); if (t.log.length > 9) t.log.shift(); }
+  return d;
+}
+// What the app has adapted to you, for the report and the profile.
+export function tuneSummary(state) {
+  return Object.keys(state?.tune || {}).map((id) => ({ id, title: ruleById(id)?.title || id, n: state.tune[id].log.length, off: tuneOffset(state.tune, id) })).filter((t) => t.off);
+}
+
+// ---------------- Best and worst swings ----------------
+// A swing's score: how the ball flew (your words) counts most, then the clear faults the camera saw.
+export function swingScore(w) {
+  const r = resOf(w), high = (list) => (list || []).filter((c) => !c.pass && ruleById(c.id)?.conf === "high").length;
+  const res = r?.result ? (r.result === "straight" ? 2 : -2 * badWeight(r)) : 0;
+  return res - high(w.checks) - 0.5 * high(w.setup?.checks);
+}
+// The fault to show on a swing: the first clear swing fault, then a setup fault, then a weak one.
+export function mainFault(w) {
+  const fails = (list, kind) => (list || []).filter((c) => !c.pass).map((c) => ruleById(c.id)).filter((r) => r && r.kind === kind).sort((a, b) => a.priority - b.priority);
+  const motion = fails(w.checks, "motion"), setup = fails(w.setup?.checks, "setup");
+  return (motion.find((r) => r.conf === "high") || setup.find((r) => r.conf === "high") || motion[0] || setup[0] || null)?.id || null;
+}
+// Best and worst swing for each club group and camera side, from swings that count.
+export function bestWorst(swings) {
+  const by = {};
+  for (const w of (swings || []).filter((w) => !w.practice && w.block !== "warmup" && w.club !== "warmup")) (by[`${w.club}|${w.view}`] ??= []).push(w);
+  const order = ["driver", "hybrid", "iron", "chip", "bunker", "putt"];
+  return Object.entries(by).map(([key, list]) => {
+    const [group, view] = key.split("|"), sorted = list.slice().sort((a, b) => swingScore(b) - swingScore(a) || a.t - b.t);
+    const best = sorted[0], worst = sorted.length > 1 ? sorted[sorted.length - 1] : null;
+    return { key, group, view, n: list.length, best, worst: worst && swingScore(worst) < swingScore(best) ? worst : null };
+  }).sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group) || (a.view === "face" ? -1 : 1));
 }
 export function skipFocus(state, group) {
   const old = state.focus?.id; if (old) state.skipped[old] = 20;

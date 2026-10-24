@@ -1,6 +1,6 @@
 // Pictures of the swing: photos of one golfer (art/p2, generated from our shot list, checked by hand) with translucent guides on top.
 // Sizes, captions and guide positions in pixels come from art-data.js. Tips without an approved photo show text only.
-import { PHOTO, PDIR, SWING, TEMPO, HERO } from "./art-data.js?v=13";
+import { PHOTO, PDIR, SWING, TEMPO, HERO } from "./art-data.js?v=14";
 
 export const SEQ_LABELS = ["Setup", "Takeaway", "Club parallel", "Lead arm parallel", "Three quarter", "Top", "Transition", "Downswing", "Delivery",
   "Impact", "Release", "Follow through", "Club up", "High", "Wrap", "Finish", "Hold"];
@@ -107,3 +107,51 @@ export function artFor(id) {
   return photoArt(id);
 }
 export const heroArt = () => HERO ? `<img src="${PDIR}${HERO[0]}" width="${HERO[1]}" height="${HERO[2]}" alt="" decoding="async" fetchpriority="high">` : "";
+
+// ---------------- Your own swing, with the Library's guides ----------------
+// data: what the live screen saved for a swing: 4 pictures (setup, top, impact, finish) cropped around you,
+// their pose landmarks (0..1 in the picture) and the ball. The guide of a rule goes on the frame where it shows.
+export const FRAME_NAMES = ["Setup", "Top", "Impact", "Finish"];
+const GUIDE_FRAME = { sway: 1, arms: 1, posture: 2, stayleft: 2, upper: 2, flip: 2, headstill: 2, transfer: 3, feet: 3 };
+export function faultGuides(rule, data, m = {}, tone = "b") {
+  if (!rule || !data?.lm) return null;
+  const w = data.w, h = data.h, L0 = data.lm[0], fi = rule in GUIDE_FRAME ? GUIDE_FRAME[rule] : ["tempo", "pendulum", "vshape"].includes(rule) ? null : 0;
+  if (fi == null) return null;
+  const L = data.lm[fi], P = (lm, i) => [n1(lm[i][0] * w), n1(lm[i][1] * h)], mid = (a, b) => [n1((a[0] + b[0]) / 2), n1((a[1] + b[1]) / 2)];
+  const sh = (lm) => mid(P(lm, 11), P(lm, 12)), hp = (lm) => mid(P(lm, 23), P(lm, 24)), hands = (lm) => mid(P(lm, 15), P(lm, 16));
+  const gy = n1(Math.max(...[27, 28, 29, 30, 31, 32].map((i) => L0[i][1])) * h + 0.015 * h);
+  const ball = data.ball ? [n1(data.ball[0] * w), n1(data.ball[1] * h)] : null, pct = (v) => Math.max(2, Math.min(98, Math.round((v ?? 0.5) * 100)));
+  const bar = (v) => ["weight", [P(L0, 28)[0], n1(gy + 0.03 * h)], [P(L0, 27)[0], n1(gy + 0.03 * h)], pct(v)];
+  const g = [];
+  switch (rule) {
+    case "stance": case "chipstance": for (const i of [11, 12]) g.push(["line", P(L, i), [P(L, i)[0], gy], tone, 1]); break;
+    case "ballpos": { const c = mid(P(L, 27), P(L, 28)); g.push(["line", [c[0], hp(L)[1] + 0.05 * h], [c[0], gy + 0.04 * h], "n", 0]); if (ball) g.push(["ring", ball, n1(0.03 * w), tone]); break; }
+    case "weightset": g.push(bar(m.addrWeight)); break;
+    case "tilt": { const r = P(L, 12), l = P(L, 11), d = [l[0] - r[0], l[1] - r[1]]; g.push(["line", [n1(r[0] - d[0] * 0.3), n1(r[1] - d[1] * 0.3)], [n1(l[0] + d[0] * 0.3), n1(l[1] + d[1] * 0.3)], tone, 0], ["line", [n1(r[0] - d[0] * 0.3), r[1]], [n1(l[0] + d[0] * 0.3), r[1]], "n", 0]); break; }
+    case "handsahead": if (ball) g.push(["line", ball, [ball[0], n1(hands(L)[1] - 0.03 * h)], "n", 0], ["line", ball, hands(L), tone, 1]); break;
+    case "hinge": { const a = hp(L), b = sh(L); g.push(["line", a, [n1(b[0] + (b[0] - a[0]) * 0.3), n1(b[1] + (b[1] - a[1]) * 0.3)], tone, 1]); break; }
+    case "knees": g.push(["path", [P(L, 24), P(L, 26), P(L, 28)], tone]); break;
+    case "reach": { const s = sh(L); g.push(["line", s, [s[0], n1(hands(L)[1] + 0.08 * h)], tone, 1]); break; }
+    case "forearms": g.push(["line", P(L, 13), P(L, 15), "n", 1], ["line", P(L, 14), P(L, 16), tone, 1]); break;
+    case "heels": { const s = sh(L); g.push(["line", s, [s[0], gy], tone, 1]); break; }
+    case "eyesover": { const e = mid(P(L, 2), P(L, 5)); g.push(["line", e, [e[0], ball ? n1(ball[1] - 0.02 * h) : gy], tone, 1]); if (ball) g.push(["ring", ball, n1(0.03 * w), tone]); break; }
+    case "sway": { const a = hp(L0), b = hp(L); g.push(["line", [a[0], gy], [a[0], n1(P(L0, 12)[1])], "n", 0], ["arrow", a, b, tone]); break; } // hips at setup, and where they slid to
+    case "arms": g.push(["line", P(L, 12), P(L, 11), tone, 1]); break;
+    case "posture": { const y = P(L0, 0)[1]; g.push(["line", [0, y], [w, y], "n", 0], ["path", [[P(L, 0)[0], y], P(L, 0)], tone]); break; }
+    case "stayleft": g.push(bar(m.impWeight), ["line", [P(L0, 27)[0], gy], [P(L0, 27)[0], n1(P(L0, 11)[1])], "n", 0]); break;
+    case "transfer": g.push(bar(m.transfer), ["line", [P(L0, 27)[0], gy], [P(L0, 27)[0], n1(P(L0, 0)[1])], "n", 0]); break;
+    case "feet": g.push(["ring", P(L0, 27), n1(0.05 * w), "n"], ["ring", P(L0, 32), n1(0.05 * w), "n"], ["path", [P(L0, 27), P(L, 27)], tone], ["path", [P(L0, 32), P(L, 32)], tone]); break;
+    case "upper": { const s = sh(L), p = hp(L), c = [n1(s[0] + (p[0] - s[0]) * 0.35), n1(s[1] + (p[1] - s[1]) * 0.35)]; g.push(["line", p, [p[0], n1(c[1] - 0.05 * h)], "n", 0], ["path", [c, p], tone]); break; }
+    case "flip": if (ball) g.push(["line", [ball[0], n1(ball[1] + 0.02 * h)], [ball[0], n1(hands(L)[1] - 0.04 * h)], "n", 0], ["ring", hands(L), n1(0.04 * w), tone]); break;
+    case "headstill": { const x = P(L0, 0)[0]; g.push(["line", [x, n1(P(L0, 0)[1] - 0.08 * h)], [x, n1(P(L0, 0)[1] + 0.12 * h)], "n", 0], ["path", [P(L0, 0), P(L, 0)], tone]); break; }
+    default: return null;
+  }
+  return g.length ? { frame: fi, g } : null;
+}
+// The four pictures of a swing, the guide on its frame. Old swings saved only the pictures.
+export function swingFramesHtml(data, rule = null, m = {}, tone = "b") {
+  const imgs = Array.isArray(data) ? data : data?.img;
+  if (!imgs?.length) return "";
+  const fg = Array.isArray(data) ? null : faultGuides(rule, data, m, tone), w = data.w || 150, h = data.h || 200;
+  return imgs.map((u, i) => `<figure class="sframe${fg?.frame === i ? " on" : ""}"><div class="pimg"><img alt="${FRAME_NAMES[i]}" src="${u}" width="${w}" height="${h}">${fg?.frame === i ? `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true">${photoGuides(fg.g, w)}</svg>` : ""}</div><figcaption>${FRAME_NAMES[i]}</figcaption></figure>`).join("");
+}
