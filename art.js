@@ -1,6 +1,6 @@
 // Pictures of the swing: photos of one golfer (art/p2, generated from our shot list, checked by hand) with translucent guides on top.
 // Sizes, captions and guide positions in pixels come from art-data.js. Tips without an approved photo show text only.
-import { PHOTO, PDIR, SWING, TEMPO, HERO } from "./art-data.js?v=12";
+import { PHOTO, PDIR, SWING, TEMPO, HERO } from "./art-data.js?v=13";
 
 export const SEQ_LABELS = ["Setup", "Takeaway", "Club parallel", "Lead arm parallel", "Three quarter", "Top", "Transition", "Downswing", "Delivery",
   "Impact", "Release", "Follow through", "Club up", "High", "Wrap", "Finish", "Hold"];
@@ -18,6 +18,10 @@ function photoGuides(list, w) {
     if (g[0] === "path") {
       const pts = g[1], closed = pts.length > 2 && pts[0][0] === pts.at(-1)[0] && pts[0][1] === pts.at(-1)[1];
       return `<polyline points="${pts.map((p) => p.join(",")).join(" ")}" ${stroke(g[2])} stroke-linejoin="round"/>${(closed ? pts.slice(1) : pts).map((p) => dot(p, g[2])).join("")}`;
+    }
+    if (g[0] === "arrow") {
+      const [a, b] = [g[1], g[2]], t = Math.atan2(b[1] - a[1], b[0] - a[0]), k = 11 * s;
+      return `<path d="M${a[0]} ${a[1]} L${b[0]} ${b[1]} M${n1(b[0] - k * Math.cos(t - 0.45))} ${n1(b[1] - k * Math.sin(t - 0.45))} L${b[0]} ${b[1]} L${n1(b[0] - k * Math.cos(t + 0.45))} ${n1(b[1] - k * Math.sin(t + 0.45))}" class="pg-line ${g[3]}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
     if (g[0] === "ring") return `<circle cx="${g[1][0]}" cy="${g[1][1]}" r="${g[2]}" class="pg-line ${g[3]}" stroke-width="${n1(sw * 0.8)}" stroke-dasharray="${n1(4 * s)} ${n1(3.4 * s)}"/>`;
     if (g[0] === "weight") {
@@ -37,7 +41,10 @@ function photoArt(id) {
   return {
     bad: false, cap: [live.sub, ""],
     figure(kind = "good", compact = false) { return kind === "good" ? photoFrame(live, p.live ?? 0, false, !compact) : ""; },
-    block() { return `<div class="pdemo ${p.t}" data-n="${p.frames.length}" role="list">${p.frames.map((f, i) => photoFrame(f, i, p.t === "sequence")).join("")}</div>`; },
+    block() {   // sequences number their steps; a Wrong frame inside a sequence gets its badge instead of a number
+      let n = 0; const land = p.frames[0].w > p.frames[0].h ? " land" : "";
+      return `<div class="pdemo ${p.t}${land}" data-n="${p.frames.length}" role="list">${p.frames.map((f) => photoFrame(f, f.tone === "b" ? 0 : n++, p.t === "sequence" && f.tone !== "b")).join("")}</div>`;
+    },
   };
 }
 

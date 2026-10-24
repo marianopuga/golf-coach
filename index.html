@@ -96,12 +96,13 @@ svg.ic { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-wid
 .panel.hero .seg { background: rgb(255 255 255 / .1) } .panel.hero .seg button { color: rgb(242 246 242 / .8) } .panel.hero .seg button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary) }
 
 /* Hero */
-.hero-art { margin: -20px -20px 0; aspect-ratio: 8 / 5; max-height: 300px; overflow: hidden }
-.hero-art img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: 50% 30%; -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent); mask-image: linear-gradient(to bottom, #000 62%, transparent) }
+.hero-art { margin: -20px -20px 0; overflow: hidden }
+.hero-art img { width: 100%; height: auto; aspect-ratio: 8 / 5; max-height: 320px; display: block; object-fit: cover; object-position: 50% 45%; -webkit-mask-image: linear-gradient(to bottom, #000 62%, transparent); mask-image: linear-gradient(to bottom, #000 62%, transparent) }
 .pdemo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 10px }
-.pdemo.single { grid-template-columns: minmax(0, 260px) }
-.pdemo[data-n="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px }
-@media (min-width: 760px) { .pdemo[data-n="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)) } }
+.pdemo.single { grid-template-columns: minmax(0, 260px) } .pdemo.single.land { grid-template-columns: minmax(0, 420px) }
+.pdemo.land[data-n="3"] > :first-child { grid-column: 1 / -1 }
+.pdemo[data-n="3"]:not(.land) { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px }
+@media (min-width: 760px) { .pdemo[data-n="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)) } .pdemo.land[data-n="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)) } .pdemo.land[data-n="3"] > :first-child { grid-column: auto } }
 .pframe { margin: 0; display: grid; gap: 7px; align-content: start }
 .pimg { position: relative; border-radius: var(--r-md); overflow: hidden; background: var(--deep) }
 .pimg img { display: block; width: 100%; height: auto }
@@ -117,7 +118,7 @@ svg.ic { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-wid
 .pbadge.ok { background: rgb(207 228 73 / .92); color: #1E2320 } .pbadge.no { background: rgb(255 158 148 / .92); color: #2A1714 }
 .pframe figcaption { font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3 } .pframe figcaption b { color: var(--primary); margin-right: 3px; font-variant-numeric: tabular-nums }
 .pframe figcaption span { display: block; font-weight: 400; font-size: 13px; color: var(--text-2) }
-.pdemo[data-n="3"] figcaption { font-size: 13px } .pdemo[data-n="3"] figcaption span { font-size: 12px }
+.pdemo[data-n="3"]:not(.land) figcaption { font-size: 13px } .pdemo[data-n="3"] figcaption span { font-size: 12px }
 .verdict .vpic .pframe .pimg { border-radius: 10px } .verdict .vpic .pimg img { width: 74px; border-radius: 0; background: none }
 .pplay { display: grid; gap: 6px; justify-items: center } .pp-stage { width: 100%; max-width: 360px }
 .pp-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; max-width: 360px }
@@ -351,6 +352,6 @@ dialog#confirm .acts2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
   </div>
 </section>
 
-<script type="module" src="app.js?v=12"></script>
+<script type="module" src="app.js?v=13"></script>
 </body>
 </html>
