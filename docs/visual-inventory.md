@@ -50,6 +50,7 @@ Estados: cumple, parcial (falta la foto del error), pendiente (solo texto).
 | bunker | Salida de bunker | Postura y golpe | N01, N02 | cumple |
 
 Resumen: 41 cumple. Putt-grip queda en texto por decisión, después de cinco intentos fallidos de ChatGPT con J05 (el último con tres manos).
+Decisión del 25 oct: se dejan de pedir J01 (paso 1 del agarre izquierdo), J05, B07, C05 y H07. Esos consejos quedan con la foto correcta sola o en texto.
 
 ## Reintento del 25 oct
 
