@@ -30,7 +30,7 @@ Con dos dispositivos a la vez (uno de frente y otro desde atrás) se juntan las 
 
 ## Voz y comandos
 
-La voz es Alex (Kokoro, voz neuronal libre, acento latino), grabada una vez con `tools/record_voice_es.py`. Si una frase no está grabada, la dice la mejor voz en español del equipo. El micrófono es opcional y solo reacciona a frases que parten con "profe".
+La voz es Alex (Kokoro, voz neuronal libre, acento latino), grabada una vez con `tools/record_voice_es.py`. Si una frase no está grabada, la dice la mejor voz en español del equipo. El micrófono es opcional y solo reacciona a frases que parten con "ok" seguido de un comando ("ok, pausa"). "Ok" solo o seguido de otra cosa no hace nada.
 
 ## Límites
 

@@ -5,7 +5,7 @@ import { sentences, keyOf } from "./lines.js?v=3";
 
 let ctx = null, index = null, voiceId = "alex", loading = null;
 const cache = new Map();
-let chain = Promise.resolve(), gen = 0, current = [], speakingUntil = 0, synthBusy = false;
+let chain = Promise.resolve(), gen = 0, current = [], speakingUntil = 0, synthBusy = false, lastEndAt = 0;
 let opts = { enabled: true, mode: "clips", systemVoice: "", volume: 1, muted: false };
 
 export function configure(o) { opts = { ...opts, ...o }; }
@@ -28,6 +28,8 @@ export function unlock() {
 // En iPhone: solo reproducir, o reproducir y escuchar (cuando el micrófono está prendido).
 export function audioMode(mode) { try { if (navigator.audioSession) navigator.audioSession.type = mode; } catch (e) {} }
 export const isSpeaking = () => synthBusy || (ctx ? ctx.currentTime < speakingUntil : false);
+// Milisegundos desde que terminó de hablar (0 si está hablando).
+export const msSinceSpoke = () => (isSpeaking() ? 0 : performance.now() - lastEndAt);
 
 function clip(key) {
   if (!ctx || !index?.clips?.[key]) return Promise.resolve(null);
@@ -47,7 +49,7 @@ function playBuffer(buf, myGen) {
     src.buffer = buf; src.connect(g).connect(ctx.destination);
     const t = Math.max(ctx.currentTime + 0.01, speakingUntil);
     src.start(t); speakingUntil = t + buf.duration;
-    current.push(src); src.onended = () => { current = current.filter((x) => x !== src); res(); };
+    current.push(src); src.onended = () => { current = current.filter((x) => x !== src); lastEndAt = performance.now(); res(); };
   });
 }
 
@@ -66,7 +68,7 @@ function synth(text, myGen) {
     const u = new SpeechSynthesisUtterance(text), v = bestSystemVoice();
     if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "es-419";
     u.rate = 1; u.pitch = 1; u.volume = opts.volume; synthBusy = true;
-    const done = () => { synthBusy = false; res(); };
+    const done = () => { synthBusy = false; lastEndAt = performance.now(); res(); };
     u.onend = done; u.onerror = done; setTimeout(done, 2000 + text.length * 90);
     speechSynthesis.speak(u);
   });
