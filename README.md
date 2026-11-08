@@ -20,3 +20,6 @@ A free iPhone web app that watches your swing through the camera and tells you, 
 6. `test/sim.test.mjs`: simulated swings and unit checks (`node test/sim.test.mjs`).
 7. `test/photo-exam.test.mjs`: the app's measurements run on the labeled photo set, right photos must pass and wrong ones fail (`node test/photo-exam.test.mjs --strict`). `test/learning.test.mjs`: learning from "that's wrong" and the best and worst swing picker.
 8. `docs/precision.md`: what the camera can and cannot judge, the exam numbers and how the app adapts to you.
+
+## Home practice page (Spanish)
+`casa/` is a separate page for practicing in the living room without a ball, with Ben Hogan's ideas: no feet needed in the picture, face-on and down-the-line views (two devices at once), a Spanish recorded voice, and targets that adapt to you. See `casa/LEEME.md`. It does not change the main app. Tests: `node test/casa.test.mjs`.

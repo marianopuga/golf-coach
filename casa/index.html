@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121815">
+<title>Coach de casa · Hogan</title>
+<style>
+:root{--bg:#101512;--panel:#18201c;--panel2:#1f2924;--fg:#e9f0eb;--muted:#9db0a4;--ok:#3ecf8e;--warn:#f5b942;--bad:#ff6b6b;--blue:#7cc4ff;--line:#2b3631}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:5}
+header b{font-size:17px}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.pill{font-size:12px;padding:3px 8px;border-radius:99px;background:var(--panel2);color:var(--muted)}
+.pill.on{background:#1d3b2c;color:var(--ok)}.pill.warn{background:#3b321d;color:var(--warn)}.pill.bad{background:#3b1d1d;color:var(--bad)}
+main{max-width:1100px;margin:0 auto;padding:12px;display:grid;gap:12px}
+@media(min-width:1000px){main{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);align-items:start}#live,#setup{grid-column:1}#report{grid-column:1}.side{grid-column:2;grid-row:1/span 4}}
+.side{display:grid;gap:12px}
+.card{background:var(--panel);border-radius:12px;padding:12px 14px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px}
+.small{font-size:13px;color:var(--muted)}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+label.inline{flex-direction:row;align-items:center;justify-content:space-between;color:var(--fg);font-size:14px}
+select,input[type=number],input[type=text]{background:#0e1311;color:var(--fg);border:1px solid #33413a;border-radius:8px;padding:9px 10px;font-size:15px;width:100%}
+input[type=checkbox]{width:22px;height:22px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+button{background:#2a6b4d;color:#fff;border:0;border-radius:10px;padding:11px 14px;font-weight:650;font-size:15px;cursor:pointer}
+button.big{font-size:18px;padding:14px 22px;flex:1}
+button.secondary{background:#2b3530}
+button.danger{background:#5a2626}
+button:disabled{opacity:.45}
+#stage{scroll-margin-top:84px;position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;max-height:72vh;margin:0 auto;width:100%}
+#stage video,#stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.mirror{transform:scaleX(-1)}
+#frameBadge{position:absolute;top:8px;left:8px;right:90px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,.65);font-weight:650;font-size:15px}
+#frameBadge.ok{color:var(--ok)}#frameBadge.warn{color:var(--warn)}
+#fps{position:absolute;top:8px;right:8px;padding:4px 8px;border-radius:6px;background:rgba(0,0,0,.6);font-size:12px;color:var(--muted)}
+#cue{position:absolute;left:0;right:0;bottom:0;padding:14px 16px;font-size:clamp(18px,3.4vw,28px);font-weight:750;background:linear-gradient(transparent,rgba(0,0,0,.88));text-shadow:0 2px 4px #000;min-height:60px}
+#cue.ok{color:#c9f7df}#cue.bad{color:#ffd0d0}
+.actions button{flex:1 1 30%;min-width:120px}
+#strip{width:100%;border-radius:8px;display:block}
+#replay{width:100%;max-height:60vh;object-fit:contain;background:#000;border-radius:8px;display:block}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px}
+td.v{white-space:nowrap;font-variant-numeric:tabular-nums}
+.st{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700}
+.st.ok{background:#1d3b2c;color:var(--ok)}.st.ojo{background:#3b321d;color:var(--warn)}.st.corregir{background:#3b1d1d;color:var(--bad)}.st.nm,.st.info{background:var(--panel2);color:var(--muted)}
+tr.main td{background:#2a1c1c}
+.why{font-size:13px;color:var(--muted);padding:6px 0 2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:12px;padding:4px 9px;border-radius:99px;background:var(--panel2);color:var(--muted)}
+.chip.cur{background:#2a6b4d;color:#fff}.chip.done{background:#1d3b2c;color:var(--ok)}
+.mgrid{display:grid;gap:10px;margin-top:10px}
+.mcard{background:var(--panel2);border-radius:10px;padding:10px}
+.mhead{display:flex;justify-content:space-between;gap:8px}
+details summary{cursor:pointer;color:var(--blue);margin-top:10px}
+ul{margin:6px 0;padding-left:20px}
+li{margin:3px 0}
+.code{font-size:30px;font-weight:800;letter-spacing:.2em;color:var(--ok)}
+</style>
+</head>
+<body>
+<header>
+  <div><b>Coach de casa</b> <span class="small" id="ver"></span></div>
+  <div class="pills"><span id="pillCam" class="pill">Cámara apagada</span><span id="pillMic" class="pill">Micrófono apagado</span><span id="pillLink" class="pill">Una cámara</span></div>
+</header>
+<main>
+  <section id="setup" class="card">
+    <h2>Antes de partir</h2>
+    <div class="grid2">
+      <label>Ángulo de esta cámara<select id="view"><option value="face">De frente (cabeza, cadera, secuencia)</option><option value="dtl">Desde atrás (postura, cadera a la pelota)</option></select></label>
+      <label>Juegas como<select id="hand"><option value="R">Diestro</option><option value="L">Zurdo</option></select></label>
+      <label>Tu altura (cm)<input id="height" type="number" min="140" max="215" step="1"></label>
+      <label>Cámara<select id="cam"><option value="">Automática</option></select></label>
+      <label>Voz del coach<select id="voiceMode"><option value="clips">Alex: voz grabada natural</option><option value="system">Voz del equipo</option></select></label>
+      <label id="sysVoiceRow">Voz del equipo<select id="sysVoice"></select></label>
+    </div>
+    <div class="row"><button id="start" class="big">Empezar</button><button id="testVoice" class="secondary">Probar voz</button></div>
+    <p id="setupNote" class="small"></p>
+    <details>
+      <summary>Cómo poner la cámara en un living de 2 metros</summary>
+      <ul class="small">
+        <li><b>Ya no necesito ver tus pies.</b> Basta que se vea de la cabeza a las rodillas, con espacio arriba para las manos.</li>
+        <li><b>Mejor el celular, vertical.</b> En vertical ve mucho más alto que el Mac en horizontal. Si tu celular tiene lente ultra gran angular (0,5x), lo elijo solo.</li>
+        <li><b>Altura:</b> a la altura de tu ombligo, apoyado en una silla o repisa, apuntando derecho a ti.</li>
+        <li><b>De frente:</b> la cámara frente a tu pecho, en línea recta. <b>Desde atrás:</b> detrás de ti, mirando hacia donde iría la pelota.</li>
+        <li><b>El Mac no puede alejar la imagen:</b> el zoom solo acerca. Si con el Mac no te ve la cadera, usa el celular.</li>
+        <li>Luz de frente, ropa ajustada, y nadie más caminando atrás.</li>
+      </ul>
+    </details>
+  </section>
+
+  <section id="live" hidden>
+    <div id="stage"><video id="video" playsinline muted autoplay></video><canvas id="overlay"></canvas>
+      <div id="frameBadge"></div><div id="fps"></div><div id="cue"></div></div>
+    <div class="row actions">
+      <button id="btnGood">Se sintió bien</button><button id="btnBad">Se sintió mal</button><button id="btnDispute" class="secondary">Eso está mal medido</button>
+      <button id="btnRepeat" class="secondary">Repetir</button><button id="btnPause" class="secondary">Pausa</button><button id="btnStop" class="danger">Terminar</button>
+    </div>
+  </section>
+
+  <section id="report" class="card" hidden>
+    <h2>Último swing</h2>
+    <img id="strip" alt="Address, top, impacto y final de tu último swing">
+    <img id="partnerStrip" alt="El mismo swing desde la otra cámara" hidden style="width:100%;border-radius:8px;margin-top:6px">
+    <div class="row"><button id="btnReplay" class="secondary">Ver en cámara lenta</button>
+      <select id="speed" style="width:auto"><option value="0.25">x 0,25</option><option value="0.5">x 0,5</option><option value="1">x 1</option></select></div>
+    <canvas id="replay" hidden></canvas>
+    <input id="scrub" type="range" min="0" max="0" value="0" hidden style="width:100%">
+    <table id="checks"></table>
+    <p class="small">Toca una fila para ver por qué importa y cómo corregirlo. "No medible" significa que la cámara no lo vio bien en ese swing: prefiero no decir nada a decirte algo falso.</p>
+  </section>
+
+  <div class="side">
+    <section class="card">
+      <h2>Tu plan y tu progreso</h2>
+      <div id="planBox" class="chips"></div>
+      <label class="inline" style="margin-top:10px">Foco<select id="focus" style="width:auto"></select></label>
+      <div id="metricsGrid" class="mgrid"></div>
+      <div id="insights" class="small" style="margin-top:10px"></div>
+    </section>
+
+    <section class="card">
+      <h2>Dos cámaras a la vez</h2>
+      <p class="small">El celular de frente y el Mac desde atrás (o al revés). Cada uno mide su ángulo y el principal junta todo y te habla.</p>
+      <div class="row"><button id="btnHost">Este es el principal: crear código</button></div>
+      <div class="row"><input id="joinCode" type="text" inputmode="numeric" maxlength="4" placeholder="Código de 4 números" style="flex:1"><button id="btnJoin" class="secondary">Unirme como segunda cámara</button></div>
+      <div id="linkStatus" class="small" style="margin-top:8px"></div>
+    </section>
+
+    <section class="card">
+      <h2>Voz y comandos</h2>
+      <label class="inline">Escuchar comandos de voz<input id="mic" type="checkbox"></label>
+      <div id="heard" class="small"></div>
+      <p class="small">Solo reacciono si la frase parte con <b>"profe"</b>. Puedes conversar con alguien y no hago nada. Mientras hablo no escucho. Funciona en Chrome y en Safari (el audio lo procesa Google o Apple).</p>
+      <ul class="small">
+        <li>"Profe, pausa" · "Profe, sigue" · "Profe, repite"</li>
+        <li>"Profe, ese estuvo bien" · "Profe, ese estuvo mal" (tu sensación, para aprender de ti)</li>
+        <li>"Profe, eso está mal" (si crees que medí mal: a la segunda vez ajusto esa medida a ti)</li>
+        <li>"Profe, cómo voy" · "Profe, explica" · "Profe, qué aprendiste"</li>
+        <li>"Profe, foco cabeza" · "foco cadera" · "foco cadera primero" · "foco torsión" · "foco automático"</li>
+      </ul>
+      <p class="small">Sin micrófono también funciona todo: detecto solo cuando te pones en address y cuando haces el swing.</p>
+    </section>
+
+    <section class="card">
+      <h2>Tus datos</h2>
+      <p class="small">Todo se guarda solo en este dispositivo. El video nunca sale de tu equipo.</p>
+      <div class="row"><button id="btnCopy" class="secondary">Copiar resumen para Claude</button><button id="btnExport" class="secondary">Descargar mis datos</button></div>
+      <div class="row"><button id="btnImport" class="secondary">Juntar datos de otro dispositivo</button><input id="importFile" type="file" accept="application/json,.json" hidden><button id="btnReset" class="danger">Borrar todo</button></div>
+      <div id="dataStatus" class="small" style="margin-top:8px"></div>
+    </section>
+  </div>
+</main>
+<script type="module" src="app.js?v=3"></script>
+</body>
+</html>
