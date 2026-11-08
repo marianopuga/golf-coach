@@ -162,15 +162,23 @@ test("plan escalonado: salta una etapa que esta cámara no puede medir", () => {
   const s = C.checkStage(prof, hist);
   assert.equal(s.skipped, true); assert.equal(prof.stage, 3);
 });
-test("comandos de voz con 'profe'", () => {
+test("comandos de voz con 'ok'", () => {
   assert.equal(C.parseCommand("hola cómo estás"), null);
-  assert.deepEqual(C.parseCommand("Profe, pausa"), { cmd: "pause" });
-  assert.deepEqual(C.parseCommand("profe eso está mal"), { cmd: "dispute" });
-  assert.deepEqual(C.parseCommand("profe ese estuvo bien"), { cmd: "tag", tag: "good" });
-  assert.deepEqual(C.parseCommand("profe se sintió mal"), { cmd: "tag", tag: "bad" });
-  assert.deepEqual(C.parseCommand("profe cómo voy"), { cmd: "summary" });
-  assert.deepEqual(C.parseCommand("profe foco cadera"), { cmd: "focus", stage: 1 });
-  assert.deepEqual(C.parseCommand("profe foco cadera primero"), { cmd: "focus", stage: 2 });
+  assert.deepEqual(C.parseCommand("Ok, pausa"), { cmd: "pause" });
+  assert.deepEqual(C.parseCommand("okay sigue"), { cmd: "resume" });
+  assert.deepEqual(C.parseCommand("O.K. repite"), { cmd: "repeat" });
+  assert.deepEqual(C.parseCommand("ok"), { cmd: "hey" });
+  assert.equal(C.parseCommand("ok vamos a ver qué pasa").cmd, "unknown"); // conversación: no hace nada
+  assert.equal(C.parseCommand("ok bien, y después").cmd, "unknown"); // "ok bien" suelto no marca el swing
+  assert.equal(C.parseCommand("ok para la próxima").cmd, "unknown"); // "para" no es pausa
+  assert.equal(C.parseCommand("ok y después almorzamos").cmd, "unknown"); // conversación: no hace nada
+  assert.deepEqual(C.parseCommand("ok eso está mal"), { cmd: "dispute" });
+  assert.deepEqual(C.parseCommand("ok ese estuvo bien"), { cmd: "tag", tag: "good" });
+  assert.deepEqual(C.parseCommand("ok se sintió mal"), { cmd: "tag", tag: "bad" });
+  assert.deepEqual(C.parseCommand("ok cómo voy"), { cmd: "summary" });
+  assert.deepEqual(C.parseCommand("ok foco cadera"), { cmd: "focus", stage: 1 });
+  assert.deepEqual(C.parseCommand("profe pausa"), { cmd: "pause" });
+  assert.equal(C.parseCommand("tocar el piano"), null); // "ok" dentro de otra palabra no cuenta
 });
 test("todas las frases que se dicen están en el catálogo de la voz grabada", () => {
   const cat = catalog(), prof = C.newProfile(), missing = new Set();

@@ -526,13 +526,13 @@ $("#btnDispute").onclick = () => { Speech.unlock(); doDispute(); };
 // ---------------- Micrófono y comandos ----------------
 function updateMicPill() {
   const s = Listen.getState();
-  const map = { on: ["Escuchando 'profe'", "on"], starting: ["Micrófono iniciando", "warn"], off: ["Micrófono apagado", ""], blocked: ["Micrófono bloqueado", "bad"], unsupported: ["Sin comandos de voz", ""], homescreen: ["Comandos solo en Safari", "warn"] };
+  const map = { on: ["Escuchando 'ok'", "on"], starting: ["Micrófono iniciando", "warn"], off: ["Micrófono apagado", ""], blocked: ["Micrófono bloqueado", "bad"], unsupported: ["Sin comandos de voz", ""], homescreen: ["Comandos solo en Safari", "warn"] };
   const [t, c] = map[s] || ["Micrófono apagado", ""];
   setPill("#pillMic", t, c);
 }
 Listen.init({
   result: (alts) => {
-    if (Speech.isSpeaking()) return;
+    if (Speech.isSpeaking() || Speech.msSinceSpoke() < 1200) return; // no me escucho a mí mismo
     for (const a of alts) { const c = C.parseCommand(a); if (c) { $("#heard").textContent = `Escuché: "${a}"`; runCommand(c); return; } }
   },
   state: updateMicPill,
@@ -545,11 +545,12 @@ $("#mic").onchange = () => {
   else { Listen.stop(); Speech.audioMode("playback"); updateMicPill(); }
 };
 function runCommand(c) {
+  if (c.cmd === "hey" || c.cmd === "unknown") return;
   Speech.earcon("ok");
   switch (c.cmd) {
-    case "hey": say(L.heard, { force: true }); break;
+    case "hey": break; // "ok" solo: no hago nada
     case "pause": if (!paused) setPaused(true); break;
-    case "resume": if (paused) setPaused(false); else say(L.resumed, { force: true }); break;
+    case "resume": if (paused) setPaused(false); break;
     case "repeat": say(lastSaid || L.explainNone, { force: true }); break;
     case "summary": say(C.summaryLines(sessionRecs(), DB.swings, DB.prof).lines, { force: true }); break;
     case "dispute": doDispute(); break;
@@ -563,7 +564,7 @@ function runCommand(c) {
       if (DB.prof.focus !== "auto") DB.prof.focus = "auto";
       DB.prof.stage = Math.min(STAGE_NAMES.length - 1, (DB.prof.stage || 0) + 1); save(); renderProgress();
       say(`Foco: ${STAGE_NAMES[DB.prof.stage]}.`, { force: true }); break;
-    default: Speech.earcon("oops"); say(L.unknown, { force: true });
+    default: break; // "ok" seguido de algo que no es un comando: probablemente estabas conversando
   }
 }
 

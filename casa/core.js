@@ -502,20 +502,22 @@ export function pairIndex(list, epoch, tol = 900) {
 }
 
 // ---------------- Comandos de voz ----------------
-// Solo reacciona si la frase parte con "profe" (o "coach"): así puede escuchar sin confundirse con lo que hablas.
+// Solo reacciona si la frase parte con "ok" (también "okay", "okey", "profe"): así puede escuchar sin confundirse
+// con lo que hablas. "Ok" solo, o "ok" seguido de algo que no es un comando, no hace nada.
 export function parseCommand(text) {
   const t = keyOf(text);
-  const m = t.match(/\b(profe|profesor|coach|couch|coach|cauch|coche)\b(.*)$/);
+  const m = t.match(/\b(ok|okay|okey|oki|oke|o k|profe|profesor|coach)\b(.*)$/);
   if (!m) return null;
   const c = m[2].trim();
   if (!c) return { cmd: "hey" };
-  if (/\b(pausa|para|espera|detente|stop)\b/.test(c)) return { cmd: "pause" };
-  if (/\b(sigue|seguimos|continua|continuar|dale|vamos)\b/.test(c)) return { cmd: "resume" };
+  // Frases específicas, para que una conversación normal que parte con "ok" no active nada.
+  if (/\b(pausa|espera|detente|stop)\b/.test(c)) return { cmd: "pause" };
+  if (/\b(sigue|seguimos|continua|continuar)\b/.test(c)) return { cmd: "resume" };
   if (/\b(repite|repetir|que dijiste)\b/.test(c)) return { cmd: "repeat" };
-  if (/\b(como voy|como vamos|resumen)\b/.test(c)) return { cmd: "summary" };
-  if (/\b(esta mal medido|eso esta mal|no estoy de acuerdo|te equivocaste|equivocado|error|no es cierto)\b/.test(c)) return { cmd: "dispute" };
+  if (/\b(como voy|resumen)\b/.test(c)) return { cmd: "summary" };
+  if (/\b(esta mal medido|eso esta mal|no estoy de acuerdo|te equivocaste|mediste mal)\b/.test(c)) return { cmd: "dispute" };
   if (/\b(que aprendiste|que sabes de mi)\b/.test(c)) return { cmd: "insights" };
-  if (/\b(explica|explicame|por que|como lo hago)\b/.test(c)) return { cmd: "explain" };
+  if (/\b(explica|explicame|como lo hago)\b/.test(c)) return { cmd: "explain" };
   if (/\bfoco\b/.test(c)) {
     if (/automatico|auto/.test(c)) return { cmd: "focus", stage: "auto" };
     if (/cabeza/.test(c)) return { cmd: "focus", stage: 0 };
@@ -524,9 +526,9 @@ export function parseCommand(text) {
     if (/torsion|giro|hombro/.test(c)) return { cmd: "focus", stage: 3 };
     if (/todo/.test(c)) return { cmd: "focus", stage: 4 };
   }
-  if (/\b(siguiente|sube de nivel|siguiente etapa)\b/.test(c)) return { cmd: "nextStage" };
-  if (/\b(mal|malo|mala)\b/.test(c)) return { cmd: "tag", tag: "bad" };
-  if (/\b(bien|bueno|buena|buenisimo)\b/.test(c)) return { cmd: "tag", tag: "good" };
+  if (/\b(siguiente etapa|sube de nivel)\b/.test(c)) return { cmd: "nextStage" };
+  if (/\b(estuvo mal|fue malo|se sintio mal|lo senti mal|ese mal|mal ese|mal swing)\b/.test(c)) return { cmd: "tag", tag: "bad" };
+  if (/\b(estuvo bien|fue bueno|se sintio bien|lo senti bien|ese bien|bien ese|buen swing)\b/.test(c)) return { cmd: "tag", tag: "good" };
   return { cmd: "unknown", text: c };
 }
 
